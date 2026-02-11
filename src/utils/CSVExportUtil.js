@@ -1,0 +1,140 @@
+/**
+ * CSV Export Utility
+ * Provides functions to export data to CSV format with Excel compatibility
+ */
+
+/**
+ * Convert array of objects to CSV string
+ * @param {Array} data - Array of objects to convert
+ * @param {Array} headers - Optional array of header names (if not provided, uses object keys)
+ * @returns {string} CSV formatted string
+ */
+const convertToCSV = (data, headers = null) => {
+    if (!data || data.length === 0) {
+        return '';
+    }
+
+    // Use provided headers or extract from first object
+    const csvHeaders = headers || Object.keys(data[0]);
+
+    // Create header row
+    const headerRow = csvHeaders.map(header => `"${header}"`).join(',');
+
+    // Create data rows
+    const dataRows = data.map(item => {
+        return csvHeaders.map(header => {
+            let value = item[header];
+
+            // Handle nested objects
+            if (typeof value === 'object' && value !== null) {
+                value = JSON.stringify(value);
+            }
+
+            // Handle null/undefined
+            if (value === null || value === undefined) {
+                value = '';
+            }
+
+            // Escape quotes and wrap in quotes
+            return `"${String(value).replace(/"/g, '""')}"`;
+        }).join(',');
+    });
+
+    return [headerRow, ...dataRows].join('\n');
+};
+
+/**
+ * Download CSV file with BOM for Excel compatibility
+ * @param {string} csvContent - CSV formatted string
+ * @param {string} filename - Filename for download
+ */
+const downloadCSV = (csvContent, filename) => {
+    // Add BOM for Excel UTF-8 compatibility
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // Clean up URL
+    URL.revokeObjectURL(url);
+};
+
+/**
+ * Export orders to CSV with customer information
+ * @param {Array} orders - Array of order objects
+ * @param {string} filename - Optional filename (default: orders_export_YYYYMMDD.csv)
+ */
+export const exportOrdersToCSV = (orders, filename = null) => {
+    if (!orders || orders.length === 0) {
+        alert('No orders to export');
+        return;
+    }
+
+    // Flatten order data with customer information
+    const flattenedOrders = orders.map(order => ({
+        'Order ID': order.orderId || order._id,
+        'Date': order.date,
+        'Status': order.status,
+        'Customer Name': order.customer?.name || '',
+        'Customer Phone': order.customer?.phone || '',
+        'Customer Email': order.customer?.email || '',
+        'Customer Address': order.customer?.address || '',
+        'Governorate': order.customer?.governorate || '',
+        'Social Platform': order.customer?.social || '',
+        'Items Count': order.items?.length || 0,
+        'Subtotal': order.subtotal || order.total,
+        'Discount %': order.discount || 0,
+        'Total': order.total,
+        'Notes': order.notes || ''
+    }));
+
+    const csvContent = convertToCSV(flattenedOrders);
+    const defaultFilename = filename || `orders_export_${new Date().toISOString().split('T')[0]}.csv`;
+
+    downloadCSV(csvContent, defaultFilename);
+};
+
+/**
+ * Export customers to CSV
+ * @param {Array} customers - Array of customer objects
+ * @param {string} filename - Optional filename (default: customers_export_YYYYMMDD.csv)
+ */
+export const exportCustomersToCSV = (customers, filename = null) => {
+    if (!customers || customers.length === 0) {
+        alert('No customers to export');
+        return;
+    }
+
+    // Format customer data
+    const formattedCustomers = customers.map(customer => ({
+        'Name': customer.name,
+        'Phone': customer.phone,
+        'Email': customer.email || '',
+        'Address': customer.address || '',
+        'Governorate': customer.governorate || '',
+        'Social Platform': customer.social || '',
+        'Notes': customer.notes || '',
+        'Created On': customer.createdOn || ''
+    }));
+
+    const csvContent = convertToCSV(formattedCustomers);
+    const defaultFilename = filename || `customers_export_${new Date().toISOString().split('T')[0]}.csv`;
+
+    downloadCSV(csvContent, defaultFilename);
+};
+
+export default {
+    convertToCSV,
+    downloadCSV,
+    exportOrdersToCSV,
+    exportCustomersToCSV
+};

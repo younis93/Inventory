@@ -1,0 +1,14 @@
+
+Since I do not have access to run 'npm' or 'node' in this environment, I cannot start the application for you.
+
+Please follow these steps to run the application on your machine:
+
+1.  Open your terminal or command prompt.
+2.  Navigate to the project directory:
+    cd "C:\Users\HP\Desktop\Code APP"
+3.  Install the dependencies:
+    npm install
+4.  Start the development server:
+    npm run dev
+
+Once the server starts, open your browser and go to the URL shown (usually http://localhost:5173).

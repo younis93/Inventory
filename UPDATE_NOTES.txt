@@ -1,0 +1,22 @@
+
+# Major Updates
+
+1.  **Dashboard**:
+    - **Filtering**: Added filters for "Month" and "Product" at the top of the dashboard.
+    - **Currency**: All displays now show in **IQD** format.
+
+2.  **Products**:
+    - **Sorting**: Added clickable sorting to the **Status** column.
+    - **Fields**: Added `Unit Price` field.
+    - **Category**: Now uses a dropdown menu. You can create a **New Category** directly from the dropdown.
+
+3.  **Orders (POS)**:
+    - **Currency**: Transactions are now in IQD.
+    - **Custom Pricing**: You can now **edit the selling price** of any item in the Create Order cart.
+    - **Coupons**: Added a discount dropdown (5% to 50%).
+    - **Rounding**: The Total Price now automatically rounds up to the nearest **500 IQD**.
+    
+4.  **Customers**:
+    - **Editing**: You can now edit existing customer details.
+    - **Fields**: Added `Notes` and `Social Media` fields. `Email` is now optional.
+    - **Order History**: Added a "View Order History" button to see a list of past orders for that customer.
