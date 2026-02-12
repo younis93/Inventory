@@ -63,7 +63,7 @@ const StatusCell = ({ order, onUpdate }) => {
                             key={status}
                             onClick={() => handleSelect(status)}
                             className={`w-full text-left px-3 py-2 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${order.status === status
-                                ? 'text-[var(--brand-color)] bg-slate-50 dark:bg-slate-700/30'
+                                ? 'text-accent bg-slate-50 dark:bg-slate-700/30'
                                 : 'text-slate-600 dark:text-slate-300'
                                 }`}
                         >
@@ -278,6 +278,7 @@ const Orders = () => {
     };
 
     const handleEditOrder = (order) => {
+        setIsViewModalOpen(false); // Close view modal if it's open
         setEditingOrderId(order._id);
         const existingCustomer = customers.find(c => c.name === order.customer.name && c.phone === order.customer.phone);
 
@@ -459,7 +460,7 @@ const Orders = () => {
                 <div className="flex items-center gap-2">
                     {label}
                     {isActive && (
-                        <span className="text-[var(--brand-color)] font-bold">
+                        <span className="text-accent font-bold">
                             {columnSort.direction === 'asc' ? '↑' : '↓'}
                         </span>
                     )}
@@ -477,8 +478,7 @@ const Orders = () => {
                     <div className="flex gap-3 items-center flex-wrap">
                         <button
                             onClick={() => { setIsCreateModalOpen(true); setEditingOrderId(null); setNewOrder({ customerId: 'new', customerName: '', customerPhone: '', customerAddress: '', customerGovernorate: '', customerSocial: '', customerNotes: '', items: [], discount: 0 }); }}
-                            className="flex items-center justify-center gap-2 px-6 py-2.5 text-white rounded-xl font-bold transition-all shadow-lg"
-                            style={{ backgroundColor: brand.color, boxShadow: `0 10px 15px -3px ${brand.color}33` }}
+                            className="flex items-center justify-center gap-2 px-6 py-2.5 text-white rounded-xl font-bold transition-all bg-accent shadow-accent active:scale-95"
                         >
                             <Plus className="w-5 h-5" />
                             <span>Create Order</span>
@@ -529,7 +529,7 @@ const Orders = () => {
                             placeholder="Search orders..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-10 pr-4 py-0 h-full w-full bg-slate-50 dark:bg-slate-900/50 border-2 border-slate-100 dark:border-slate-800 rounded-2xl outline-none focus:border-blue-200 dark:focus:border-blue-800 focus:ring-2 focus:ring-[var(--brand-color)]/20 transition-all font-bold text-sm"
+                            className="pl-10 pr-4 py-0 h-full w-full bg-slate-50 dark:bg-slate-900/50 border-2 border-slate-100 dark:border-slate-800 rounded-2xl outline-none focus:border-accent/30 focus:ring-4 focus:ring-accent/10 transition-all font-bold text-sm"
                         />
                     </div>
 
@@ -683,8 +683,7 @@ const Orders = () => {
                                             type="button"
                                             onClick={handleAddToOrder}
                                             disabled={!selectedProductId || !qty}
-                                            className="h-[52px] px-6 text-white font-black rounded-xl transition-all active:scale-95 shadow-lg disabled:opacity-50"
-                                            style={{ backgroundColor: brand.color, boxShadow: `0 10px 15px -3px ${brand.color}33` }}
+                                            className="h-[52px] px-6 text-white font-black rounded-xl transition-all bg-accent shadow-accent active:scale-95 disabled:opacity-50"
                                         >
                                             <Plus className="w-6 h-6" />
                                         </button>
@@ -754,7 +753,7 @@ const Orders = () => {
                                     </div>
                                     <div className="flex justify-between items-center p-3.5 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-700">
                                         <span className="text-xs font-bold text-slate-500 flex items-center gap-2">
-                                            <Tag className="w-4 h-4 text-indigo-500" /> APPLY DISCOUNT
+                                            <Tag className="w-4 h-4 text-accent" /> APPLY DISCOUNT
                                         </span>
                                         <div className="w-48">
                                             <SearchableSelect
@@ -772,7 +771,7 @@ const Orders = () => {
                                     </div>
                                     <div className="flex justify-between items-center pt-2">
                                         <span className="font-black text-slate-800 dark:text-white uppercase tracking-tighter text-sm">Grand Total (Rounded)</span>
-                                        <span className="font-black text-3xl text-[var(--brand-color)]">{formatCurrency(calculateTotal())}</span>
+                                        <span className="font-black text-3xl text-accent">{formatCurrency(calculateTotal())}</span>
                                     </div>
                                 </div>
                             </div>
@@ -894,7 +893,7 @@ const Orders = () => {
                                     <button
                                         onClick={handleSubmitOrder}
                                         disabled={isSubmitting || newOrder.items.length === 0}
-                                        className="w-full py-4 bg-[var(--brand-color)] text-white rounded-2xl font-black shadow-xl shadow-blue-500/20 active:scale-[0.98] transition-all disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-3"
+                                        className="w-full py-4 bg-accent text-white rounded-2xl font-black shadow-accent active:scale-[0.98] transition-all disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-3"
                                     >
                                         {isSubmitting ? (
                                             <>
@@ -983,7 +982,7 @@ const Orders = () => {
                                         )}
                                         <div className="flex gap-8 text-lg font-bold pt-2">
                                             <span className="text-slate-800 dark:text-white">Total:</span>
-                                            <span className="text-indigo-600">{formatCurrency(viewingOrder.total)}</span>
+                                            <span className="text-accent">{formatCurrency(viewingOrder.total)}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -992,7 +991,7 @@ const Orders = () => {
                                     <button onClick={() => printReceipt(viewingOrder)} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white rounded-lg font-medium transition-colors flex items-center gap-2">
                                         <Printer className="w-4 h-4" /> Print Receipt
                                     </button>
-                                    <button onClick={() => handleEditOrder(viewingOrder)} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2">
+                                    <button onClick={() => handleEditOrder(viewingOrder)} className="px-4 py-2 bg-accent text-white rounded-lg font-medium transition-all shadow-accent hover:brightness-110 active:scale-95 flex items-center gap-2">
                                         <Edit className="w-4 h-4" /> Edit Order
                                     </button>
                                 </div>

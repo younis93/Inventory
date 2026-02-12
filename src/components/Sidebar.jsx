@@ -32,6 +32,7 @@ const Sidebar = () => {
         flex flex-col h-screen 
         transition-all duration-300 ease-in-out
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        glass-panel
     `;
 
     return (
@@ -88,10 +89,9 @@ const Sidebar = () => {
                             onClick={closeMobileMenu}
                             className={`flex items-center gap-3 rounded-xl transition-all duration-200 group relative overflow-hidden ${isSidebarCollapsed ? 'justify-center p-3' : 'px-4 py-3.5'
                                 } ${isActive
-                                    ? 'text-white shadow-lg'
+                                    ? 'text-white shadow-lg bg-accent shadow-accent'
                                     : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 dark:text-slate-400 dark:hover:text-white'
                                 }`}
-                            style={isActive ? { backgroundColor: brand.color, boxShadow: `0 10px 15px -3px ${brand.color}4d` } : {}}
                         >
                             <item.icon className={`w-5 h-5 relative z-10 transition-transform duration-200 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
                             {!isSidebarCollapsed && (
@@ -99,17 +99,14 @@ const Sidebar = () => {
                                     {item.label}
                                 </span>
                             )}
-
-                            {/* Collapse Tooltip Mockup (using title attribute for brevity, or can add a custom one) */}
                         </Link>
                     )
                 })}
             </nav>
 
             {/* Bottom User Section */}
-            <div className={`p-4 mt-auto border-t border-slate-100 dark:border-slate-800/50`}>
-                <div className={`bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 flex items-center shadow-sm ${isSidebarCollapsed ? 'p-2 justify-center' : 'p-4 gap-3'
-                    }`}>
+            <div className="p-4 mt-auto border-t border-slate-100 dark:border-slate-800/50">
+                <div className={`bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 flex items-center shadow-sm glass-panel ${isSidebarCollapsed ? 'p-2 justify-center' : 'p-4 gap-3'}`}>
                     <div className="relative shrink-0 w-10 h-10">
                         <div
                             className="w-full h-full text-white rounded-full flex items-center justify-center font-bold text-lg overflow-hidden"

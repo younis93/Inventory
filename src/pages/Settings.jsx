@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react'; // Added useEffect
 import Layout from '../components/Layout';
-import { Moon, Sun, Monitor, User, Trash2, Plus, CheckCircle, Settings as SettingsIcon, Users, Lock, Edit, Upload, Image as ImageIcon } from 'lucide-react';
+import { Moon, Sun, Monitor, User, Trash2, Plus, CheckCircle, Settings as SettingsIcon, Users, Lock, Edit, Upload, Image as ImageIcon, Sparkles, Droplets, Palette, Layout as LayoutIcon } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 
 const Settings = () => {
-    const { theme, toggleTheme, users, addUser, updateUser, deleteUser, currentUser, updateUserProfile, brand, updateBrand } = useInventory();
+    const { theme, toggleTheme, appearance, setAppearance, users, addUser, updateUser, deleteUser, currentUser, updateUserProfile, brand, updateBrand } = useInventory();
     const [activeTab, setActiveTab] = useState('general');
     const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
     const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
@@ -132,29 +132,31 @@ const Settings = () => {
                     <nav className="space-y-2">
                         <button
                             onClick={() => setActiveTab('general')}
-                            className={`flex items-center gap-3 w-full px-4 py-2 rounded-xl text-left font-medium transition-colors ${activeTab === 'general' ? 'shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}
-                            style={activeTab === 'general' ? { backgroundColor: `${brand.color}15`, color: brand.color } : {}}
+                            className={`flex items-center gap-3 w-full px-4 py-2 rounded-xl text-left font-medium transition-all ${activeTab === 'general' ? 'shadow-sm bg-accent text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}
                         >
                             <SettingsIcon className="w-5 h-5" /> General
                         </button>
                         <button
                             onClick={() => setActiveTab('account')}
-                            className={`flex items-center gap-3 w-full px-4 py-2 rounded-xl text-left font-medium transition-colors ${activeTab === 'account' ? 'shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}
-                            style={activeTab === 'account' ? { backgroundColor: `${brand.color}15`, color: brand.color } : {}}
+                            className={`flex items-center gap-3 w-full px-4 py-2 rounded-xl text-left font-medium transition-all ${activeTab === 'account' ? 'shadow-sm bg-accent text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}
                         >
                             <User className="w-5 h-5" /> Account
                         </button>
                         <button
+                            onClick={() => setActiveTab('appearance')}
+                            className={`flex items-center gap-3 w-full px-4 py-2 rounded-xl text-left font-medium transition-all ${activeTab === 'appearance' ? 'shadow-sm bg-accent text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}
+                        >
+                            <Sparkles className="w-5 h-5" /> Appearance
+                        </button>
+                        <button
                             onClick={() => setActiveTab('users')}
-                            className={`flex items-center gap-3 w-full px-4 py-2 rounded-xl text-left font-medium transition-colors ${activeTab === 'users' ? 'shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}
-                            style={activeTab === 'users' ? { backgroundColor: `${brand.color}15`, color: brand.color } : {}}
+                            className={`flex items-center gap-3 w-full px-4 py-2 rounded-xl text-left font-medium transition-all ${activeTab === 'users' ? 'shadow-sm bg-accent text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}
                         >
                             <Users className="w-5 h-5" /> Users
                         </button>
                         <button
                             onClick={() => setActiveTab('security')}
-                            className={`flex items-center gap-3 w-full px-4 py-2 rounded-xl text-left font-medium transition-colors ${activeTab === 'security' ? 'shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}
-                            style={activeTab === 'security' ? { backgroundColor: `${brand.color}15`, color: brand.color } : {}}
+                            className={`flex items-center gap-3 w-full px-4 py-2 rounded-xl text-left font-medium transition-all ${activeTab === 'security' ? 'shadow-sm bg-accent text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}
                         >
                             <Lock className="w-5 h-5" /> Security
                         </button>
@@ -168,36 +170,8 @@ const Settings = () => {
                             <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-6">General Settings</h2>
 
                             <div className="space-y-6">
-                                {/* Theme Settings */}
-                                <div>
-                                    <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-200 mb-3">Theme</h3>
-                                    <div className="flex space-x-4">
-                                        <button
-                                            onClick={() => toggleTheme('light')}
-                                            className={`flex flex-col items-center p-4 rounded-xl border-2 ${theme === 'light' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20' : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'} transition-all`}
-                                        >
-                                            <Sun className={`w-6 h-6 mb-2 ${theme === 'light' ? 'text-indigo-600' : 'text-slate-500'}`} />
-                                            <span className={`text-sm font-medium ${theme === 'light' ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-600 dark:text-slate-400'}`}>Light</span>
-                                        </button>
-                                        <button
-                                            onClick={() => toggleTheme('dark')}
-                                            className={`flex flex-col items-center p-4 rounded-xl border-2 ${theme === 'dark' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20' : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'} transition-all`}
-                                        >
-                                            <Moon className={`w-6 h-6 mb-2 ${theme === 'dark' ? 'text-indigo-600' : 'text-slate-500'}`} />
-                                            <span className={`text-sm font-medium ${theme === 'dark' ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-600 dark:text-slate-400'}`}>Dark</span>
-                                        </button>
-                                        <button
-                                            onClick={() => toggleTheme('system')}
-                                            className={`flex flex-col items-center p-4 rounded-xl border-2 ${theme === 'system' ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20' : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'} transition-all`}
-                                        >
-                                            <Monitor className={`w-6 h-6 mb-2 ${theme === 'system' ? 'text-indigo-600' : 'text-slate-500'}`} />
-                                            <span className={`text-sm font-medium ${theme === 'system' ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-600 dark:text-slate-400'}`}>System</span>
-                                        </button>
-                                    </div>
-                                </div>
-
                                 {/* Header Visibility toggle */}
-                                <div className="pt-4 border-t border-slate-100 dark:border-slate-700">
+                                <div className="">
                                     <div className="flex items-center justify-between">
                                         <div>
                                             <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Application Header</h3>
@@ -244,19 +218,6 @@ const Settings = () => {
                                         />
                                     </div>
 
-                                    {/* Brand Color */}
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Primary Color</label>
-                                        <div className="flex items-center gap-3">
-                                            <input
-                                                type="color"
-                                                value={brandForm.color}
-                                                onChange={(e) => setBrandForm({ ...brandForm, color: e.target.value })}
-                                                className="w-12 h-12 rounded-xl cursor-pointer border-0 p-0 overflow-hidden"
-                                            />
-                                            <span className="text-slate-500 dark:text-slate-400 font-mono">{brandForm.color}</span>
-                                        </div>
-                                    </div>
 
                                     {/* Logo Upload */}
                                     <div className="md:col-span-2">
@@ -287,6 +248,179 @@ const Settings = () => {
                                                         Remove Logo
                                                     </button>
                                                 )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'appearance' && (
+                        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                            {/* Theme Selection */}
+                            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-8">
+                                <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2">
+                                    <Palette className="w-6 h-6 text-accent" />
+                                    Theme Options
+                                </h2>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                    {[
+                                        { id: 'liquid', name: 'Liquid Glass', icon: Droplets, desc: 'Apple macOS style' },
+                                        { id: 'light', name: 'Pro Light', icon: Sun, desc: 'Clean & minimal' },
+                                        { id: 'dark', name: 'Pro Dark', icon: Moon, desc: 'Deep & elegant' },
+                                        { id: 'default', name: 'Default', icon: Monitor, desc: 'System standard' }
+                                    ].map((t) => (
+                                        <button
+                                            key={t.id}
+                                            onClick={() => setAppearance({ theme: t.id })}
+                                            className={`group relative flex flex-col p-4 rounded-2xl border-2 transition-all text-left ${appearance.theme === t.id ? 'border-accent' : 'border-slate-100 dark:border-slate-700 hover:border-slate-200 dark:hover:border-slate-600'}`}
+                                            style={appearance.theme === t.id ? { backgroundColor: 'color-mix(in srgb, var(--accent-color), transparent 90%)' } : {}}
+                                        >
+                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 transition-colors ${appearance.theme === t.id ? 'bg-accent text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-500'}`}>
+                                                <t.icon className="w-6 h-6" />
+                                            </div>
+                                            <span className="font-bold text-slate-800 dark:text-white">{t.name}</span>
+                                            <span className="text-xs text-slate-500 mt-1">{t.desc}</span>
+                                            {appearance.theme === t.id && (
+                                                <div className="absolute top-3 right-3 text-accent">
+                                                    <CheckCircle className="w-5 h-5 fill-current bg-white dark:bg-slate-800 rounded-full" />
+                                                </div>
+                                            )}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Accent Customization */}
+                            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-8">
+                                <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-6 flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-6 h-6 rounded-full bg-accent" />
+                                        Accent Customization
+                                    </div>
+                                    <div className="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-xl">
+                                        <button
+                                            onClick={() => setAppearance({ accentType: 'solid' })}
+                                            className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${appearance.accentType === 'solid' ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white' : 'text-slate-500'}`}
+                                        >
+                                            Solid
+                                        </button>
+                                        <button
+                                            onClick={() => setAppearance({ accentType: 'gradient' })}
+                                            className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${appearance.accentType === 'gradient' ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white' : 'text-slate-500'}`}
+                                        >
+                                            Gradient
+                                        </button>
+                                    </div>
+                                </h2>
+
+                                <div className="space-y-8">
+                                    {appearance.accentType === 'solid' ? (
+                                        <div className="flex flex-wrap gap-4 items-center">
+                                            {[
+                                                '#1e3a5f', '#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f59e0b', '#10b981', '#06b6d4'
+                                            ].map(color => (
+                                                <button
+                                                    key={color}
+                                                    onClick={() => setAppearance({ accentColor: color })}
+                                                    className={`w-10 h-10 rounded-full border-4 transition-transform hover:scale-110 ${appearance.accentColor === color ? 'border-white dark:border-slate-800 shadow-xl' : 'border-transparent'}`}
+                                                    style={{ backgroundColor: color }}
+                                                />
+                                            ))}
+                                            <div className="h-8 w-[1px] bg-slate-200 dark:bg-slate-700 mx-2" />
+                                            <div className="flex items-center gap-3">
+                                                <div className="relative group">
+                                                    <input
+                                                        type="color"
+                                                        value={appearance.accentColor}
+                                                        onChange={(e) => setAppearance({ accentColor: e.target.value })}
+                                                        className="w-10 h-10 rounded-xl cursor-pointer border-0 p-0 overflow-hidden bg-transparent"
+                                                    />
+                                                    <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap">Custom Color</div>
+                                                </div>
+                                                <span className="font-mono text-sm text-slate-500 uppercase">{appearance.accentColor}</span>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-6">
+                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                                {[
+                                                    { start: '#8B5CF6', end: '#3B82F6', name: 'Royal' },
+                                                    { start: '#F472B6', end: '#FB923C', name: 'Sunset' },
+                                                    { start: '#34D399', end: '#3B82F6', name: 'Aurora' },
+                                                    { start: '#EC4899', end: '#8B5CF6', name: 'Vibrant' }
+                                                ].map((g, idx) => (
+                                                    <button
+                                                        key={idx}
+                                                        onClick={() => setAppearance({ accentGradient: g })}
+                                                        className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${appearance.accentGradient.start === g.start && appearance.accentGradient.end === g.end ? 'border-accent' : 'border-slate-100 dark:border-slate-700 hover:border-slate-200'}`}
+                                                        style={appearance.accentGradient.start === g.start && appearance.accentGradient.end === g.end ? { backgroundColor: 'color-mix(in srgb, var(--accent-color), transparent 90%)' } : {}}
+                                                    >
+                                                        <div className="w-10 h-10 rounded-lg" style={{ background: `linear-gradient(135deg, ${g.start}, ${g.end})` }} />
+                                                        <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{g.name}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+
+                                            <div className="pt-6 border-t border-slate-100 dark:border-slate-700">
+                                                <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-4">Custom Dual Colors</p>
+                                                <div className="flex items-center gap-8">
+                                                    <div className="flex items-center gap-3">
+                                                        <input
+                                                            type="color"
+                                                            value={appearance.accentGradient.start}
+                                                            onChange={(e) => setAppearance({ accentGradient: { ...appearance.accentGradient, start: e.target.value } })}
+                                                            className="w-10 h-10 rounded-full cursor-pointer border-4 border-white dark:border-slate-800 shadow-lg p-0 overflow-hidden bg-transparent"
+                                                        />
+                                                        <div className="flex flex-col">
+                                                            <span className="text-[10px] uppercase text-slate-400 font-bold tracking-wider">Start</span>
+                                                            <span className="font-mono text-xs text-slate-600 dark:text-slate-400">{appearance.accentGradient.start.toUpperCase()}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="w-8 h-0.5 bg-slate-200 dark:bg-slate-700 rounded-full" />
+                                                    <div className="flex items-center gap-3">
+                                                        <input
+                                                            type="color"
+                                                            value={appearance.accentGradient.end}
+                                                            onChange={(e) => setAppearance({ accentGradient: { ...appearance.accentGradient, end: e.target.value } })}
+                                                            className="w-10 h-10 rounded-full cursor-pointer border-4 border-white dark:border-slate-800 shadow-lg p-0 overflow-hidden bg-transparent"
+                                                        />
+                                                        <div className="flex flex-col">
+                                                            <span className="text-[10px] uppercase text-slate-400 font-bold tracking-wider">End</span>
+                                                            <span className="font-mono text-xs text-slate-600 dark:text-slate-400">{appearance.accentGradient.end.toUpperCase()}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Live Preview Card */}
+                            <div className="bg-slate-100 dark:bg-slate-900 rounded-2xl p-8 flex flex-col items-center justify-center min-h-[300px] border border-slate-200 dark:border-slate-800">
+                                <p className="text-sm font-bold text-slate-500 mb-8 tracking-widest uppercase">Live Preview</p>
+                                <div className={`w-full max-w-sm p-8 rounded-2xl transition-all glass-panel ${appearance.theme === 'liquid' ? '' : 'bg-white dark:bg-slate-800 shadow-xl'}`}>
+                                    <div className="flex items-center gap-3 mb-6">
+                                        <div className="w-10 h-10 rounded-full bg-accent animate-pulse" />
+                                        <div className="space-y-2 flex-1">
+                                            <div className="h-3 w-2/3 bg-slate-200 dark:bg-slate-700 rounded-full" />
+                                            <div className="h-2 w-1/3 bg-slate-100 dark:bg-slate-700/50 rounded-full" />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-4">
+                                        <div className="h-20 w-full bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-700 flex items-center justify-center">
+                                            <span className="text-xs text-slate-400 italic">Content Layout Example</span>
+                                        </div>
+                                        <button className="w-full py-3 rounded-xl text-white font-bold bg-accent shadow-accent transition-transform active:scale-[0.98]">
+                                            Primary Button
+                                        </button>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Toggle Switch</span>
+                                            <div className="w-10 h-5 bg-accent rounded-full relative">
+                                                <div className="absolute right-1 top-1 w-3 h-3 bg-white rounded-full" />
                                             </div>
                                         </div>
                                     </div>
@@ -328,7 +462,7 @@ const Settings = () => {
                                         value={displayName}
                                         onChange={(e) => setDisplayName(e.target.value)}
                                         disabled={!isEditingProfile}
-                                        className="w-full p-3 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all disabled:bg-slate-100 dark:disabled:bg-slate-700 disabled:text-slate-500 dark:disabled:text-slate-400"
+                                        className="w-full p-3 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all disabled:bg-slate-100 dark:disabled:bg-slate-700 disabled:text-slate-500 dark:disabled:text-slate-400"
                                     />
                                 </div>
                                 <div>
@@ -419,7 +553,7 @@ const Settings = () => {
                                                     <div className="flex items-center justify-end gap-2">
                                                         <button
                                                             onClick={() => handleOpenEditUser(user)}
-                                                            className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors"
+                                                            className="text-accent hover:brightness-110 transition-colors"
                                                         >
                                                             <Edit className="w-4 h-4" />
                                                         </button>
@@ -448,7 +582,7 @@ const Settings = () => {
                                     <p className="text-slate-600 dark:text-slate-400 mb-4">Change your account password.</p>
                                     <button
                                         onClick={() => setIsChangePasswordOpen(true)}
-                                        className="px-6 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-600/30 transition-all"
+                                        className="px-6 py-3 bg-accent text-white font-bold rounded-xl shadow-accent hover:brightness-110 transition-all"
                                     >
                                         Change Password
                                     </button>

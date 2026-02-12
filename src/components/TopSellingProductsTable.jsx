@@ -46,7 +46,7 @@ const TopSellingProductsTable = ({ products, orders, formatCurrency }) => {
     return (
         <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
             <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2">
-                <Package className="w-5 h-5 text-indigo-500" /> Top Selling Products
+                <Package className="w-5 h-5 text-accent" /> Top Selling Products
             </h3>
 
             <div className="overflow-x-auto">
@@ -61,31 +61,37 @@ const TopSellingProductsTable = ({ products, orders, formatCurrency }) => {
                     </thead>
                     <tbody className="text-sm">
                         {productSales.filter(p => p.orderCount > 0).map((product) => (
-                            <React.Fragment key={product.id}>
+                            <React.Fragment key={product._id}>
                                 <tr
-                                    onClick={() => toggleExpand(product.id)}
-                                    className={`group cursor-pointer transition-colors border-b border-slate-50 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/50 ${expandedProductId === product.id ? 'bg-slate-50 dark:bg-slate-800' : ''}`}
+                                    onClick={() => toggleExpand(product._id)}
+                                    className={`group cursor-pointer transition-colors border-b border-slate-50 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/50 ${expandedProductId === product._id ? 'bg-slate-50 dark:bg-slate-800' : ''}`}
                                 >
                                     <td className="py-4 pl-2 font-bold text-slate-700 dark:text-slate-200 flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-700 overflow-hidden shrink-0">
+                                        <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-700 overflow-hidden shrink-0">
                                             <img src={product.images?.[0] || 'https://via.placeholder.com/40'} alt={product.name || 'Product image'} className="w-full h-full object-cover" />
                                         </div>
                                         {product.name}
                                     </td>
                                     <td className="py-4 text-center text-slate-600 dark:text-slate-300">
-                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300">
+                                        <span
+                                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-black transition-all"
+                                            style={{
+                                                backgroundColor: `color-mix(in srgb, var(--accent-color), transparent 90%)`,
+                                                color: `var(--accent-color)`
+                                            }}
+                                        >
                                             {product.orderCount} Orders
                                         </span>
                                     </td>
                                     <td className="py-4 text-right pr-2 font-bold text-slate-800 dark:text-white">
                                         {formatCurrency(product.totalSales)}
                                     </td>
-                                    <td className="py-4 text-center text-slate-400 group-hover:text-indigo-500">
-                                        {expandedProductId === product.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                                    <td className="py-4 text-center text-slate-400 group-hover:text-accent">
+                                        {expandedProductId === product._id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                                     </td>
                                 </tr>
                                 {/* Expanded Details */}
-                                {expandedProductId === product.id && (
+                                {expandedProductId === product._id && (
                                     <tr>
                                         <td colSpan="4" className="bg-slate-50/50 dark:bg-slate-900/30 p-4">
                                             <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden">

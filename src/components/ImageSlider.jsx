@@ -112,7 +112,7 @@ const ImageSlider = ({
                     {onDownload && (
                         <button
                             onClick={(e) => { e.stopPropagation(); onDownload(); }}
-                            className="p-2.5 bg-white/90 dark:bg-slate-800/90 rounded-xl shadow-md text-slate-600 dark:text-slate-300 hover:text-indigo-600 transition-colors backdrop-blur-sm"
+                            className="p-2.5 bg-white/90 dark:bg-slate-800/90 rounded-xl shadow-md text-slate-600 dark:text-slate-300 hover:text-accent transition-colors backdrop-blur-sm"
                             title="Download Image"
                         >
                             <Download className="w-5 h-5" />
@@ -133,8 +133,8 @@ const ImageSlider = ({
                         <button
                             onClick={() => onChange(idx)}
                             className={`w-16 h-16 rounded-xl overflow-hidden border-2 transition-all ${currentIndex === idx
-                                    ? 'border-indigo-600 ring-2 ring-indigo-200 dark:ring-indigo-900/50 scale-105'
-                                    : 'border-transparent hover:border-slate-300 dark:hover:border-slate-600'
+                                ? 'border-accent ring-2 ring-accent/20 dark:ring-accent/40 scale-105'
+                                : 'border-transparent hover:border-slate-300 dark:hover:border-slate-600'
                                 }`}
                         >
                             <img

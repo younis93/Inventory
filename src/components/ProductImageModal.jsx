@@ -116,7 +116,7 @@ const ProductImageModal = ({ product, onClose, onSave, onUpload }) => {
                         <div className="text-xs font-bold text-slate-500 uppercase tracking-widest">
                             {images.length} Product Images
                         </div>
-                        <label className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200 hover:text-indigo-600 hover:border-indigo-600 cursor-pointer transition-all shadow-sm active:scale-95">
+                        <label className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200 hover:text-accent hover:border-accent cursor-pointer transition-all shadow-sm active:scale-95">
                             <Upload className="w-4 h-4" />
                             <span>Add Photo</span>
                             <input type="file" multiple accept="image/*" className="hidden" onChange={handleFileChange} />
@@ -127,7 +127,7 @@ const ProductImageModal = ({ product, onClose, onSave, onUpload }) => {
                 {/* Right: Product Details & Edit */}
                 <div className="w-full md:w-1/3 p-6 flex flex-col h-full bg-white dark:bg-slate-800 border-l border-slate-100 dark:border-slate-700 overflow-y-auto">
                     <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2">
-                        <ImageIcon className="w-5 h-5 text-indigo-500" />
+                        <ImageIcon className="w-5 h-5 text-accent" />
                         Product Details
                     </h3>
 
@@ -138,7 +138,7 @@ const ProductImageModal = ({ product, onClose, onSave, onUpload }) => {
                                 type="text"
                                 value={editedTitle}
                                 onChange={(e) => setEditedTitle(e.target.value)}
-                                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-slate-800 dark:text-white focus:ring-2 focus:ring-accent outline-none transition-all"
                                 placeholder="Enter product title"
                             />
                         </div>
@@ -148,7 +148,7 @@ const ProductImageModal = ({ product, onClose, onSave, onUpload }) => {
                             <textarea
                                 value={editedDescription}
                                 onChange={(e) => setEditedDescription(e.target.value)}
-                                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none transition-all resize-none h-32"
+                                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 focus:ring-2 focus:ring-accent outline-none transition-all resize-none h-32"
                                 placeholder="Enter product description..."
                             />
                         </div>
@@ -160,7 +160,7 @@ const ProductImageModal = ({ product, onClose, onSave, onUpload }) => {
                             </div>
                             <div className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
                                 <span className="block text-[10px] font-bold text-slate-400 uppercase">Category</span>
-                                <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400">{product.category || 'Uncategorized'}</span>
+                                <span className="text-sm font-bold text-accent">{product.category || 'Uncategorized'}</span>
                             </div>
                         </div>
                     </div>
@@ -169,7 +169,7 @@ const ProductImageModal = ({ product, onClose, onSave, onUpload }) => {
                         <button
                             onClick={handleSave}
                             disabled={isSaving || !editedTitle.trim()}
-                            className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-200 dark:shadow-none transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
+                            className="w-full py-3.5 bg-accent text-white font-bold rounded-xl shadow-accent transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
                         >
                             {isSaving ? (
                                 <>

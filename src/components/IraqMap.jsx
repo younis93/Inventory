@@ -7,7 +7,7 @@ import { useInventory } from '../context/InventoryContext';
 const GEO_URL = "https://raw.githubusercontent.com/deldar-h/iraq-governorates-geojson/master/Iraq_Governorates.json";
 
 const IraqMap = ({ data, selectedGovernorates = [], onSelect }) => {
-    const { theme } = useInventory();
+    const { theme, brand } = useInventory();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
 
@@ -30,7 +30,7 @@ const IraqMap = ({ data, selectedGovernorates = [], onSelect }) => {
     // Color scale for positive counts (from low -> high). Zero counts will use a separate color.
     const colorScale = scaleLinear()
         .domain([minPositive || 1, maxValue || (minPositive || 1)])
-        .range(["#93c5fd", "#4338ca"]); // light blue -> deep indigo
+        .range([`${brand.color}40`, brand.color]); // Using brand color variations
 
     const zeroColor = theme === 'dark' ? "#0f172a" : "#f1f5f9";
 
@@ -148,7 +148,7 @@ const IraqMap = ({ data, selectedGovernorates = [], onSelect }) => {
             {/* Legend / Overlay */}
             <div className="absolute bottom-4 right-4 bg-white/90 dark:bg-slate-800/90 backdrop-blur p-3 rounded-xl shadow-lg border border-slate-100 dark:border-slate-700 text-xs text-slate-500 dark:text-slate-400 z-20 pointer-events-none">
                 <div className="flex items-center gap-2 mb-1">
-                    <span className="w-3 h-3 bg-[#4338ca] rounded-sm"></span> High Order Volume
+                    <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: brand.color }}></span> High Order Volume
                 </div>
                 <div className="flex items-center gap-2 mb-1">
                     <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: theme === 'dark' ? "#1E293B" : "#E0E7FF" }}></span> Low Order Volume

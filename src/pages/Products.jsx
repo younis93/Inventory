@@ -317,8 +317,7 @@ const Products = () => {
                     <div className="flex gap-3 items-center flex-wrap">
                         <button
                             onClick={openAddModal}
-                            className="flex items-center gap-2 px-6 py-2.5 text-white rounded-xl font-bold transition-all shadow-lg hover:brightness-110 active:scale-95"
-                            style={{ backgroundColor: brand.color, boxShadow: `0 10px 15px -3px ${brand.color}33` }}
+                            className="flex items-center gap-2 px-6 py-2.5 text-white rounded-xl font-bold transition-all bg-accent shadow-accent hover:brightness-110 active:scale-95"
                         >
                             <Plus className="w-5 h-5" />
                             <span>Add Product</span>
@@ -676,8 +675,7 @@ const Products = () => {
                             <div className="pt-6 border-t border-slate-100 dark:border-slate-700 flex justify-end gap-3 sticky bottom-0 bg-white dark:bg-slate-800 pb-2">
                                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-6 py-2.5 text-slate-500 dark:text-slate-400 font-bold hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl transition-all">Cancel</button>
                                 <button type="submit"
-                                    className="px-8 py-2.5 text-white font-black rounded-xl transition-all shadow-xl active:scale-95 flex items-center gap-2"
-                                    style={{ backgroundColor: brand.color, boxShadow: `0 10px 15px -3px ${brand.color}33` }}
+                                    className="px-8 py-2.5 text-white font-black rounded-xl transition-all bg-accent shadow-accent active:scale-95 flex items-center gap-2"
                                 >
                                     <Save className="w-5 h-5" />
                                     {editingProduct ? 'Update Product' : 'Create Product'}

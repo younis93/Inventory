@@ -7,7 +7,7 @@ const Layout = ({ children, title }) => {
     const { isSidebarCollapsed, isMobileMenuOpen, closeMobileMenu, brand } = useInventory();
 
     return (
-        <div className="flex h-screen bg-slate-50 dark:bg-slate-950 font-sans transition-colors duration-300" style={{ '--brand-color': brand.color }}>
+        <div className="flex h-screen bg-transparent font-sans transition-colors duration-300">
             {/* Mobile Overlay */}
             {isMobileMenuOpen && (
                 <div

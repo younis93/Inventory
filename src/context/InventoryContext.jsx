@@ -13,6 +13,61 @@ export const InventoryProvider = ({ children }) => {
         return localStorage.getItem('isSidebarCollapsed') === 'true';
     });
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [appearance, setAppearance] = useState(() => {
+        const saved = localStorage.getItem('appearance');
+        return saved ? JSON.parse(saved) : {
+            theme: 'default',
+            accentType: 'solid',
+            accentColor: '#1e3a5f',
+            accentGradient: { start: '#8B5CF6', end: '#3B82F6' }
+        };
+    });
+
+    // Sync appearance with CSS variables and theme classes
+    useEffect(() => {
+        const root = document.documentElement;
+
+        // Handle Theme Classes
+        root.classList.remove('theme-liquid', 'theme-light', 'theme-dark');
+        if (appearance.theme !== 'default') {
+            root.classList.add(`theme-${appearance.theme}`);
+        }
+
+        // Handle Accent Variables (Inject both for compatibility)
+        let primaryColor = appearance.accentColor;
+        let secondaryColor = appearance.accentColor;
+
+        if (appearance.accentType === 'solid') {
+            root.style.setProperty('--accent-color', appearance.accentColor);
+            root.style.setProperty('--accent-gradient', appearance.accentColor);
+        } else {
+            const { start, end } = appearance.accentGradient;
+            primaryColor = start;
+            secondaryColor = end;
+            root.style.setProperty('--accent-color', start);
+            root.style.setProperty('--accent-gradient', `linear-gradient(135deg, ${start} 0%, ${end} 100%)`);
+        }
+
+        // Compatibility variables
+        root.style.setProperty('--brand-color', primaryColor);
+        setBrand(prev => ({ ...prev, color: primaryColor }));
+
+        // Liquid Glass specific variables
+        if (appearance.theme === 'liquid') {
+            root.style.setProperty('--glass-tint', `${primaryColor}15`);
+        }
+
+        // Sync with core dark/light mode
+        if (appearance.theme === 'dark') {
+            setTheme('dark');
+        } else if (appearance.theme === 'light') {
+            setTheme('light');
+        } else if (appearance.theme === 'default') {
+            // Respect existing 'theme' state or system
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            setTheme(savedTheme);
+        }
+    }, [appearance]);
 
     // --- Data State ---
     const [products, setProducts] = useState([]);
@@ -274,6 +329,14 @@ export const InventoryProvider = ({ children }) => {
             loading,
             theme, toggleTheme,
             brand, updateBrand,
+            appearance,
+            setAppearance: (newAppearance) => {
+                setAppearance(prev => {
+                    const updated = { ...prev, ...newAppearance };
+                    localStorage.setItem('appearance', JSON.stringify(updated));
+                    return updated;
+                });
+            },
             currentUser, updateUserProfile,
             formatCurrency,
             isSidebarCollapsed, toggleSidebar,

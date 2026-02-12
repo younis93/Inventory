@@ -15,7 +15,7 @@ const TopRegionsList = ({ regions, selectedRegion, onSelect }) => {
     return (
         <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 h-full flex flex-col">
             <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2">
-                <MapPin className="w-5 h-5 text-indigo-500" /> Top Regions
+                <MapPin className="w-5 h-5 text-accent" /> Top Regions
             </h3>
 
             <div className="space-y-4 flex-1 overflow-y-auto custom-scrollbar pr-2">
@@ -26,21 +26,27 @@ const TopRegionsList = ({ regions, selectedRegion, onSelect }) => {
                             key={region.name}
                             onClick={() => handleRegionClick(region.name)}
                             className={`flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all hover:translate-x-1 ${isSelected
-                                ? 'bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-700'
+                                ? 'bg-accent text-white shadow-accent'
                                 : 'bg-slate-50 dark:bg-slate-700/30 border border-transparent hover:bg-slate-100 dark:hover:bg-slate-700'
                                 }`}
                         >
                             <div className="flex items-center gap-4">
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${index === 0 ? 'bg-amber-100 text-amber-600' :
-                                    index === 1 ? 'bg-slate-200 text-slate-600' :
-                                        index === 2 ? 'bg-orange-100 text-orange-600' :
-                                            'bg-indigo-100 text-indigo-600'
-                                    }`}>
+                                <div
+                                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-black transition-all ${index === 0 ? 'bg-amber-100 text-amber-600' :
+                                            index === 1 ? 'bg-slate-200 text-slate-600' :
+                                                index === 2 ? 'bg-orange-100 text-orange-600' :
+                                                    ''
+                                        }`}
+                                    style={index > 2 ? {
+                                        backgroundColor: `color-mix(in srgb, var(--accent-color), transparent 90%)`,
+                                        color: `var(--accent-color)`
+                                    } : {}}
+                                >
                                     {index + 1}
                                 </div>
-                                <span className="font-bold text-slate-700 dark:text-slate-300">{region.name}</span>
+                                <span className={`font-bold transition-colors ${isSelected ? 'text-white' : 'text-slate-700 dark:text-slate-300'}`}>{region.name}</span>
                             </div>
-                            <span className="font-black text-slate-800 dark:text-white">{region.count}</span>
+                            <span className={`font-black transition-colors ${isSelected ? 'text-white' : 'text-slate-800 dark:text-white'}`}>{region.count}</span>
                         </div>
                     );
                 })}

@@ -70,7 +70,7 @@ const ProductPicture = () => {
             <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-8">
                 <div>
                     <h2 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                        <ImageIcon className="w-6 h-6 text-indigo-500" />
+                        <ImageIcon className="w-6 h-6 text-accent" />
                         Product Gallery
                     </h2>
                     <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
@@ -86,14 +86,14 @@ const ProductPicture = () => {
                         placeholder="Search products..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                        className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium focus:ring-2 focus:ring-accent outline-none transition-all"
                     />
                 </div>
             </div>
 
             {loading ? (
                 <div className="flex items-center justify-center h-64">
-                    <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                    <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin"></div>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -106,7 +106,7 @@ const ProductPicture = () => {
                             <div
                                 key={product.id || product._id}
                                 onClick={() => handleProductClick(product)}
-                                className="group bg-white dark:bg-slate-800 rounded-3xl p-3 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer border border-transparent hover:border-indigo-100 dark:hover:border-slate-700"
+                                className="group bg-white dark:bg-slate-800 rounded-3xl p-3 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer border border-transparent hover:border-accent"
                             >
                                 {/* Image Area */}
                                 <div className="aspect-[4/5] w-full rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-900 relative">
@@ -129,7 +129,7 @@ const ProductPicture = () => {
 
                                 {/* Content */}
                                 <div className="mt-4 px-1">
-                                    <h3 className="font-bold text-slate-800 dark:text-white truncate text-base mb-1 group-hover:text-indigo-600 transition-colors">
+                                    <h3 className="font-bold text-slate-800 dark:text-white truncate text-base mb-1 group-hover:text-accent transition-colors">
                                         {product.name}
                                     </h3>
                                     <div className="flex items-center justify-between">

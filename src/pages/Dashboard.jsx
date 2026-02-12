@@ -262,7 +262,7 @@ const Dashboard = () => {
             <div className="space-y-6">
                 {/* KPI Cards */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-3xl p-6 text-white shadow-lg shadow-indigo-200 dark:shadow-none">
+                    <div className="bg-accent rounded-3xl p-6 text-white shadow-accent">
                         <div className="flex justify-between items-start mb-4 opacity-80">
                             <span className="font-bold text-xs uppercase tracking-widest">Total Revenue</span>
                             <DollarSign className="w-5 h-5" />
