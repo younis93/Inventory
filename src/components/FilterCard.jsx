@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { X, Check, Search } from 'lucide-react';
+import { X, Check, Search, ChevronDown, ChevronUp } from 'lucide-react';
 
-const FilterCard = ({ title, options, selectedValues, onChange, onClear, showProductCount = false, productCount = 0 }) => {
+const FilterCard = ({ title, options, selectedValues, onChange, onClear, showProductCount = false, productCount = 0, showSearch = true, collapsible = false }) => {
     const [searchTerm, setSearchTerm] = useState('');
+    const [isOpen, setIsOpen] = useState(!collapsible);
 
     const handleToggle = (value) => {
         const newSelection = selectedValues.includes(value)
@@ -12,13 +13,13 @@ const FilterCard = ({ title, options, selectedValues, onChange, onClear, showPro
     };
 
     // Filter options based on search term (only if search is shown)
-    const filteredOptions = showProductCount ? options : options.filter(option =>
+    const filteredOptions = !showSearch ? options : (showProductCount ? options : options.filter(option =>
         option.label.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    ));
 
     return (
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.1)] border border-slate-100 dark:border-slate-700 overflow-hidden flex flex-col w-full min-w-[240px]">
-            {/* Show product count OR title header */}
+            {/* Show product count OR title header (clickable when collapsible) */}
             {showProductCount ? (
                 <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700">
                     <span className="text-sm font-bold text-slate-600 dark:text-slate-400">
@@ -26,13 +27,23 @@ const FilterCard = ({ title, options, selectedValues, onChange, onClear, showPro
                     </span>
                 </div>
             ) : (
-                <div className="px-4 py-4 pb-2">
-                    <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">{title}</h3>
-                </div>
+                // Only render header if a title is provided
+                (title && title.length > 0) ? (
+                    <div className="px-4 py-3 pb-2 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">{title}</h3>
+                        </div>
+                        {collapsible && (
+                            <button onClick={() => setIsOpen(!isOpen)} className="p-1 rounded-full text-slate-400 hover:text-slate-600">
+                                {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                            </button>
+                        )}
+                    </div>
+                ) : null
             )}
 
-            {/* Search Input - only show if NOT in product count mode */}
-            {!showProductCount && (
+            {/* Search Input - only show if NOT in product count mode and showSearch is true */}
+            {!showProductCount && showSearch && isOpen && (
                 <div className="px-3 pb-2">
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -47,7 +58,7 @@ const FilterCard = ({ title, options, selectedValues, onChange, onClear, showPro
                 </div>
             )}
 
-            <div className="flex-1 px-2 pb-2 space-y-1 max-h-64 overflow-y-auto">
+            <div className={`flex-1 px-2 pb-2 space-y-1 max-h-64 overflow-y-auto ${!isOpen ? 'hidden' : ''}`}>
                 {filteredOptions.map((option) => {
                     const isSelected = selectedValues.includes(option.value);
                     return (

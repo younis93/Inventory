@@ -139,7 +139,7 @@ const ImageSlider = ({
                         >
                             <img
                                 src={typeof img === 'string' ? img : img.url}
-                                alt=""
+                                alt={`Thumbnail ${idx + 1} of ${images.length}`}
                                 className="w-full h-full object-cover"
                             />
                         </button>

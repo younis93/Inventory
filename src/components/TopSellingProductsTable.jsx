@@ -7,9 +7,10 @@ const TopSellingProductsTable = ({ products, orders, formatCurrency }) => {
     const productSales = React.useMemo(() => {
         const salesMap = {}; // { productId: { ...product, totalSales: 0, orderCount: 0, distinctOrders: [] } }
 
-        // Initialize with all products
+        // Initialize with all products (use _id if present)
         products.forEach(p => {
-            salesMap[p.id] = { ...p, totalSales: 0, orderCount: 0, distinctOrders: [] };
+            const pid = p._id || p.id || p.id_str || p.sku || p.name;
+            salesMap[pid] = { ...p, _id: pid, totalSales: 0, orderCount: 0, distinctOrders: [] };
         });
 
         // Iterate orders
@@ -21,9 +22,9 @@ const TopSellingProductsTable = ({ products, orders, formatCurrency }) => {
                     salesMap[productId].totalSales += (item.price * item.quantity);
                     salesMap[productId].orderCount += item.quantity;
                     salesMap[productId].distinctOrders.push({
-                        id: order.id,
-                        customer: order.customer.name,
-                        date: order.date, // assuming ISO string or readable format
+                        id: order._id || order.id,
+                        customer: order.customer?.name || (order.customer || ''),
+                        date: order.date || order.createdAt || order.updatedAt,
                         quantity: item.quantity,
                         total: item.price * item.quantity
                     });
@@ -33,7 +34,7 @@ const TopSellingProductsTable = ({ products, orders, formatCurrency }) => {
 
         return Object.values(salesMap)
             .sort((a, b) => b.orderCount - a.orderCount)
-            .slice(0, 50); // Show top 50, or maybe just top 10? User said "Top Selling Products", let's limit generally.
+            .slice(0, 10); // Limit to top 10 products
     }, [products, orders]);
 
     const [expandedProductId, setExpandedProductId] = useState(null);
@@ -66,8 +67,8 @@ const TopSellingProductsTable = ({ products, orders, formatCurrency }) => {
                                     className={`group cursor-pointer transition-colors border-b border-slate-50 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/50 ${expandedProductId === product.id ? 'bg-slate-50 dark:bg-slate-800' : ''}`}
                                 >
                                     <td className="py-4 pl-2 font-bold text-slate-700 dark:text-slate-200 flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-700 overflow-hidden shrink-0">
-                                            <img src={product.images?.[0] || 'https://via.placeholder.com/40'} alt="" className="w-full h-full object-cover" />
+                                            <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-700 overflow-hidden shrink-0">
+                                            <img src={product.images?.[0] || 'https://via.placeholder.com/40'} alt={product.name || 'Product image'} className="w-full h-full object-cover" />
                                         </div>
                                         {product.name}
                                     </td>

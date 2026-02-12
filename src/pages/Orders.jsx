@@ -1,12 +1,15 @@
 import React, { useState, useMemo } from 'react';
 import Layout from '../components/Layout';
-import { Search, Plus, Printer, Trash2, X, Tag, Filter, Eye, Edit, ShoppingBag, Download } from 'lucide-react';
+import { Search, Plus, Printer, Trash2, X, Tag, Filter, Eye, Edit, ShoppingBag, Download, MapPin, Globe } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 import { GOVERNORATES, SOCIAL_PLATFORMS } from '../constants/iraq';
 import DateRangePicker from '../components/DateRangePicker';
 import FilterDropdown from '../components/FilterDropdown';
+import SortDropdown from '../components/SortDropdown';
 import { isWithinInterval, parseISO, startOfMonth, endOfMonth, subDays } from 'date-fns';
 import { exportOrdersToCSV } from '../utils/CSVExportUtil';
+import SearchableSelect from '../components/SearchableSelect';
+import { User, MapPin as MapPinIcon, Globe as GlobeIcon, Package } from 'lucide-react';
 
 // StatusCell component for inline status editing
 const StatusCell = ({ order, onUpdate }) => {
@@ -92,6 +95,9 @@ const Orders = () => {
     const [filterStatuses, setFilterStatuses] = useState([]);
     const [sortBy, setSortBy] = useState('date-new');
 
+    // Column sorting state
+    const [columnSort, setColumnSort] = useState({ column: 'date', direction: 'desc' });
+
     // Calculate Counts for Filters
     const governorateOptions = useMemo(() => {
         const counts = {};
@@ -127,11 +133,11 @@ const Orders = () => {
         }));
     }, [orders]);
 
-    // Create Order State (unchanged)
     const [newOrder, setNewOrder] = useState({
         customerId: 'new',
         customerName: '',
         customerPhone: '',
+        customerGender: '',
         customerAddress: '',
         customerGovernorate: '',
         customerSocial: '',
@@ -147,8 +153,10 @@ const Orders = () => {
     // Filtered lists
     const filteredAndSortedOrders = useMemo(() => {
         let result = orders.filter(o => {
-            const matchesSearch = o.orderId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                o.customer.name.toLowerCase().includes(searchTerm.toLowerCase());
+            const search = searchTerm.toLowerCase();
+            const matchesSearch =
+                o.orderId.toLowerCase().includes(search) ||
+                o.customer.name.toLowerCase().includes(search);
 
             const orderDate = parseISO(o.date);
             const matchesDate = !dateRange?.from || !dateRange?.to ||
@@ -161,15 +169,34 @@ const Orders = () => {
             return matchesSearch && matchesDate && matchesGov && matchesSocial && matchesStatus;
         });
 
+        // Apply sorting - use columnSort primarily
         return result.sort((a, b) => {
-            if (sortBy === 'date-new') return new Date(b.date) - new Date(a.date); // Mock date sort
-            if (sortBy === 'date-old') return new Date(a.date) - new Date(b.date);
-            if (sortBy === 'total-high') return b.total - a.total;
-            if (sortBy === 'total-low') return a.total - b.total;
-            if (sortBy === 'name-asc') return a.customer.name.localeCompare(b.customer.name);
-            return 0;
+            let compareResult = 0;
+
+            if (columnSort.column === 'orderId') {
+                compareResult = a.orderId.localeCompare(b.orderId);
+            } else if (columnSort.column === 'customer') {
+                compareResult = a.customer.name.localeCompare(b.customer.name);
+            } else if (columnSort.column === 'date') {
+                compareResult = new Date(a.date) - new Date(b.date);
+            } else if (columnSort.column === 'total') {
+                compareResult = a.total - b.total;
+            } else if (columnSort.column === 'status') {
+                compareResult = a.status.localeCompare(b.status);
+            }
+
+            return columnSort.direction === 'asc' ? compareResult : -compareResult;
         });
-    }, [orders, searchTerm, filterGovernorates, filterSocials, filterStatuses, sortBy, dateRange]);
+    }, [orders, searchTerm, filterGovernorates, filterSocials, filterStatuses, sortBy, dateRange, columnSort]);
+
+    const handleSortChange = (val) => {
+        setSortBy(val);
+        if (val === 'date-new') setColumnSort({ column: 'date', direction: 'desc' });
+        else if (val === 'date-old') setColumnSort({ column: 'date', direction: 'asc' });
+        else if (val === 'total-high') setColumnSort({ column: 'total', direction: 'desc' });
+        else if (val === 'total-low') setColumnSort({ column: 'total', direction: 'asc' });
+        else if (val === 'name-asc') setColumnSort({ column: 'customer', direction: 'asc' });
+    };
 
     // Handlers
     const handleAddToOrder = () => {
@@ -205,6 +232,12 @@ const Orders = () => {
         setNewOrder(prev => ({ ...prev, items: updatedItems }));
     };
 
+    const handleQtyChange = (index, newQty) => {
+        const updatedItems = [...newOrder.items];
+        updatedItems[index].quantity = parseInt(newQty || 0);
+        setNewOrder(prev => ({ ...prev, items: updatedItems }));
+    };
+
     const calculateSubtotal = (items) => {
         return items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
     };
@@ -220,14 +253,13 @@ const Orders = () => {
         return total;
     };
 
-    const handleCustomerSelect = (e) => {
-        const id = e.target.value;
+    const handleCustomerSelectValue = (id) => {
         setNewOrder(prev => ({ ...prev, customerId: id }));
 
         if (id === 'new') {
             setNewOrder(prev => ({
                 ...prev,
-                customerName: '', customerPhone: '', customerAddress: '', customerGovernorate: '', customerSocial: ''
+                customerName: '', customerPhone: '', customerGender: '', customerAddress: '', customerGovernorate: '', customerSocial: ''
             }));
         } else if (id) {
             const customer = customers.find(c => c._id === id);
@@ -236,6 +268,7 @@ const Orders = () => {
                     ...prev,
                     customerName: customer.name,
                     customerPhone: customer.phone,
+                    customerGender: customer.gender || '',
                     customerAddress: customer.address,
                     customerGovernorate: customer.governorate,
                     customerSocial: customer.social
@@ -252,6 +285,7 @@ const Orders = () => {
             customerId: existingCustomer ? existingCustomer._id : 'new',
             customerName: order.customer.name,
             customerPhone: order.customer.phone,
+            customerGender: order.customer.gender || '',
             customerAddress: order.customer.address || '',
             customerGovernorate: order.customer.governorate || '',
             customerSocial: order.customer.social || '',
@@ -278,6 +312,7 @@ const Orders = () => {
                 _id: newOrder.customerId !== 'new' ? newOrder.customerId : undefined,
                 name: newOrder.customerName,
                 phone: newOrder.customerPhone,
+                gender: newOrder.customerGender,
                 address: newOrder.customerAddress,
                 governorate: newOrder.customerGovernorate,
                 social: newOrder.customerSocial
@@ -399,40 +434,111 @@ const Orders = () => {
         printWindow.print();
     };
 
+    // Column sort handler
+    const handleColumnSort = (column) => {
+        if (columnSort.column === column) {
+            // Toggle direction if same column
+            setColumnSort(prev => ({
+                ...prev,
+                direction: prev.direction === 'asc' ? 'desc' : 'asc'
+            }));
+        } else {
+            // New column, default to ascending
+            setColumnSort({ column, direction: 'asc' });
+        }
+    };
+
+    // Helper to render column header with sort indicator
+    const SortableHeader = ({ column, label }) => {
+        const isActive = columnSort.column === column;
+        return (
+            <th
+                onClick={() => handleColumnSort(column)}
+                className="px-6 py-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors select-none"
+            >
+                <div className="flex items-center gap-2">
+                    {label}
+                    {isActive && (
+                        <span className="text-[var(--brand-color)] font-bold">
+                            {columnSort.direction === 'asc' ? '↑' : '↓'}
+                        </span>
+                    )}
+                </div>
+            </th>
+        );
+    };
+
     return (
         <Layout title="Orders">
             {/* Actions Bar */}
-            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-8 gap-4 bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
-                {/* Left Side: Add Button + Export */}
-                <div className="flex gap-3 w-full xl:w-auto">
-                    <button
-                        onClick={() => { setIsCreateModalOpen(true); setEditingOrderId(null); setNewOrder({ customerId: 'new', customerName: '', customerPhone: '', customerAddress: '', customerGovernorate: '', customerSocial: '', customerNotes: '', items: [], discount: 0 }); }}
-                        className="flex items-center justify-center gap-2 px-6 py-2.5 text-white rounded-xl font-bold transition-all shadow-lg"
-                        style={{ backgroundColor: brand.color, boxShadow: `0 10px 15px -3px ${brand.color}33` }}
-                    >
-                        <Plus className="w-5 h-5" />
-                        <span>Create Order</span>
-                    </button>
+            <div className="flex flex-col gap-4 mb-8 bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
+                {/* Top Row: Add Button + Export | Clear Filters Button + Order Count */}
+                <div className="flex gap-3 w-full items-center justify-between flex-wrap">
+                    <div className="flex gap-3 items-center flex-wrap">
+                        <button
+                            onClick={() => { setIsCreateModalOpen(true); setEditingOrderId(null); setNewOrder({ customerId: 'new', customerName: '', customerPhone: '', customerAddress: '', customerGovernorate: '', customerSocial: '', customerNotes: '', items: [], discount: 0 }); }}
+                            className="flex items-center justify-center gap-2 px-6 py-2.5 text-white rounded-xl font-bold transition-all shadow-lg"
+                            style={{ backgroundColor: brand.color, boxShadow: `0 10px 15px -3px ${brand.color}33` }}
+                        >
+                            <Plus className="w-5 h-5" />
+                            <span>Create Order</span>
+                        </button>
 
-                    <button
-                        onClick={() => exportOrdersToCSV(filteredAndSortedOrders)}
-                        className="flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-xl font-bold transition-all shadow-lg hover:bg-green-700"
-                    >
-                        <Download className="w-5 h-5" />
-                        <span className="hidden sm:inline">Export CSV</span>
-                    </button>
+                        <button
+                            onClick={() => exportOrdersToCSV(filteredAndSortedOrders)}
+                            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-xl font-bold transition-all shadow-lg hover:bg-green-700"
+                        >
+                            <Download className="w-5 h-5" />
+                            <span className="hidden sm:inline">Export CSV</span>
+                        </button>
+                    </div>
+
+                    <div className="flex gap-3 items-center flex-wrap">
+                        {/* Clear Filters Button */}
+                        {(filterGovernorates.length > 0 || filterStatuses.length > 0 || filterSocials.length > 0 || searchTerm) && (
+                            <button
+                                onClick={() => {
+                                    setSearchTerm('');
+                                    setFilterStatuses([]);
+                                    setFilterGovernorates([]);
+                                    setFilterSocials([]);
+                                }}
+                                className="px-4 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-xl font-bold text-sm transition-all border border-slate-200 dark:border-slate-700"
+                            >
+                                Clear Filters
+                            </button>
+                        )}
+
+                        {/* Orders Count */}
+                        <div className="flex items-center gap-3 px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
+                            <ShoppingBag className="w-4 h-4 text-slate-400" />
+                            <span className="text-sm font-bold text-slate-500">
+                                <span className="text-slate-900 dark:text-white">{filteredAndSortedOrders.length}</span> Orders
+                            </span>
+                        </div>
+                    </div>
                 </div>
 
-                {/* Right Side: Filters */}
-                <div className="flex flex-col md:flex-row gap-3 w-full xl:w-auto flex-wrap">
-                    <div className="relative w-full md:w-64">
+                {/* Filters Row: Search + Date + All Filters + Sort */}
+                <div className="flex gap-3 w-full flex-wrap items-center">
+                    {/* Search Input with fixed height */}
+                    <div className="relative min-w-[200px] flex-1 md:flex-none h-[44px]">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                         <input
                             type="text"
                             placeholder="Search orders..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-10 pr-4 py-2.5 w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-[var(--brand-color)]/20"
+                            className="pl-10 pr-4 py-0 h-full w-full bg-slate-50 dark:bg-slate-900/50 border-2 border-slate-100 dark:border-slate-800 rounded-2xl outline-none focus:border-blue-200 dark:focus:border-blue-800 focus:ring-2 focus:ring-[var(--brand-color)]/20 transition-all font-bold text-sm"
+                        />
+                    </div>
+
+                    {/* Date Picker with fixed height */}
+                    <div className="h-[44px] flex-shrink-0">
+                        <DateRangePicker
+                            range={dateRange}
+                            onRangeChange={setDateRange}
+                            brandColor={brand.color}
                         />
                     </div>
 
@@ -443,6 +549,7 @@ const Orders = () => {
                         selectedValues={filterStatuses}
                         onChange={setFilterStatuses}
                         icon={ShoppingBag}
+                        showSearch={false}
                     />
 
                     {/* Governorate Filter */}
@@ -451,44 +558,33 @@ const Orders = () => {
                         options={governorateOptions}
                         selectedValues={filterGovernorates}
                         onChange={setFilterGovernorates}
-                        icon={Tag}
+                        icon={MapPin}
+                        showSearch={false}
                     />
 
-                    {/* Social Filter */}
+                    {/* Social Media Filter */}
                     <FilterDropdown
                         title="Social Media"
                         options={socialOptions}
                         selectedValues={filterSocials}
                         onChange={setFilterSocials}
-                        icon={Eye}
+                        icon={Globe}
+                        showSearch={false}
                     />
 
-                    {/* Date Picker */}
-                    <div className="min-w-[280px]">
-                        <DateRangePicker
-                            range={dateRange}
-                            onRangeChange={setDateRange}
-                            brandColor={brand.color}
-                        />
-                    </div>
-
                     {/* Sort */}
-                    <div className="relative">
-                        <select
-                            value={sortBy}
-                            onChange={(e) => setSortBy(e.target.value)}
-                            className="appearance-none w-full md:w-48 pl-4 pr-10 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-900/50 dark:text-white outline-none text-sm font-medium focus:ring-2 focus:ring-[var(--brand-color)]/20"
-                        >
-                            <option value="date-new">Newest First</option>
-                            <option value="date-old">Oldest First</option>
-                            <option value="total-high">Highest Total</option>
-                            <option value="total-low">Lowest Total</option>
-                            <option value="name-asc">Customer Name (A-Z)</option>
-                        </select>
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2 border-l border-slate-300 pl-2 pointer-events-none">
-                            <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-                        </div>
-                    </div>
+                    <SortDropdown
+                        title="Sort"
+                        options={[
+                            { value: 'date-new', label: 'Newest First' },
+                            { value: 'date-old', label: 'Oldest First' },
+                            { value: 'total-high', label: 'Highest Total' },
+                            { value: 'total-low', label: 'Lowest Total' },
+                            { value: 'name-asc', label: 'Customer Name (A-Z)' }
+                        ]}
+                        selectedValue={sortBy}
+                        onChange={handleSortChange}
+                    />
                 </div>
             </div>
 
@@ -499,11 +595,11 @@ const Orders = () => {
                     <table className="w-full text-left">
                         <thead>
                             <tr className="bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-500 uppercase">
-                                <th className="px-6 py-4">Order ID</th>
-                                <th className="px-6 py-4">Customer</th>
-                                <th className="px-6 py-4">Date</th>
-                                <th className="px-6 py-4">Total (IQD)</th>
-                                <th className="px-6 py-4">Status</th>
+                                <SortableHeader column="orderId" label="Order ID" />
+                                <SortableHeader column="customer" label="Customer" />
+                                <SortableHeader column="date" label="Date" />
+                                <SortableHeader column="total" label="Total (IQD)" />
+                                <SortableHeader column="status" label="Status" />
                                 <th className="px-6 py-4 text-right">Actions</th>
                             </tr>
                         </thead>
@@ -554,25 +650,24 @@ const Orders = () => {
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-5xl my-auto min-h-0 flex flex-col md:flex-row overflow-hidden animate-in fade-in zoom-in duration-200 max-h-[95vh] md:max-h-[90vh]">
 
                         {/* Left: Product Selection & Cart */}
-                        <div className="flex-1 p-4 md:p-6 border-b md:border-b-0 md:border-r border-slate-100 dark:border-slate-700 flex flex-col min-h-0 overflow-y-auto lg:overflow-visible">
+                        <div className="flex-1 p-4 md:p-6 border-b md:border-b-0 md:border-r border-slate-100 dark:border-slate-700 flex flex-col min-h-0 overflow-y-auto lg:overflow-visible relative z-20">
                             <div className="sticky top-0 bg-white dark:bg-slate-800 pb-4 z-10 lg:static">
                                 <h3 className="text-lg font-bold mb-4 text-slate-800 dark:text-white">Add Items</h3>
                                 <div className="space-y-4">
                                     <div className="flex flex-col sm:flex-row gap-4 items-end">
-                                        <div className="flex-1 w-full">
+                                        <div className="flex-1 w-full min-w-0">
                                             <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Search & Select Product</label>
-                                            <select
-                                                value={selectedProductId}
-                                                onChange={e => setSelectedProductId(e.target.value)}
-                                                className="w-full p-3 border-2 border-slate-100 dark:border-slate-700 rounded-xl dark:bg-slate-900 dark:text-white outline-none focus:border-[var(--brand-color)] transition-colors font-bold text-sm"
-                                            >
-                                                <option value="">-- Choose Product --</option>
-                                                {products.filter(p => p.stock > 0).map(p => (
-                                                    <option key={p._id} value={p._id}>
-                                                        {p.name} ({p.stock} in stock) - {formatCurrency(p.price)}
-                                                    </option>
-                                                ))}
-                                            </select>
+                                            <SearchableSelect
+                                                title="Choose Product"
+                                                options={products.filter(p => p.stock > 0).map(p => ({
+                                                    value: p._id,
+                                                    label: `${p.name} (${p.stock} in stock) - ${formatCurrency(p.price)}`
+                                                }))}
+                                                selectedValue={selectedProductId}
+                                                onChange={setSelectedProductId}
+                                                icon={Package}
+                                                placeholder="Search products..."
+                                            />
                                         </div>
                                         <div className="w-24">
                                             <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Qty</label>
@@ -609,7 +704,7 @@ const Orders = () => {
                                         <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900/30 rounded-2xl border border-slate-100 dark:border-slate-700/50 group hover:border-indigo-500/50 transition-all">
                                             <div className="flex items-center gap-4 flex-1">
                                                 <div className="w-12 h-12 rounded-lg overflow-hidden bg-white dark:bg-slate-800 border dark:border-slate-700 shrink-0">
-                                                    <img src={item.product.images && item.product.images[0] ? item.product.images[0] : 'https://via.placeholder.com/150'} alt="" className="w-full h-full object-cover" />
+                                                    <img src={item.product.images && item.product.images[0] ? item.product.images[0] : 'https://via.placeholder.com/150'} alt={item.product.name || 'Product image'} className="w-full h-full object-cover" />
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <h4 className="text-sm font-black text-slate-800 dark:text-white truncate">{item.product.name}</h4>
@@ -625,7 +720,13 @@ const Orders = () => {
                                                         </div>
                                                         <div className="flex items-center gap-2">
                                                             <span className="text-[10px] font-bold text-slate-400">QTY</span>
-                                                            <span className="text-xs font-black dark:text-white px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded-md">x{item.quantity}</span>
+                                                            <input
+                                                                type="number"
+                                                                min="1"
+                                                                value={item.quantity}
+                                                                onChange={(e) => handleQtyChange(idx, e.target.value)}
+                                                                className="w-16 p-1.5 text-xs font-black border-2 border-slate-100 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 dark:text-white transition-colors focus:border-[var(--brand-color)] text-center"
+                                                            />
                                                         </div>
                                                     </div>
                                                 </div>
@@ -645,7 +746,7 @@ const Orders = () => {
                             </div>
 
                             {/* Totals Summary */}
-                            <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 sticky bottom-0">
+                            <div className="mt-8 pt-6 pb-8 border-t border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 sticky bottom-0">
                                 <div className="flex flex-col gap-3">
                                     <div className="flex justify-between items-center text-sm">
                                         <span className="font-bold text-slate-400 uppercase tracking-widest text-[10px]">Order Subtotal</span>
@@ -655,15 +756,19 @@ const Orders = () => {
                                         <span className="text-xs font-bold text-slate-500 flex items-center gap-2">
                                             <Tag className="w-4 h-4 text-indigo-500" /> APPLY DISCOUNT
                                         </span>
-                                        <select
-                                            value={newOrder.discount}
-                                            onChange={(e) => setNewOrder({ ...newOrder, discount: parseInt(e.target.value) })}
-                                            className="p-1 px-3 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-xs font-black dark:bg-slate-900 dark:text-white outline-none focus:border-[var(--brand-color)] transition-colors"
-                                        >
-                                            {[0, 5, 10, 15, 20, 30, 40, 50].map(v => (
-                                                <option key={v} value={v}>{v}% OFF DISCOUNT</option>
-                                            ))}
-                                        </select>
+                                        <div className="w-48">
+                                            <SearchableSelect
+                                                title="No Discount"
+                                                options={[0, 5, 10, 15, 20, 30, 40, 50].map(v => ({
+                                                    value: v,
+                                                    label: v === 0 ? 'No Discount' : `${v}% OFF DISCOUNT`
+                                                }))}
+                                                selectedValue={newOrder.discount}
+                                                onChange={(val) => setNewOrder({ ...newOrder, discount: val })}
+                                                showSearch={false}
+                                                direction="up"
+                                            />
+                                        </div>
                                     </div>
                                     <div className="flex justify-between items-center pt-2">
                                         <span className="font-black text-slate-800 dark:text-white uppercase tracking-tighter text-sm">Grand Total (Rounded)</span>
@@ -674,45 +779,45 @@ const Orders = () => {
                         </div>
 
                         {/* Right: Customer Details & Save */}
-                        <div className="w-full md:w-[280px] lg:w-[320px] p-3 bg-slate-50 dark:bg-slate-900/50 flex flex-col min-h-0 border-t md:border-t-0 md:border-l border-slate-100 dark:border-slate-700">
-                            <div className="flex justify-between items-center mb-8">
-                                <div>
-                                    <h3 className="text-xl font-black text-slate-800 dark:text-white">Customer Info</h3>
-                                </div>
-                                <button onClick={() => setIsCreateModalOpen(false)} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-full hover:bg-white dark:hover:bg-slate-800 transition-colors">
-                                    <X className="w-6 h-6" />
+                        <div className="w-full md:w-[280px] lg:w-[320px] p-4 bg-slate-50 dark:bg-slate-900/50 flex flex-col min-h-0 border-t md:border-t-0 md:border-l border-slate-100 dark:border-slate-700 relative z-10">
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tighter">Customer Info</h3>
+                                <button onClick={() => setIsCreateModalOpen(false)} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-lg hover:bg-white dark:hover:bg-slate-800 transition-colors">
+                                    <X className="w-5 h-5" />
                                 </button>
                             </div>
 
-                            <div className="space-y-4 flex-1 overflow-y-auto pr-1 custom-scrollbar">
+                            <div className="space-y-3 flex-1 overflow-y-auto pr-1 custom-scrollbar">
                                 <div className="space-y-2">
-                                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Database Selection</label>
-                                    <select
-                                        value={newOrder.customerId}
-                                        onChange={handleCustomerSelect}
-                                        className="w-full p-2 border-2 border-white dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl dark:text-white outline-none focus:border-[var(--brand-color)] transition-all font-bold shadow-sm text-sm"
-                                    >
-                                        <option value="">-- Choose Existing --</option>
-                                        <option value="new" className="text-[var(--brand-color)] font-bold">+ Create New Customer</option>
-                                        {customers.map(c => (
-                                            <option key={c._id} value={c._id}>{c.name}</option>
-                                        ))}
-                                    </select>
+                                    {/*<label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Database Selection</label>*/}
+                                    <SearchableSelect
+                                        title="Choose a Customer"
+                                        options={customers.map(c => ({ value: c._id, label: c.name }))}
+                                        selectedValue={newOrder.customerId}
+                                        onChange={handleCustomerSelectValue}
+                                        icon={User}
+                                        placeholder="Search customers..."
+                                        customAction={{
+                                            label: "Create New Customer",
+                                            icon: Plus,
+                                            onClick: () => handleCustomerSelectValue('new')
+                                        }}
+                                    />
                                 </div>
 
-                                <div className={`space-y-4 transition-all duration-300 ${newOrder.customerId ? 'opacity-100 pointer-events-auto' : 'opacity-30 pointer-events-none grayscale'}`}>
-                                    <div className="grid grid-cols-1 gap-4">
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
-                                            <input
-                                                placeholder="e.g. Ahmed Ali"
-                                                value={newOrder.customerName}
-                                                onChange={e => setNewOrder({ ...newOrder, customerName: e.target.value })}
-                                                className="w-full p-2 border-2 border-white dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl dark:text-white outline-none focus:border-[var(--brand-color)] transition-all font-bold shadow-sm text-sm"
-                                                disabled={newOrder.customerId !== 'new'}
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
+                                <div className={`space-y-3 transition-all duration-300 ${newOrder.customerId ? 'opacity-100 pointer-events-auto' : 'opacity-30 pointer-events-none grayscale'}`}>
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
+                                        <input
+                                            placeholder="e.g. Ahmed Ali"
+                                            value={newOrder.customerName}
+                                            onChange={e => setNewOrder({ ...newOrder, customerName: e.target.value })}
+                                            className="w-full p-2 border-2 border-white dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl dark:text-white outline-none focus:border-[var(--brand-color)] transition-all font-bold shadow-sm text-sm"
+                                            disabled={newOrder.customerId !== 'new'}
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="space-y-1.5">
                                             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Phone Number</label>
                                             <input
                                                 placeholder="07XX XXX XXXX"
@@ -722,163 +827,180 @@ const Orders = () => {
                                                 disabled={newOrder.customerId !== 'new'}
                                             />
                                         </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Gender</label>
+                                            <SearchableSelect
+                                                title="Select..."
+                                                options={[{ value: 'Male', label: 'Male' }, { value: 'Female', label: 'Female' }]}
+                                                selectedValue={newOrder.customerGender}
+                                                onChange={val => setNewOrder({ ...newOrder, customerGender: val })}
+                                                showSearch={false}
+                                                disabled={newOrder.customerId !== 'new'}
+                                            />
+                                        </div>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="space-y-1.5">
                                             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Governorate</label>
-                                            <select
-                                                value={newOrder.customerGovernorate}
-                                                onChange={e => setNewOrder({ ...newOrder, customerGovernorate: e.target.value })}
-                                                className="w-full p-2 border-2 border-white dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl dark:text-white outline-none focus:border-[var(--brand-color)] transition-all font-bold shadow-sm text-sm"
+                                            <SearchableSelect
+                                                title="Select..."
+                                                options={GOVERNORATES.map(g => ({ value: g, label: g }))}
+                                                selectedValue={newOrder.customerGovernorate}
+                                                onChange={val => setNewOrder({ ...newOrder, customerGovernorate: val })}
+                                                icon={MapPinIcon}
+                                                showSearch={false}
                                                 disabled={newOrder.customerId !== 'new'}
-                                            >
-                                                <option value="">Select...</option>
-                                                {GOVERNORATES.map(g => <option key={g} value={g}>{g}</option>)}
-                                            </select>
+                                            />
                                         </div>
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Social Channel</label>
-                                            <select
-                                                value={newOrder.customerSocial}
-                                                onChange={e => setNewOrder({ ...newOrder, customerSocial: e.target.value })}
-                                                className="w-full p-2 border-2 border-white dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl dark:text-white outline-none focus:border-[var(--brand-color)] transition-all font-bold shadow-sm text-sm"
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Social</label>
+                                            <SearchableSelect
+                                                title="Select..."
+                                                options={SOCIAL_PLATFORMS.map(p => ({ value: p, label: p }))}
+                                                selectedValue={newOrder.customerSocial}
+                                                onChange={val => setNewOrder({ ...newOrder, customerSocial: val })}
+                                                icon={GlobeIcon}
+                                                showSearch={false}
                                                 disabled={newOrder.customerId !== 'new'}
-                                            >
-                                                <option value="">Select...</option>
-                                                {SOCIAL_PLATFORMS.map(p => <option key={p} value={p}>{p}</option>)}
-                                            </select>
+                                            />
                                         </div>
                                     </div>
 
-                                    <div className="space-y-2">
+                                    <div className="space-y-1.5">
                                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Shipping Address</label>
                                         <textarea
-                                            placeholder="House/District/Nearest Landmark"
+                                            placeholder="House/District/Street..."
                                             value={newOrder.customerAddress}
                                             onChange={e => setNewOrder({ ...newOrder, customerAddress: e.target.value })}
-                                            className="w-full p-2 border-2 border-white dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl dark:text-white outline-none focus:border-[var(--brand-color)] transition-all font-bold shadow-sm text-sm resize-none"
+                                            className="w-full p-2 text-xs border-2 border-white dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl dark:text-white outline-none focus:border-[var(--brand-color)] transition-all font-bold shadow-sm resize-none"
                                             disabled={newOrder.customerId !== 'new'}
-                                            rows="2"
+                                            rows="1"
                                         ></textarea>
                                     </div>
 
-                                    <div className="space-y-2">
+                                    <div className="space-y-1.5">
                                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Internal Notes</label>
                                         <textarea
-                                            placeholder="Special instructions for delivery..."
+                                            placeholder="Special instructions..."
                                             value={newOrder.customerNotes}
                                             onChange={e => setNewOrder({ ...newOrder, customerNotes: e.target.value })}
-                                            className="w-full p-2 border-2 border-white dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl dark:text-white outline-none focus:border-[var(--brand-color)] transition-all font-bold shadow-sm text-sm resize-none"
-                                            rows="2"
+                                            className="w-full p-2 text-xs border-2 border-white dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl dark:text-white outline-none focus:border-[var(--brand-color)] transition-all font-bold shadow-sm resize-none"
+                                            rows="1"
                                         ></textarea>
                                     </div>
                                 </div>
-                                <button
-                                    onClick={handleSubmitOrder}
-                                    disabled={newOrder.items.length === 0 || isSubmitting}
-                                    className={`mt-6 w-full py-4 text-white font-black rounded-xl shadow-xl text-lg transition-all hover:scale-[1.01] active:scale-95 disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-3`}
-                                    style={{ backgroundColor: brand.color, boxShadow: `0 10px 15px -3px ${brand.color}33` }}
-                                >
-                                    {isSubmitting ? (
-                                        <>
-                                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                            Processing...
-                                        </>
-                                    ) : (
-                                        editingOrderId ? 'Update Order' : 'Complete & Print Receipt'
-                                    )}
-                                </button>
+                                <div className="mt-auto pt-4 border-t border-slate-100 dark:border-slate-700">
+                                    <button
+                                        onClick={handleSubmitOrder}
+                                        disabled={isSubmitting || newOrder.items.length === 0}
+                                        className="w-full py-4 bg-[var(--brand-color)] text-white rounded-2xl font-black shadow-xl shadow-blue-500/20 active:scale-[0.98] transition-all disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-3"
+                                    >
+                                        {isSubmitting ? (
+                                            <>
+                                                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                                Saving...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <ShoppingBag className="w-5 h-5" />
+                                                {editingOrderId ? 'UPDATE ORDER' : 'SAVE ORDER'}
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                </div >
             )}
 
             {/* View Order Modal */}
-            {isViewModalOpen && viewingOrder && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in zoom-in duration-200">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-                        <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center sticky top-0 bg-white dark:bg-slate-800 z-10">
-                            <div>
-                                <h3 className="text-xl font-bold text-slate-800 dark:text-white">Order Details</h3>
-                                <p className="text-sm text-slate-500">{viewingOrder.orderId} • {viewingOrder.date}</p>
-                            </div>
-                            <button onClick={() => setIsViewModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-                                <X className="w-6 h-6" />
-                            </button>
-                        </div>
-                        <div className="p-6 space-y-6">
-                            <div className="flex justify-between items-start bg-slate-50 dark:bg-slate-700/30 p-4 rounded-xl">
+            {
+                isViewModalOpen && viewingOrder && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in zoom-in duration-200">
+                        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                            <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center sticky top-0 bg-white dark:bg-slate-800 z-10">
                                 <div>
-                                    <h4 className="text-xs font-bold text-slate-500 uppercase mb-2">Customer Info</h4>
-                                    <p className="font-bold text-slate-800 dark:text-white">{viewingOrder.customer.name}</p>
-                                    <p className="text-sm text-slate-600 dark:text-slate-300">{viewingOrder.customer.phone}</p>
-                                    <p className="text-sm text-slate-600 dark:text-slate-300">{viewingOrder.customer.address}, {viewingOrder.customer.governorate}</p>
+                                    <h3 className="text-xl font-bold text-slate-800 dark:text-white">Order Details</h3>
+                                    <p className="text-sm text-slate-500">{viewingOrder.orderId} • {viewingOrder.date}</p>
                                 </div>
-                                <div className="text-right">
-                                    <h4 className="text-xs font-bold text-slate-500 uppercase mb-2">Order Status</h4>
-                                    <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold ${viewingOrder.status === 'Completed' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
-                                        {viewingOrder.status}
-                                    </span>
-                                </div>
+                                <button onClick={() => setIsViewModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                                    <X className="w-6 h-6" />
+                                </button>
                             </div>
+                            <div className="p-6 space-y-6">
+                                <div className="flex justify-between items-start bg-slate-50 dark:bg-slate-700/30 p-4 rounded-xl">
+                                    <div>
+                                        <h4 className="text-xs font-bold text-slate-500 uppercase mb-2">Customer Info</h4>
+                                        <p className="font-bold text-slate-800 dark:text-white">{viewingOrder.customer.name}</p>
+                                        <p className="text-sm text-slate-600 dark:text-slate-300">{viewingOrder.customer.phone}</p>
+                                        <p className="text-sm text-slate-600 dark:text-slate-300">{viewingOrder.customer.address}, {viewingOrder.customer.governorate}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <h4 className="text-xs font-bold text-slate-500 uppercase mb-2">Order Status</h4>
+                                        <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold ${viewingOrder.status === 'Completed' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                                            {viewingOrder.status}
+                                        </span>
+                                    </div>
+                                </div>
 
-                            <div>
-                                <h4 className="text-xs font-bold text-slate-500 uppercase mb-3">Order Items</h4>
-                                <div className="space-y-3">
-                                    {viewingOrder.items.map((item, idx) => (
-                                        <div key={idx} className="flex justify-between items-center border-b border-slate-100 dark:border-slate-700 pb-3 last:border-0 last:pb-0">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-12 h-12 bg-slate-100 dark:bg-slate-700 rounded-lg overflow-hidden flex-shrink-0">
-                                                    {item.product.images && item.product.images[0] ? (
-                                                        <img src={item.product.images[0]} alt="" className="w-full h-full object-cover" />
-                                                    ) : (
-                                                        <div className="flex items-center justify-center w-full h-full text-slate-400 text-xs">No Img</div>
-                                                    )}
+                                <div>
+                                    <h4 className="text-xs font-bold text-slate-500 uppercase mb-3">Order Items</h4>
+                                    <div className="space-y-3">
+                                        {viewingOrder.items.map((item, idx) => (
+                                            <div key={idx} className="flex justify-between items-center border-b border-slate-100 dark:border-slate-700 pb-3 last:border-0 last:pb-0">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-12 h-12 bg-slate-100 dark:bg-slate-700 rounded-lg overflow-hidden flex-shrink-0">
+                                                        {item.product.images && item.product.images[0] ? (
+                                                            <img src={item.product.images[0]} alt={item.product.name || 'Product image'} className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <div className="flex items-center justify-center w-full h-full text-slate-400 text-xs">No Img</div>
+                                                        )}
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-medium text-slate-800 dark:text-white">{item.product.name}</p>
+                                                        <p className="text-xs text-slate-500">{item.quantity} x {formatCurrency(item.price)}</p>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <p className="font-medium text-slate-800 dark:text-white">{item.product.name}</p>
-                                                    <p className="text-xs text-slate-500">{item.quantity} x {formatCurrency(item.price)}</p>
-                                                </div>
+                                                <p className="font-bold text-slate-800 dark:text-white">{formatCurrency(item.price * item.quantity)}</p>
                                             </div>
-                                            <p className="font-bold text-slate-800 dark:text-white">{formatCurrency(item.price * item.quantity)}</p>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
-                                <div className="flex justify-end space-y-2 flex-col items-end">
-                                    <div className="flex gap-8 text-sm">
-                                        <span className="text-slate-500">Subtotal:</span>
-                                        <span className="font-medium text-slate-800 dark:text-white">{formatCurrency(viewingOrder.subtotal || viewingOrder.total)}</span>
-                                    </div>
-                                    {viewingOrder.discount > 0 && (
-                                        <div className="flex gap-8 text-sm text-red-500">
-                                            <span>Discount ({viewingOrder.discount}%):</span>
-                                            <span>-{formatCurrency((viewingOrder.subtotal || viewingOrder.total) - viewingOrder.total)}</span>
-                                        </div>
-                                    )}
-                                    <div className="flex gap-8 text-lg font-bold pt-2">
-                                        <span className="text-slate-800 dark:text-white">Total:</span>
-                                        <span className="text-indigo-600">{formatCurrency(viewingOrder.total)}</span>
+                                        ))}
                                     </div>
                                 </div>
-                            </div>
 
-                            <div className="flex justify-end gap-3 pt-6 border-t border-slate-100 dark:border-slate-700">
-                                <button onClick={() => printReceipt(viewingOrder)} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white rounded-lg font-medium transition-colors flex items-center gap-2">
-                                    <Printer className="w-4 h-4" /> Print Receipt
-                                </button>
-                                <button onClick={() => handleEditOrder(viewingOrder)} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2">
-                                    <Edit className="w-4 h-4" /> Edit Order
-                                </button>
+                                <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
+                                    <div className="flex justify-end space-y-2 flex-col items-end">
+                                        <div className="flex gap-8 text-sm">
+                                            <span className="text-slate-500">Subtotal:</span>
+                                            <span className="font-medium text-slate-800 dark:text-white">{formatCurrency(viewingOrder.subtotal || viewingOrder.total)}</span>
+                                        </div>
+                                        {viewingOrder.discount > 0 && (
+                                            <div className="flex gap-8 text-sm text-red-500">
+                                                <span>Discount ({viewingOrder.discount}%):</span>
+                                                <span>-{formatCurrency((viewingOrder.subtotal || viewingOrder.total) - viewingOrder.total)}</span>
+                                            </div>
+                                        )}
+                                        <div className="flex gap-8 text-lg font-bold pt-2">
+                                            <span className="text-slate-800 dark:text-white">Total:</span>
+                                            <span className="text-indigo-600">{formatCurrency(viewingOrder.total)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-end gap-3 pt-6 border-t border-slate-100 dark:border-slate-700">
+                                    <button onClick={() => printReceipt(viewingOrder)} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white rounded-lg font-medium transition-colors flex items-center gap-2">
+                                        <Printer className="w-4 h-4" /> Print Receipt
+                                    </button>
+                                    <button onClick={() => handleEditOrder(viewingOrder)} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2">
+                                        <Edit className="w-4 h-4" /> Edit Order
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}        </Layout>
+                )
+            }        </Layout >
     );
 };
 

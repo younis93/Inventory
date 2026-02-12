@@ -18,15 +18,21 @@ const IraqMap = ({ data, selectedGovernorates = [], onSelect }) => {
         }, 5000);
         return () => clearTimeout(timer);
     }, [loading]);
-
-    const maxValue = useMemo(() => {
-        const values = Object.values(data);
-        return values.length > 0 ? Math.max(...values.map(v => v.count || 0)) : 0;
+    // Compute numeric counts from `data` which may be an object mapping name->count
+    const { maxValue, minPositive } = useMemo(() => {
+        const values = Object.values(data || {}).filter(v => typeof v === 'number');
+        const max = values.length > 0 ? Math.max(...values) : 0;
+        const positives = values.filter(v => v > 0);
+        const minPos = positives.length > 0 ? Math.min(...positives) : 1;
+        return { maxValue: max, minPositive: minPos };
     }, [data]);
 
+    // Color scale for positive counts (from low -> high). Zero counts will use a separate color.
     const colorScale = scaleLinear()
-        .domain([0, maxValue || 1])
-        .range([theme === 'dark' ? "#1E293B" : "#F1F5F9", "#4338ca"]); // Adjust range for dark mode
+        .domain([minPositive || 1, maxValue || (minPositive || 1)])
+        .range(["#93c5fd", "#4338ca"]); // light blue -> deep indigo
+
+    const zeroColor = theme === 'dark' ? "#0f172a" : "#f1f5f9";
 
     return (
         <div className="w-full h-full bg-slate-50 dark:bg-slate-900/50 rounded-2xl overflow-hidden relative flex items-center justify-center border border-slate-100 dark:border-slate-800">
@@ -63,22 +69,24 @@ const IraqMap = ({ data, selectedGovernorates = [], onSelect }) => {
                                     // Enhanced Matching Logic
                                     const governName = geo.properties.name || "";
                                     const normalize = (str) => str.toLowerCase().replace(/[^a-z0-9]/g, '');
-
-                                    const matchingKey = Object.keys(data).find(k => {
+                                    const matchingKey = Object.keys(data || {}).find(k => {
                                         const n1 = normalize(governName);
                                         const n2 = normalize(k);
                                         return n1.includes(n2) || n2.includes(n1);
                                     });
 
                                     const effectiveName = matchingKey || governName;
-                                    const value = matchingKey ? data[matchingKey] : 0;
+                                    const value = typeof data === 'object' && matchingKey ? (data[matchingKey] || 0) : 0;
                                     const isSelected = selectedGovernorates.includes(effectiveName);
+
+                                    // Choose fill: selected > positive gradient > zero color
+                                    const fillColor = isSelected ? "#F59E0B" : (value > 0 ? colorScale(value) : zeroColor);
 
                                     return (
                                         <Geography
                                             key={geo.rsmKey}
                                             geography={geo}
-                                            fill={isSelected ? "#F59E0B" : (value > 0 ? colorScale(value) : (theme === 'dark' ? "#1E293B" : "#F1F5F9"))}
+                                            fill={fillColor}
                                             stroke={isSelected ? "#ffffff" : (theme === 'dark' ? "#334155" : "#cbd5e1")}
                                             strokeWidth={isSelected ? 2 : 0.5}
                                             onClick={() => {
@@ -98,30 +106,32 @@ const IraqMap = ({ data, selectedGovernorates = [], onSelect }) => {
                                     const centroid = geoCentroid(geo);
                                     const governName = geo.properties.name || "";
                                     const normalize = (str) => str.toLowerCase().replace(/[^a-z0-9]/g, '');
-                                    const matchingKey = Object.keys(data).find(k => {
+                                    const matchingKey = Object.keys(data || {}).find(k => {
                                         const n1 = normalize(governName);
                                         const n2 = normalize(k);
                                         return n1.includes(n2) || n2.includes(n1);
                                     });
                                     const effectiveName = matchingKey || governName;
-                                    const value = matchingKey ? data[matchingKey] : 0;
+                                    const value = typeof data === 'object' && matchingKey ? (data[matchingKey] || 0) : 0;
 
-                                    // Only show label if value > 0 or it's a major region to reduce clutter
-                                    // Or show all. The prompt says "Display Governorate Name + Orders Count"
+                                    // Only render a label if centroid is valid
+                                    const [cx, cy] = centroid || [];
+                                    if (!Number.isFinite(cx) || !Number.isFinite(cy)) return null;
+
                                     return (
                                         <Marker key={`${geo.rsmKey}-label`} coordinates={centroid}>
-                                            <g className="pointer-events-none">
+                                            <g className="pointer-events-none" style={{ transform: 'translateY(-6px)' }}>
                                                 <text
-                                                    y="-5"
+                                                    y="-6"
                                                     textAnchor="middle"
-                                                    style={{ fontSize: 6, fill: theme === 'dark' ? "#fff" : "#1e293b", fontWeight: "bold", textShadow: theme === 'dark' ? "0px 0px 3px rgba(0,0,0,0.8)" : "0px 0px 2px #fff" }}
+                                                    style={{ fontSize: 8, fill: theme === 'dark' ? "#fff" : "#ffffff", fontWeight: "bold", pointerEvents: 'none' }}
                                                 >
                                                     {effectiveName}
                                                 </text>
                                                 <text
-                                                    y="4"
+                                                    y="8"
                                                     textAnchor="middle"
-                                                    style={{ fontSize: 5, fill: theme === 'dark' ? "#94a3b8" : "#475569", fontWeight: "normal", textShadow: theme === 'dark' ? "0px 0px 2px rgba(0,0,0,0.8)" : "0px 0px 2px #fff" }}
+                                                    style={{ fontSize: 10, fill: theme === 'dark' ? "#e6f0ff" : "#ffffff", fontWeight: "800", pointerEvents: 'none' }}
                                                 >
                                                     {value}
                                                 </text>

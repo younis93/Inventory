@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import Layout from '../components/Layout';
 import { useInventory } from '../context/InventoryContext';
-import { DollarSign, ShoppingCart, TrendingUp, Users, MapPin, Package, AlertCircle } from 'lucide-react';
+import { DollarSign, ShoppingCart, TrendingUp, Users, MapPin, Package, AlertCircle, Globe, ShoppingBag } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import DateRangePicker from '../components/DateRangePicker';
-import FilterCard from '../components/FilterCard';
+import FilterDropdown from '../components/FilterDropdown';
 import IraqMap from '../components/IraqMap';
 import TopRegionsList from '../components/TopRegionsList';
 import TopSellingProductsTable from '../components/TopSellingProductsTable';
@@ -152,6 +152,14 @@ const Dashboard = () => {
         }));
     }, [filteredOrders, dateRange]);
 
+    // Map data: convert regionCounts (array) to an object keyed by governorate name for the map component
+    const regionDataObj = useMemo(() => {
+        return regionCounts.reduce((acc, r) => {
+            acc[r.name] = r.count;
+            return acc;
+        }, {});
+    }, [regionCounts]);
+
 
     const chartColors = theme === 'dark' ? {
         text: '#94A3B8',
@@ -165,11 +173,47 @@ const Dashboard = () => {
 
     return (
         <Layout title="Dashboard">
-            <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+            {/* Unified Actions Bar - Based on Orders template */}
+            <div className="flex flex-col gap-4 mb-8 bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
+                {/* Top Row: General Actions | Clear Filters + Dashboard Count/Summary */}
+                <div className="flex gap-3 w-full items-center justify-between flex-wrap">
+                    <div className="flex gap-3 items-center flex-wrap">
+                        <div className="flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-xl font-bold text-sm border border-indigo-100 dark:border-indigo-900/50">
+                            <TrendingUp className="w-4 h-4" />
+                            <span>Live Dashboard</span>
+                        </div>
+                    </div>
 
-                {/* Left Column: Filters */}
-                <div className="xl:col-span-1 space-y-6">
-                    <div className="bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700">
+                    <div className="flex gap-3 items-center flex-wrap">
+                        {/* Clear Filters Button */}
+                        {(selectedStatuses.length > 0 || selectedGovernorates.length > 0 || selectedSocials.length > 0 || selectedCategories.length > 0) && (
+                            <button
+                                onClick={() => {
+                                    setSelectedStatuses([]);
+                                    setSelectedGovernorates([]);
+                                    setSelectedSocials([]);
+                                    setSelectedCategories([]);
+                                }}
+                                className="px-4 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-xl font-bold text-sm transition-all border border-slate-200 dark:border-slate-700"
+                            >
+                                Clear Filters
+                            </button>
+                        )}
+
+                        {/* Order Count for Context */}
+                        <div className="flex items-center gap-3 px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
+                            <Package className="w-4 h-4 text-slate-400" />
+                            <span className="text-sm font-bold text-slate-500">
+                                <span className="text-slate-900 dark:text-white">{filteredOrders.length}</span> Filtered Orders
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Filters Row: Date + Governorate + Social + Categories + Status */}
+                <div className="flex gap-3 w-full flex-wrap items-center">
+                    {/* Date Picker */}
+                    <div className="h-[44px] flex-shrink-0">
                         <DateRangePicker
                             range={dateRange}
                             onRangeChange={setDateRange}
@@ -177,159 +221,144 @@ const Dashboard = () => {
                         />
                     </div>
 
-                    <FilterCard
+                    <FilterDropdown
                         title="Governorate"
                         options={governorateOptions}
                         selectedValues={selectedGovernorates}
                         onChange={setSelectedGovernorates}
-                        onClear={() => setSelectedGovernorates([])}
+                        icon={MapPin}
+                        showSearch={false}
                     />
 
-                    <FilterCard
-                        title="Social Platform"
+                    <FilterDropdown
+                        title="Social Media"
                         options={socialOptions}
                         selectedValues={selectedSocials}
                         onChange={setSelectedSocials}
-                        onClear={() => setSelectedSocials([])}
+                        icon={Globe}
+                        showSearch={false}
                     />
 
-                    <FilterCard
+                    <FilterDropdown
                         title="Categories"
                         options={categoryOptions}
                         selectedValues={selectedCategories}
                         onChange={setSelectedCategories}
-                        onClear={() => setSelectedCategories([])}
+                        icon={Package}
+                        showSearch={false}
                     />
 
-                    <FilterCard
-                        title="Order Status"
+                    <FilterDropdown
+                        title="Status"
                         options={statusOptions}
                         selectedValues={selectedStatuses}
                         onChange={setSelectedStatuses}
-                        onClear={() => setSelectedStatuses([])}
+                        icon={ShoppingBag}
+                        showSearch={false}
                     />
                 </div>
+            </div>
 
-                {/* Main Content */}
-                <div className="xl:col-span-3 space-y-6">
-                    {/* KPI Cards */}
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-3xl p-6 text-white shadow-lg shadow-indigo-200 dark:shadow-none">
-                            <div className="flex justify-between items-start mb-4 opacity-80">
-                                <span className="font-bold text-xs uppercase tracking-widest">Total Revenue</span>
-                                <DollarSign className="w-5 h-5" />
-                            </div>
-                            <h3 className="text-3xl font-black mb-1">{formatCurrency(totalRevenue)}</h3>
-                            <div className="flex items-center gap-1 text-xs font-medium opacity-80">
-                                <TrendingUp className="w-3 h-3" />
-                                <span>+12.5% vs last period</span>
-                            </div>
+            <div className="space-y-6">
+                {/* KPI Cards */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-3xl p-6 text-white shadow-lg shadow-indigo-200 dark:shadow-none">
+                        <div className="flex justify-between items-start mb-4 opacity-80">
+                            <span className="font-bold text-xs uppercase tracking-widest">Total Revenue</span>
+                            <DollarSign className="w-5 h-5" />
                         </div>
-
-                        <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-100 dark:border-slate-700 shadow-sm">
-                            <div className="flex justify-between items-start mb-4 text-slate-400">
-                                <span className="font-bold text-xs uppercase tracking-widest">Total Orders</span>
-                                <ShoppingCart className="w-5 h-5" />
-                            </div>
-                            <h3 className="text-3xl font-black text-slate-800 dark:text-white mb-1">{totalOrders}</h3>
-                            <div className="text-xs text-slate-500 font-bold">Orders placed</div>
-                        </div>
-
-                        <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-100 dark:border-slate-700 shadow-sm">
-                            <div className="flex justify-between items-start mb-4 text-slate-400">
-                                <span className="font-bold text-xs uppercase tracking-widest">Top Region</span>
-                                <MapPin className="w-5 h-5" />
-                            </div>
-                            <h3 className="text-2xl font-black text-slate-800 dark:text-white mb-1 truncate">{topRegion.name}</h3>
-                            <div className="text-xs text-slate-500 font-bold">{topRegion.count} orders</div>
-                        </div>
-
-                        <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-100 dark:border-slate-700 shadow-sm">
-                            <div className="flex justify-between items-start mb-4 text-slate-400">
-                                <span className="font-bold text-xs uppercase tracking-widest">Active Customers</span>
-                                <Users className="w-5 h-5" />
-                            </div>
-                            <h3 className="text-3xl font-black text-slate-800 dark:text-white mb-1">{activeCustomers}</h3>
-                            <div className="text-xs text-slate-500 font-bold">Unique buyers</div>
+                        <h3 className="text-3xl font-black mb-1">{formatCurrency(totalRevenue)}</h3>
+                        <div className="flex items-center gap-1 text-xs font-medium opacity-80">
+                            <TrendingUp className="w-3 h-3" />
+                            <span>+12.5% vs last period</span>
                         </div>
                     </div>
 
-                    {/* Charts & Context Map */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[400px]">
-                        <div className="lg:col-span-2 bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col">
-                            <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2">
-                                <TrendingUp className="w-5 h-5 text-indigo-500" /> Revenue Trend
-                            </h3>
-                            <div className="flex-1 min-h-0">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <AreaChart data={revenueData}>
-                                        <defs>
-                                            <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor={brand.color} stopOpacity={0.3} />
-                                                <stop offset="95%" stopColor={brand.color} stopOpacity={0} />
-                                            </linearGradient>
-                                        </defs>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
-                                        <XAxis
-                                            dataKey="date"
-                                            axisLine={false}
-                                            tickLine={false}
-                                            tick={{ fontSize: 12, fill: chartColors.text }}
-                                            dy={10}
-                                        />
-                                        <YAxis
-                                            axisLine={false}
-                                            tickLine={false}
-                                            tick={{ fontSize: 12, fill: chartColors.text }}
-                                            tickFormatter={(val) => `${val / 1000}k`}
-                                        />
-                                        <Tooltip
-                                            contentStyle={{
-                                                borderRadius: '12px',
-                                                border: 'none',
-                                                boxShadow: '0 8px 16px rgba(0,0,0,0.1)',
-                                                backgroundColor: chartColors.tooltipBg,
-                                                color: theme === 'dark' ? '#F8FAFC' : '#1E293B'
-                                            }}
-                                            itemStyle={{ color: theme === 'dark' ? '#F8FAFC' : '#1E293B' }}
-                                            formatter={(value) => [formatCurrency(value), 'Revenue']}
-                                        />
-                                        <Area
-                                            type="monotone"
-                                            dataKey="value"
-                                            stroke={brand.color}
-                                            strokeWidth={3}
-                                            fillOpacity={1}
-                                            fill="url(#colorValue)"
-                                        />
-                                    </AreaChart>
-                                </ResponsiveContainer>
-                            </div>
+                    <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-100 dark:border-slate-700 shadow-sm">
+                        <div className="flex justify-between items-start mb-4 text-slate-400">
+                            <span className="font-bold text-xs uppercase tracking-widest">Total Orders</span>
+                            <ShoppingCart className="w-5 h-5" />
                         </div>
+                        <h3 className="text-3xl font-black text-slate-800 dark:text-white mb-1">{totalOrders}</h3>
+                        <div className="text-xs text-slate-500 font-bold">Orders placed</div>
+                    </div>
 
-                        <div className="lg:col-span-1 border border-slate-100 dark:border-slate-700 rounded-3xl overflow-hidden shadow-sm h-full relative">
-                            <IraqMap
-                                data={regionCounts}
-                                selectedRegions={selectedGovernorates}
-                                onSelectRegion={(reg) => {
-                                    if (selectedGovernorates.includes(reg)) {
-                                        setSelectedGovernorates(selectedGovernorates.filter(r => r !== reg));
-                                    } else {
-                                        setSelectedGovernorates([...selectedGovernorates, reg]);
-                                    }
-                                }}
-                            />
-                            <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-slate-500 shadow-sm border border-slate-100">
-                                Interactive Map
-                            </div>
+                    <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-100 dark:border-slate-700 shadow-sm">
+                        <div className="flex justify-between items-start mb-4 text-slate-400">
+                            <span className="font-bold text-xs uppercase tracking-widest">Top Region</span>
+                            <MapPin className="w-5 h-5" />
+                        </div>
+                        <h3 className="text-2xl font-black text-slate-800 dark:text-white mb-1 truncate">{topRegion.name}</h3>
+                        <div className="text-xs text-slate-500 font-bold">{topRegion.count} orders</div>
+                    </div>
+
+                    <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-100 dark:border-slate-700 shadow-sm">
+                        <div className="flex justify-between items-start mb-4 text-slate-400">
+                            <span className="font-bold text-xs uppercase tracking-widest">Active Customers</span>
+                            <Users className="w-5 h-5" />
+                        </div>
+                        <h3 className="text-3xl font-black text-slate-800 dark:text-white mb-1">{activeCustomers}</h3>
+                        <div className="text-xs text-slate-500 font-bold">Unique buyers</div>
+                    </div>
+                </div>
+
+                {/* Charts & Context Map */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[400px]">
+                    <div className="lg:col-span-2 bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col">
+                        <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2">
+                            <TrendingUp className="w-5 h-5 text-indigo-500" /> Revenue Trend
+                        </h3>
+                        <div className="flex-1 min-h-0">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={revenueData}>
+                                    <defs>
+                                        <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor={brand.color} stopOpacity={0.3} />
+                                            <stop offset="95%" stopColor={brand.color} stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
+                                    <XAxis
+                                        dataKey="date"
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fontSize: 12, fill: chartColors.text }}
+                                        dy={10}
+                                    />
+                                    <YAxis
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fontSize: 12, fill: chartColors.text }}
+                                        tickFormatter={(val) => `${val / 1000}k`}
+                                    />
+                                    <Tooltip
+                                        contentStyle={{
+                                            borderRadius: '12px',
+                                            border: 'none',
+                                            boxShadow: '0 8px 16px rgba(0,0,0,0.1)',
+                                            backgroundColor: chartColors.tooltipBg,
+                                            color: theme === 'dark' ? '#F8FAFC' : '#1E293B'
+                                        }}
+                                        itemStyle={{ color: theme === 'dark' ? '#F8FAFC' : '#1E293B' }}
+                                        formatter={(value) => [formatCurrency(value), 'Revenue']}
+                                    />
+                                    <Area
+                                        type="monotone"
+                                        dataKey="value"
+                                        stroke={brand.color}
+                                        strokeWidth={3}
+                                        fillOpacity={1}
+                                        fill="url(#colorValue)"
+                                    />
+                                </AreaChart>
+                            </ResponsiveContainer>
                         </div>
                     </div>
 
-                    {/* Bottom Widgets */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[400px]">
-                        <TopRegionsList
-                            regions={regionCounts}
-                            selectedRegion={selectedGovernorates}
+                    <div className="lg:col-span-1 border border-slate-100 dark:border-slate-700 rounded-3xl overflow-hidden shadow-sm h-full relative">
+                        <IraqMap
+                            data={regionDataObj}
+                            selectedGovernorates={selectedGovernorates}
                             onSelect={(reg) => {
                                 if (selectedGovernorates.includes(reg)) {
                                     setSelectedGovernorates(selectedGovernorates.filter(r => r !== reg));
@@ -338,16 +367,33 @@ const Dashboard = () => {
                                 }
                             }}
                         />
-
-                        <div className="h-full">
-                            <TopSellingProductsTable
-                                products={products}
-                                orders={ordersInDateRange} // Pass filtered orders
-                                formatCurrency={formatCurrency}
-                            />
+                        <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-slate-500 shadow-sm border border-slate-100">
+                            Interactive Map
                         </div>
                     </div>
+                </div>
 
+                {/* Bottom Widgets */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[400px]">
+                    <TopRegionsList
+                        regions={regionCounts}
+                        selectedRegion={selectedGovernorates}
+                        onSelect={(reg) => {
+                            if (selectedGovernorates.includes(reg)) {
+                                setSelectedGovernorates(selectedGovernorates.filter(r => r !== reg));
+                            } else {
+                                setSelectedGovernorates([...selectedGovernorates, reg]);
+                            }
+                        }}
+                    />
+
+                    <div className="h-full">
+                        <TopSellingProductsTable
+                            products={products}
+                            orders={ordersInDateRange} // Pass filtered orders
+                            formatCurrency={formatCurrency}
+                        />
+                    </div>
                 </div>
             </div>
         </Layout>

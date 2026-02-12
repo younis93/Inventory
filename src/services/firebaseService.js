@@ -21,6 +21,10 @@ export const firebaseService = {
      */
     subscribeToCollection: (collectionName, callback, sortField = "name", sortOrder = "asc") => {
         try {
+            if (!collectionName || typeof callback !== 'function') {
+                console.error('subscribeToCollection: invalid arguments', { collectionName, callback });
+                return () => { };
+            }
             // Try with orderBy first
             const q = sortField
                 ? query(collection(db, collectionName), orderBy(sortField, sortOrder))
@@ -52,6 +56,7 @@ export const firebaseService = {
      * Add a new document to a collection
      */
     add: async (collectionName, data) => {
+        if (!collectionName) throw new Error('add: collectionName is required');
         try {
             const docRef = await addDoc(collection(db, collectionName), data);
             return { ...data, _id: docRef.id };
@@ -65,6 +70,7 @@ export const firebaseService = {
      * Update an existing document
      */
     update: async (collectionName, id, data) => {
+        if (!collectionName || !id) throw new Error('update: collectionName and id are required');
         try {
             const docRef = doc(db, collectionName, id);
             await updateDoc(docRef, data);
@@ -78,6 +84,7 @@ export const firebaseService = {
      * Set a document with a specific ID
      */
     set: async (collectionName, id, data) => {
+        if (!collectionName || !id) throw new Error('set: collectionName and id are required');
         try {
             const docRef = doc(db, collectionName, id);
             await setDoc(docRef, data);
@@ -91,6 +98,7 @@ export const firebaseService = {
      * Delete a document
      */
     delete: async (collectionName, id) => {
+        if (!collectionName || !id) throw new Error('delete: collectionName and id are required');
         try {
             const docRef = doc(db, collectionName, id);
             await deleteDoc(docRef);

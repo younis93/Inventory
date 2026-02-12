@@ -132,9 +132,40 @@ export const exportCustomersToCSV = (customers, filename = null) => {
     downloadCSV(csvContent, defaultFilename);
 };
 
+/**
+ * Export products to CSV
+ * @param {Array} products - Array of product objects
+ * @param {string} filename - Optional filename
+ */
+export const exportProductsToCSV = (products, filename = null) => {
+    if (!products || products.length === 0) {
+        alert('No products to export');
+        return;
+    }
+
+    const formattedProducts = products.map(p => ({
+        'Name': p.name,
+        'SKU': p.sku,
+        'Category': p.category,
+        'Stock': p.stock,
+        'Status': p.status,
+        'Selling Price (IQD)': p.sellingPriceIQD || p.price,
+        'Unit Price ($)': p.unitPriceUSD || p.unitPrice,
+        'Profit per Unit (IQD)': p.profitPerUnitIQD || 0,
+        'Units Sold': p.unitsSold || 0,
+        'Total Profit (IQD)': p.totalProfitIQD || 0
+    }));
+
+    const csvContent = convertToCSV(formattedProducts);
+    const defaultFilename = filename || `products_export_${new Date().toISOString().split('T')[0]}.csv`;
+
+    downloadCSV(csvContent, defaultFilename);
+};
+
 export default {
     convertToCSV,
     downloadCSV,
     exportOrdersToCSV,
-    exportCustomersToCSV
+    exportCustomersToCSV,
+    exportProductsToCSV
 };

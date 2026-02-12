@@ -1,10 +1,11 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import Layout from '../components/Layout';
-import { Search, Plus, Filter, Edit, Trash2, ArrowUpDown, X, Image as ImageIcon, Upload, Save } from 'lucide-react';
+import { Search, Plus, Filter, Edit, Trash2, ArrowUpDown, X, Image as ImageIcon, Upload, Save, Download, Package, ShoppingBag } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 import CategoryManagerModal from '../components/CategoryManagerModal';
 import FilterDropdown from '../components/FilterDropdown';
 import ProductImageModal from '../components/ProductImageModal';
+import { exportProductsToCSV } from '../utils/CSVExportUtil';
 
 const getAutoStatus = (stock) => {
     const s = Number(stock);
@@ -62,7 +63,7 @@ const Products = () => {
         alibabaOrderNumber: '',
         // New Pricing Fields
         unitPriceUSD: '',
-        exchangeRate: '1500', // Default
+        exchangeRate: '1320', // Default
         unitPriceIQD: 0,
         additionalFeesIQD: '',
         shippingToIraqIQD: '',
@@ -288,74 +289,117 @@ const Products = () => {
         setIsModalOpen(false);
     };
 
-    const SortIcon = ({ column }) => {
-        if (sortConfig.key !== column) return <ArrowUpDown className="w-4 h-4 text-slate-300 inline ml-1" />;
-        return <ArrowUpDown className={`w-4 h-4 inline ml-1 ${sortConfig.direction === 'ascending' ? 'text-[var(--brand-color)]' : 'text-[var(--brand-color)] rotate-180'}`} />;
+    const SortableHeader = ({ column, label, border = false }) => {
+        const isActive = sortConfig.key === column;
+        return (
+            <th
+                onClick={() => requestSort(column)}
+                className={`px-6 py-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors select-none ${border ? 'border-l dark:border-slate-700' : ''}`}
+            >
+                <div className="flex items-center gap-2">
+                    {label}
+                    {isActive && (
+                        <span className="text-[var(--brand-color)] font-bold">
+                            {sortConfig.direction === 'ascending' ? '↑' : '↓'}
+                        </span>
+                    )}
+                </div>
+            </th>
+        );
     };
 
     return (
         <Layout title="Products">
-            {/* Unified Header Bar */}
-            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-8 gap-4 bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
-                {/* Left Side: Add Button */}
-                <div className="flex gap-3 w-full xl:w-auto">
-                    <button
-                        onClick={openAddModal}
-                        className="flex items-center gap-2 px-6 py-2.5 text-white rounded-xl font-bold transition-all shadow-lg"
-                        style={{ backgroundColor: brand.color, boxShadow: `0 10px 15px -3px ${brand.color}33` }}
-                    >
-                        <Plus className="w-5 h-5" />
-                        <span>Add Product</span>
-                    </button>
+            {/* Unified Actions Bar - Based on Orders template */}
+            <div className="flex flex-col gap-4 mb-8 bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
+                {/* Top Row: Add Button + Export | Clear Filters Button + Count */}
+                <div className="flex gap-3 w-full items-center justify-between flex-wrap">
+                    <div className="flex gap-3 items-center flex-wrap">
+                        <button
+                            onClick={openAddModal}
+                            className="flex items-center gap-2 px-6 py-2.5 text-white rounded-xl font-bold transition-all shadow-lg hover:brightness-110 active:scale-95"
+                            style={{ backgroundColor: brand.color, boxShadow: `0 10px 15px -3px ${brand.color}33` }}
+                        >
+                            <Plus className="w-5 h-5" />
+                            <span>Add Product</span>
+                        </button>
+
+                        <button
+                            onClick={() => exportProductsToCSV(filteredProducts)}
+                            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-xl font-bold transition-all shadow-lg hover:bg-green-700 active:scale-95"
+                        >
+                            <Download className="w-5 h-5" />
+                            <span className="hidden sm:inline">Export CSV</span>
+                        </button>
+
+                        <button
+                            onClick={() => setIsCategoryManagerOpen(true)}
+                            className="flex items-center gap-2 px-6 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-xl font-bold text-sm transition-all border border-slate-200 dark:border-slate-700 active:scale-95"
+                        >
+                            <Filter className="w-4 h-4" />
+                            <span>Manage Categories</span>
+                        </button>
+                    </div>
+
+                    <div className="flex gap-3 items-center flex-wrap">
+                        {/* Clear Filters Button */}
+                        {(selectedCategories.length > 0 || selectedStatuses.length > 0 || searchTerm) && (
+                            <button
+                                onClick={() => {
+                                    setSearchTerm('');
+                                    setSelectedCategories([]);
+                                    setSelectedStatuses([]);
+                                }}
+                                className="px-4 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-xl font-bold text-sm transition-all border border-slate-200 dark:border-slate-700"
+                            >
+                                Clear Filters
+                            </button>
+                        )}
+
+                        {/* Inventory Count */}
+                        <div className="flex items-center gap-3 px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
+                            <ImageIcon className="w-4 h-4 text-slate-400" />
+                            <span className="text-sm font-bold text-slate-500">
+                                <span className="text-slate-900 dark:text-white">{filteredProducts.length}</span> Products
+                            </span>
+                        </div>
+                    </div>
                 </div>
 
-                {/* Right Side: Filters */}
-                <div className="flex flex-col md:flex-row gap-3 w-full xl:w-auto flex-wrap">
-                    <div className="relative w-full md:w-64">
+                {/* Filters Row: Search + Category + Status */}
+                <div className="flex gap-3 w-full flex-wrap items-center">
+                    {/* Search Input */}
+                    <div className="relative min-w-[200px] flex-1 md:flex-none h-[44px]">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                         <input
                             type="text"
-                            placeholder="Search products..."
+                            placeholder="Search inventory..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-10 pr-4 py-2.5 w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-[var(--brand-color)]/20"
+                            className="pl-10 pr-4 py-0 h-full w-full bg-slate-50 dark:bg-slate-900/50 border-2 border-slate-100 dark:border-slate-800 rounded-2xl outline-none focus:border-blue-200 dark:focus:border-blue-800 focus:ring-2 focus:ring-[var(--brand-color)]/20 transition-all font-bold text-sm"
                         />
                     </div>
 
-                    {/* Category Filter */}
                     <FilterDropdown
                         title="Categories"
                         options={categoryOptions}
                         selectedValues={selectedCategories}
                         onChange={setSelectedCategories}
-                        icon={Filter}
+                        icon={Package}
                         showProductCount={true}
-                        productCount={filteredProducts.length}
                     />
 
-                    {/* Status Filter */}
                     <FilterDropdown
                         title="Status"
                         options={statusOptions}
                         selectedValues={selectedStatuses}
                         onChange={setSelectedStatuses}
-                        icon={Filter}
-                        showProductCount={true}
-                        productCount={filteredProducts.length}
+                        icon={ShoppingBag}
+                        showSearch={false}
                     />
-
-                    {/* Category Edit Button */}
-                    <button
-                        onClick={() => setIsCategoryManagerOpen(true)}
-                        className="p-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-500 hover:text-[var(--brand-color)] hover:border-[var(--brand-color)] transition-colors"
-                        title="Manage Categories"
-                    >
-                        <Edit className="w-5 h-5" />
-                    </button>
                 </div>
             </div>
 
-            {/* Category Manager Modal */}
             {isCategoryManagerOpen && (
                 <CategoryManagerModal
                     categories={categories}
@@ -370,26 +414,36 @@ const Products = () => {
             {/* Products Table */}
             <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
+                    <table className="w-full text-left">
                         <thead>
                             <tr className="bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                                <th onClick={() => requestSort('name')} className="px-6 py-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">Product <SortIcon column="name" /></th>
-                                <th onClick={() => requestSort('category')} className="px-6 py-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">Category <SortIcon column="category" /></th>
-                                <th onClick={() => requestSort('stock')} className="px-6 py-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors border-l dark:border-slate-700">Stock <SortIcon column="stock" /></th>
-                                <th onClick={() => requestSort('price')} className="px-6 py-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors border-l dark:border-slate-700">Sell Price <SortIcon column="price" /></th>
-                                <th onClick={() => requestSort('status')} className="px-6 py-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors border-l dark:border-slate-700">Status <SortIcon column="status" /></th>
+                                <SortableHeader column="name" label="Product" />
+                                <SortableHeader column="category" label="Category" />
+                                <SortableHeader column="stock" label="Stock" border={true} />
+                                <SortableHeader column="price" label="Sell Price" border={true} />
+                                <SortableHeader column="status" label="Status" border={true} />
                                 <th className="px-6 py-4 text-right border-l dark:border-slate-700">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                             {loading ? (
-                                <tr><td colSpan="7" className="text-center py-8">Loading...</td></tr>
+                                <tr><td colSpan="6" className="text-center py-12">
+                                    <div className="flex flex-col items-center gap-2">
+                                        <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                                        <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Loading Inventory...</span>
+                                    </div>
+                                </td></tr>
+                            ) : filteredProducts.length === 0 ? (
+                                <tr><td colSpan="6" className="text-center py-12 text-slate-400">
+                                    <ImageIcon className="w-12 h-12 mx-auto mb-2 opacity-20" />
+                                    <p className="font-bold uppercase tracking-widest text-xs">No products found</p>
+                                </td></tr>
                             ) : filteredProducts.map((product) => (
-                                <tr key={product._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/50 transition-colors border-b dark:border-slate-700 last:border-0 font-medium">
+                                <tr key={product._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/50 transition-colors">
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-4">
                                             <div
-                                                className="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex-shrink-0 cursor-zoom-in hover:brightness-90 transition-all"
+                                                className="w-12 h-12 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex-shrink-0 cursor-zoom-in hover:brightness-90 transition-all shadow-sm"
                                                 onClick={() => {
                                                     setEditingProductForImage(product);
                                                     setIsImageModalOpen(true);
@@ -398,31 +452,29 @@ const Products = () => {
                                                 <img src={product.images && product.images[0] ? product.images[0] : 'https://via.placeholder.com/150'} alt={product.name} className="w-full h-full object-cover" />
                                             </div>
                                             <div>
-                                                <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200">{product.name}</h4>
-                                                <p className="text-xs text-slate-500">{product.sku}</p>
+                                                <h4 className="text-sm font-bold text-slate-800 dark:text-white">{product.name}</h4>
+                                                <p className="text-xs font-mono text-slate-400 uppercase tracking-tighter">{product.sku}</p>
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
-                                        <span className="px-3 py-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-full text-xs font-medium">{product.category}</span>
+                                    <td className="px-6 py-4">
+                                        <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-xs font-bold">{product.category}</span>
                                     </td>
                                     <td className="px-6 py-4 border-l dark:border-slate-700">
-                                        <div className="flex flex-col">
-                                            <span className="text-sm font-medium text-slate-800 dark:text-slate-200">{product.stock}</span>
-                                        </div>
+                                        <span className="text-sm font-bold text-slate-800 dark:text-white">{product.stock}</span>
                                     </td>
-                                    <td className="px-6 py-4 text-sm font-bold text-slate-800 dark:text-slate-200 border-l dark:border-slate-700">
-                                        IQD {(product.sellingPriceIQD || product.price || 0).toLocaleString()}
+                                    <td className="px-6 py-4 border-l dark:border-slate-700">
+                                        <span className="text-sm font-black text-slate-800 dark:text-white">{formatCurrency(product.sellingPriceIQD || product.price || 0)}</span>
                                     </td>
                                     <td className="px-6 py-4 border-l dark:border-slate-700">
                                         <StatusBadge status={getAutoStatus(product.stock)} />
                                     </td>
                                     <td className="px-6 py-4 text-right border-l dark:border-slate-700">
-                                        <div className="flex items-center justify-end gap-2">
-                                            <button onClick={() => openEditModal(product)} className="p-2 text-slate-400 hover:text-[var(--brand-color)] hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors">
+                                        <div className="flex items-center justify-end gap-1">
+                                            <button onClick={() => openEditModal(product)} className="p-2 text-slate-400 hover:text-[var(--brand-color)] hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all" title="Edit">
                                                 <Edit className="w-4 h-4" />
                                             </button>
-                                            <button onClick={() => handleDelete(product._id)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors">
+                                            <button onClick={() => handleDelete(product._id)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all" title="Delete">
                                                 <Trash2 className="w-4 h-4" />
                                             </button>
                                         </div>

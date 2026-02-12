@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import Layout from '../components/Layout';
-import { Search, Plus, Mail, Phone, MapPin, User, X, Edit, ShoppingBag, Facebook, Twitter, Instagram, Linkedin, Globe, MessageCircle, ChevronDown, Printer, Download } from 'lucide-react';
+import { Search, Plus, Mail, Phone, MapPin, User, X, Edit, ShoppingBag, Facebook, Twitter, Instagram, Linkedin, Globe, MessageCircle, ChevronDown, Printer, Download, LayoutGrid, List } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 import { GOVERNORATES, SOCIAL_PLATFORMS } from '../constants/iraq';
 import DateRangePicker from '../components/DateRangePicker';
 import FilterDropdown from '../components/FilterDropdown';
+import SortDropdown from '../components/SortDropdown';
 import { isWithinInterval, parseISO, subDays } from 'date-fns';
 import { exportCustomersToCSV } from '../utils/CSVExportUtil';
 
@@ -24,6 +25,35 @@ const Customers = () => {
     const [selectedCustomer, setSelectedCustomer] = useState(null);
     const [editingCustomer, setEditingCustomer] = useState(null);
     const [expandedOrderId, setExpandedOrderId] = useState(null);
+    const [columnSort, setColumnSort] = useState({ column: 'orders', direction: 'desc' });
+    const [viewMode, setViewMode] = useState('table'); // 'table' or 'card'
+
+    const handleColumnSort = (column) => {
+        if (columnSort.column === column) {
+            setColumnSort(prev => ({ ...prev, direction: prev.direction === 'asc' ? 'desc' : 'asc' }));
+        } else {
+            setColumnSort({ column, direction: 'asc' });
+        }
+    };
+
+    const SortableHeader = ({ column, label, border = false }) => {
+        const isActive = columnSort.column === column;
+        return (
+            <th
+                onClick={() => handleColumnSort(column)}
+                className={`px-6 py-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors select-none ${border ? 'border-l dark:border-slate-700' : ''}`}
+            >
+                <div className="flex items-center gap-2">
+                    {label}
+                    {isActive && (
+                        <span className="text-[var(--brand-color)] font-bold">
+                            {columnSort.direction === 'asc' ? '↑' : '↓'}
+                        </span>
+                    )}
+                </div>
+            </th>
+        );
+    };
 
     const [formData, setFormData] = useState({ name: '', email: '', phone: '', address: '', governorate: '', social: '', notes: '' });
 
@@ -51,7 +81,19 @@ const Customers = () => {
     }, [customers]);
 
     const getCustomerOrders = (customerId) => {
-        return orders.filter(o => o.customer._id === customerId);
+        // Match by customer._id first, then fallback to name+phone matching for legacy orders
+        return orders.filter(o => {
+            const customer = customers.find(c => c._id === customerId);
+            if (!customer) return false;
+
+            // Primary match: by customer._id
+            if (o.customer?._id === customerId) return true;
+
+            // Fallback: match by name and phone (for legacy orders without _id)
+            if (o.customer?.name === customer.name && o.customer?.phone === customer.phone) return true;
+
+            return false;
+        });
     };
 
     const filteredAndSortedCustomers = useMemo(() => {
@@ -68,19 +110,39 @@ const Customers = () => {
         });
 
         return result.sort((a, b) => {
-            if (sortBy === 'name-asc') return a.name.localeCompare(b.name);
-            if (sortBy === 'name-desc') return b.name.localeCompare(a.name);
-
-            const ordersA = getCustomerOrders(a._id).length;
-            const ordersB = getCustomerOrders(b._id).length;
-            if (sortBy === 'orders-high') return ordersB - ordersA;
-            if (sortBy === 'orders-low') return ordersA - ordersB;
-
-            if (sortBy === 'date-new') return b._id.localeCompare(a._id);
+            // Priority to columnSort for table-template unification
+            if (columnSort.column === 'name') {
+                const valA = a.name.toLowerCase();
+                const valB = b.name.toLowerCase();
+                return columnSort.direction === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+            }
+            if (columnSort.column === 'orders') {
+                const valA = getCustomerOrders(a._id).length;
+                const valB = getCustomerOrders(b._id).length;
+                return columnSort.direction === 'asc' ? valA - valB : valB - valA;
+            }
+            if (columnSort.column === 'spent') {
+                const valA = getCustomerOrders(a._id).reduce((sum, o) => sum + o.total, 0);
+                const valB = getCustomerOrders(b._id).reduce((sum, o) => sum + o.total, 0);
+                return columnSort.direction === 'asc' ? valA - valB : valB - valA;
+            }
+            if (columnSort.column === 'governorate') {
+                const valA = (a.governorate || '').toLowerCase();
+                const valB = (b.governorate || '').toLowerCase();
+                return columnSort.direction === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+            }
 
             return 0;
         });
-    }, [customers, searchTerm, filterGovernorates, filterSocials, sortBy, orders]);
+    }, [customers, searchTerm, filterGovernorates, filterSocials, sortBy, columnSort, orders]);
+
+    const handleSortChange = (val) => {
+        setSortBy(val);
+        if (val === 'orders-high') setColumnSort({ column: 'orders', direction: 'desc' });
+        else if (val === 'orders-low') setColumnSort({ column: 'orders', direction: 'asc' });
+        else if (val === 'name-asc') setColumnSort({ column: 'name', direction: 'asc' });
+        else if (val === 'date-new') setColumnSort({ column: 'orders', direction: 'desc' }); // Fallback for date-new in customers if no date col
+    };
 
 
     const handleOpenAdd = () => {
@@ -180,158 +242,281 @@ const Customers = () => {
     return (
         <Layout title="Customers">
             {/* Unified Header Bar */}
-            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-8 gap-4 bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
-                {/* Left Side: Add Button + Export + Stats */}
-                <div className="flex gap-3 w-full xl:w-auto items-center">
-                    <button
-                        onClick={handleOpenAdd}
-                        className="flex items-center gap-2 px-6 py-2.5 text-white rounded-xl font-bold transition-all shadow-lg"
-                        style={{ backgroundColor: brand.color, boxShadow: `0 10px 15px -3px ${brand.color}33` }}
-                    >
-                        <Plus className="w-5 h-5" />
-                        <span>Add Customer</span>
-                    </button>
+            <div className="flex flex-col gap-4 mb-8 bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
+                {/* Top Row: Add Button + Export | Clear Button + Customer Count */}
+                <div className="flex gap-3 w-full items-center justify-between flex-wrap">
+                    <div className="flex gap-3 items-center flex-wrap">
+                        <button
+                            onClick={handleOpenAdd}
+                            className="flex items-center gap-2 px-6 py-2.5 text-white rounded-xl font-bold transition-all shadow-lg"
+                            style={{ backgroundColor: brand.color, boxShadow: `0 10px 15px -3px ${brand.color}33` }}
+                        >
+                            <Plus className="w-5 h-5" />
+                            <span>Add Customer</span>
+                        </button>
 
-                    <button
-                        onClick={() => exportCustomersToCSV(filteredAndSortedCustomers)}
-                        className="flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-xl font-bold transition-all shadow-lg hover:bg-green-700"
-                    >
-                        <Download className="w-5 h-5" />
-                        <span className="hidden sm:inline">Export CSV</span>
-                    </button>
+                        <button
+                            onClick={() => exportCustomersToCSV(filteredAndSortedCustomers)}
+                            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-xl font-bold transition-all shadow-lg hover:bg-green-700"
+                        >
+                            <Download className="w-5 h-5" />
+                            <span className="hidden sm:inline">Export CSV</span>
+                        </button>
 
-                    <div className="hidden lg:flex items-center gap-3 px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-700">
-                        <User className="w-5 h-5 text-slate-400" />
-                        <span className="text-sm font-bold text-slate-500">
-                            <span className="text-slate-900 dark:text-white">{filteredAndSortedCustomers.length}</span> Customers
-                        </span>
+                        <div className="flex bg-slate-100 dark:bg-slate-700 p-1 rounded-xl border border-slate-200 dark:border-slate-600 ml-2">
+                            <button
+                                onClick={() => setViewMode('table')}
+                                className={`p-1.5 rounded-lg transition-all ${viewMode === 'table' ? 'bg-white dark:bg-slate-600 text-[var(--brand-color)] shadow-sm' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}
+                                title="Table View"
+                            >
+                                <List className="w-4 h-4" />
+                            </button>
+                            <button
+                                onClick={() => setViewMode('card')}
+                                className={`p-1.5 rounded-lg transition-all ${viewMode === 'card' ? 'bg-white dark:bg-slate-600 text-[var(--brand-color)] shadow-sm' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}
+                                title="Card View"
+                            >
+                                <LayoutGrid className="w-4 h-4" />
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="flex gap-3 items-center flex-wrap">
+                        {/* Clear Filters Button */}
+                        {(filterGovernorates.length > 0 || filterSocials.length > 0 || searchTerm) && (
+                            <button
+                                onClick={() => {
+                                    setSearchTerm('');
+                                    setFilterGovernorates([]);
+                                    setFilterSocials([]);
+                                }}
+                                className="px-4 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-xl font-bold text-sm transition-all border border-slate-200 dark:border-slate-700"
+                            >
+                                Clear Filters
+                            </button>
+                        )}
+
+                        {/* Customer Count */}
+                        <div className="flex items-center gap-3 px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
+                            <User className="w-4 h-4 text-slate-400" />
+                            <span className="text-sm font-bold text-slate-500">
+                                <span className="text-slate-900 dark:text-white">{filteredAndSortedCustomers.length}</span> Customers
+                            </span>
+                        </div>
                     </div>
                 </div>
 
-                {/* Right Side: Filters */}
-                <div className="flex flex-col md:flex-row gap-3 w-full xl:w-auto flex-wrap">
-                    <div className="relative w-full md:w-64">
+                {/* Filters Row: Search + Date + Other Filters + Sort */}
+                <div className="flex gap-3 w-full flex-wrap items-center">
+                    {/* Search Input */}
+                    <div className="relative min-w-[200px] flex-1 md:flex-none h-[44px]">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                         <input
                             type="text"
                             placeholder="Search by name or phone..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-10 pr-4 py-2.5 w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-[var(--brand-color)]/20"
+                            className="pl-10 pr-4 py-0 h-full w-full bg-slate-50 dark:bg-slate-900/50 border-2 border-slate-100 dark:border-slate-800 rounded-2xl outline-none focus:border-blue-200 dark:focus:border-blue-800 focus:ring-2 focus:ring-[var(--brand-color)]/20 transition-all font-bold text-sm"
                         />
                     </div>
 
+                    {/* Date Picker with fixed height */}
+                    <div className="h-[44px] flex-shrink-0">
+                        <DateRangePicker
+                            range={dateRange}
+                            onRangeChange={setDateRange}
+                            brandColor={brand.color}
+                        />
+                    </div>
+
+                    {/* Governorate Filter (title on button, no search) */}
                     <FilterDropdown
                         title="Governorate"
                         options={governorateOptions}
                         selectedValues={filterGovernorates}
                         onChange={setFilterGovernorates}
                         icon={MapPin}
+                        showSearch={false}
                     />
 
+                    {/* Social Media Filter (title on button, no search) */}
                     <FilterDropdown
                         title="Social Media"
                         options={socialOptions}
                         selectedValues={filterSocials}
                         onChange={setFilterSocials}
                         icon={Globe}
+                        showSearch={false}
                     />
 
-                    <DateRangePicker
-                        range={dateRange}
-                        onRangeChange={setDateRange}
-                        brandColor={brand.color}
+                    <SortDropdown
+                        title="Sort"
+                        options={[
+                            { value: 'orders-high', label: 'Top Spenders' },
+                            { value: 'orders-low', label: 'Lowest Spenders' },
+                            { value: 'date-new', label: 'Recently Joined' },
+                            { value: 'name-asc', label: 'Alphabetical (A-Z)' }
+                        ]}
+                        selectedValue={sortBy}
+                        onChange={handleSortChange}
                     />
-
-                    <div className="relative">
-                        <select
-                            value={sortBy}
-                            onChange={(e) => setSortBy(e.target.value)}
-                            className="appearance-none w-full md:w-48 pl-4 pr-10 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-900/50 dark:text-white outline-none text-sm font-medium focus:ring-2 focus:ring-[var(--brand-color)]/20"
-                        >
-                            <option value="orders-high">Top Spenders</option>
-                            <option value="orders-low">Lowest Spenders</option>
-                            <option value="date-new">Recently Joined</option>
-                            <option value="name-asc">Alphabetical (A-Z)</option>
-                        </select>
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2 border-l border-slate-300 pl-2 pointer-events-none">
-                            <ChevronDown className="w-4 h-4 text-slate-400" />
-                        </div>
-                    </div>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredAndSortedCustomers.map(customer => {
-                    const custOrders = getCustomerOrders(customer._id);
-                    const totalSpent = custOrders.reduce((sum, o) => sum + o.total, 0);
-                    return (
-                        <div key={customer._id} className="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 hover:shadow-xl transition-all duration-300 group overflow-hidden flex flex-col">
-                            <div className="p-6 pb-4 flex-1">
-                                <div className="flex justify-between items-start mb-6">
-                                    <div className="w-16 h-16 rounded-2xl bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-[var(--brand-color)] font-black text-2xl border border-slate-100 dark:border-slate-800 group-hover:bg-indigo-50 dark:group-hover:bg-indigo-900 transition-colors">
-                                        {customer.name.charAt(0)}
-                                    </div>
-                                    <button onClick={() => handleOpenEdit(customer)} className="p-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 transition-colors">
-                                        <Edit className="w-4 h-4" />
-                                    </button>
-                                </div>
-
-                                <div className="mb-6">
-                                    <h3 className="font-black text-slate-900 dark:text-white text-xl mb-2 truncate">{customer.name}</h3>
-                                    <div className="flex items-center gap-2">
-                                        <div className="flex items-center gap-1.5 px-2 py-0.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg text-xs font-black">
-                                            <ShoppingBag className="w-3 h-3" />
-                                            {custOrders.length} {custOrders.length === 1 ? 'Order' : 'Orders'}
-                                        </div>
-                                        <div className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-lg text-xs font-black">
-                                            {formatCurrency(totalSpent)}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-3.5">
-                                    <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-400">
-                                        <div className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-slate-900 flex items-center justify-center border border-slate-100 dark:border-slate-800 shrink-0">
-                                            <Phone className="w-4 h-4 text-slate-400" />
-                                        </div>
-                                        <span className="font-bold">{customer.phone || 'No phone'}</span>
-                                    </div>
-                                    <div className="flex items-start gap-3 text-sm text-slate-600 dark:text-slate-400">
-                                        <div className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-slate-900 flex items-center justify-center border border-slate-100 dark:border-slate-800 shrink-0 mt-0.5">
-                                            <MapPin className="w-4 h-4 text-slate-400" />
-                                        </div>
-                                        <div className="flex flex-col">
-                                            <span className="font-bold text-slate-700 dark:text-slate-300">{customer.governorate}</span>
-                                            <span className="text-[11px] opacity-70 line-clamp-1">{customer.address}</span>
-                                        </div>
-                                    </div>
-                                    {customer.social && (
-                                        <div className="flex items-center gap-3 text-sm">
-                                            <div className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-slate-900 flex items-center justify-center border border-slate-100 dark:border-slate-800 shrink-0">
-                                                {getSocialIcon(customer.social)}
-                                            </div>
-                                            <span className="text-[11px] font-black uppercase text-blue-500 tracking-wider">
-                                                Connected via {customer.social}
-                                            </span>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="px-6 py-5 bg-slate-50 dark:bg-slate-900/30 border-t border-slate-100 dark:border-slate-800">
-                                <button
-                                    onClick={() => handleOpenHistory(customer)}
-                                    className="w-full py-3.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-white text-sm font-black rounded-2xl border-2 border-slate-200 dark:border-slate-700 hover:border-[var(--brand-color)] hover:text-[var(--brand-color)] transition-all flex items-center justify-center gap-2 shadow-sm active:scale-95"
-                                >
-                                    <ShoppingBag className="w-4 h-4" />
-                                    Full Order History
-                                </button>
-                            </div>
+            {viewMode === 'table' ? (
+                /* Customers Table */
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left">
+                            <thead>
+                                <tr className="bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                                    <SortableHeader column="name" label="Customer" />
+                                    <SortableHeader column="governorate" label="Location" border={true} />
+                                    <SortableHeader column="orders" label="Orders" border={true} />
+                                    <SortableHeader column="spent" label="Total Spent" border={true} />
+                                    <th className="px-6 py-4 text-right border-l dark:border-slate-700">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                                {filteredAndSortedCustomers.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="5" className="px-6 py-12 text-center text-slate-400">
+                                            <User className="w-12 h-12 mx-auto mb-2 opacity-20" />
+                                            <p className="font-bold uppercase tracking-widest text-xs">No customers found</p>
+                                        </td>
+                                    </tr>
+                                ) : filteredAndSortedCustomers.map(customer => {
+                                    const custOrders = getCustomerOrders(customer._id);
+                                    const totalSpent = custOrders.reduce((sum, o) => sum + o.total, 0);
+                                    return (
+                                        <tr key={customer._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/50 transition-colors">
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-[var(--brand-color)] font-bold text-lg border border-slate-100 dark:border-slate-800 shadow-sm">
+                                                        {customer.name.charAt(0)}
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="text-sm font-bold text-slate-800 dark:text-white">{customer.name}</h4>
+                                                        <p className="text-xs text-slate-400">{customer.phone}</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 border-l dark:border-slate-700">
+                                                <div className="flex flex-col">
+                                                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{customer.governorate}</span>
+                                                    <span className="text-[11px] text-slate-400 line-clamp-1">{customer.address}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 border-l dark:border-slate-700">
+                                                <div className="flex items-center gap-1.5 px-2 py-0.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg text-xs font-black inline-flex">
+                                                    <ShoppingBag className="w-3 h-3" />
+                                                    {custOrders.length}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 border-l dark:border-slate-700">
+                                                <span className="text-sm font-black text-slate-800 dark:text-white">
+                                                    {formatCurrency(totalSpent)}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 text-right border-l dark:border-slate-700">
+                                                <div className="flex items-center justify-end gap-1">
+                                                    <button
+                                                        onClick={() => handleOpenHistory(customer)}
+                                                        className="p-2 text-slate-400 hover:text-[var(--brand-color)] hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all"
+                                                        title="Order History"
+                                                    >
+                                                        <ShoppingBag className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleOpenEdit(customer)}
+                                                        className="p-2 text-slate-400 hover:text-[var(--brand-color)] hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all"
+                                                        title="Edit"
+                                                    >
+                                                        <Edit className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            ) : (
+                /* Customers Card Grid */
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in duration-500">
+                    {filteredAndSortedCustomers.length === 0 ? (
+                        <div className="col-span-full py-20 text-center bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700">
+                            <User className="w-16 h-16 mx-auto mb-4 text-slate-200" />
+                            <p className="text-slate-400 font-bold uppercase tracking-widest text-sm">No customers matched your search</p>
                         </div>
-                    );
-                })}
-            </div>
+                    ) : filteredAndSortedCustomers.map(customer => {
+                        const custOrders = getCustomerOrders(customer._id);
+                        const totalSpent = custOrders.reduce((sum, o) => sum + o.total, 0);
+                        return (
+                            <div key={customer._id} className="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 hover:shadow-xl transition-all duration-300 group overflow-hidden flex flex-col h-full">
+                                <div className="p-6 flex-1">
+                                    <div className="flex justify-between items-start mb-6">
+                                        <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-[var(--brand-color)] font-black text-xl border border-slate-100 dark:border-slate-800 group-hover:bg-indigo-50 dark:group-hover:bg-indigo-900 transition-colors">
+                                            {customer.name.charAt(0)}
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <button onClick={() => handleOpenHistory(customer)} className="p-2 text-slate-400 hover:text-[var(--brand-color)] bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 transition-colors" title="Order History">
+                                                <ShoppingBag className="w-4 h-4" />
+                                            </button>
+                                            <button onClick={() => handleOpenEdit(customer)} className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 transition-colors" title="Edit Profile">
+                                                <Edit className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="mb-6">
+                                        <h3 className="font-bold text-slate-900 dark:text-white text-lg mb-2 truncate">{customer.name}</h3>
+                                        <div className="flex flex-wrap gap-2">
+                                            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg text-[10px] font-black uppercase tracking-wider">
+                                                <ShoppingBag className="w-3 h-3" />
+                                                {custOrders.length} {custOrders.length === 1 ? 'Order' : 'Orders'}
+                                            </div>
+                                            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-lg text-[10px] font-black uppercase tracking-wider">
+                                                {formatCurrency(totalSpent)}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-400">
+                                            <div className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-slate-900 flex items-center justify-center border border-slate-100 dark:border-slate-800 shrink-0">
+                                                <Phone className="w-4 h-4 text-slate-400" />
+                                            </div>
+                                            <span className="font-bold">{customer.phone || 'No phone'}</span>
+                                        </div>
+                                        <div className="flex items-start gap-3 text-sm text-slate-600 dark:text-slate-400">
+                                            <div className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-slate-900 flex items-center justify-center border border-slate-100 dark:border-slate-800 shrink-0 mt-0.5">
+                                                <MapPin className="w-4 h-4 text-slate-400" />
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <span className="font-bold text-slate-700 dark:text-slate-300 text-xs">{customer.governorate}</span>
+                                                <span className="text-[10px] text-slate-400 line-clamp-1">{customer.address}</span>
+                                            </div>
+                                        </div>
+                                        {customer.social && (
+                                            <div className="flex items-center gap-3 text-sm">
+                                                <div className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-slate-900 flex items-center justify-center border border-slate-100 dark:border-slate-800 shrink-0">
+                                                    {getSocialIcon(customer.social)}
+                                                </div>
+                                                <span className="text-[10px] font-black uppercase text-blue-500 tracking-wider">
+                                                    {customer.social}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
 
             {/* Add/Edit Customer Modal */}
             {isModalOpen && (

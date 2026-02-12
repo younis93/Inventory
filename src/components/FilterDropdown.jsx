@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown, Filter } from 'lucide-react';
 import FilterCard from './FilterCard';
 
-const FilterDropdown = ({ title, options, selectedValues, onChange, icon: Icon, showProductCount = false, productCount = 0 }) => {
+const FilterDropdown = ({ title, options, selectedValues, onChange, icon: Icon, showProductCount = false, productCount = 0, showSearch = true, ariaLabel = null }) => {
     const [isOpen, setIsOpen] = useState(false);
     const containerRef = useRef(null);
 
@@ -36,6 +36,7 @@ const FilterDropdown = ({ title, options, selectedValues, onChange, icon: Icon, 
         <div className="relative" ref={containerRef}>
             <button
                 onClick={() => setIsOpen(!isOpen)}
+                aria-label={ariaLabel || title || 'Filter'}
                 className={`flex items-center gap-2 px-4 py-3.5 rounded-2xl border-2 transition-all font-bold text-sm outline-none ${isOpen || hasSelection
                     ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300'
                     : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-800 text-slate-500 hover:border-slate-300 dark:hover:border-slate-600'
@@ -51,7 +52,7 @@ const FilterDropdown = ({ title, options, selectedValues, onChange, icon: Icon, 
             {isOpen && (
                 <div className="absolute top-full left-0 mt-2 z-50 w-72 animate-in fade-in zoom-in-95 duration-200">
                     <FilterCard
-                        title={`Filter ${title}`}
+                        title=""
                         options={options}
                         selectedValues={selectedValues}
                         onChange={onChange}
@@ -59,6 +60,7 @@ const FilterDropdown = ({ title, options, selectedValues, onChange, icon: Icon, 
                         onClose={handleClose}
                         showProductCount={showProductCount}
                         productCount={productCount}
+                        showSearch={showSearch}
                     />
                 </div>
             )}

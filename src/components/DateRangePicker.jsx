@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, isAfter, isBefore, isWithinInterval, differenceInDays } from 'date-fns';
+import { format, addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, isAfter, isBefore, isWithinInterval, differenceInDays, startOfDay, endOfDay } from 'date-fns';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 
-const DateRangePicker = ({ onChange, initialRange }) => {
+const DateRangePicker = ({ onChange, initialRange, range: controlledRange, onRangeChange, brandColor }) => {
     const [isOpen, setIsOpen] = useState(false);
-    const [range, setRange] = useState(initialRange || { from: null, to: null });
+    const [range, setRange] = useState(controlledRange || initialRange || { from: null, to: null });
     const [hoverDate, setHoverDate] = useState(null);
     const [viewDate, setViewDate] = useState(new Date()); // Left calendar month
     const containerRef = useRef(null);
@@ -21,16 +21,23 @@ const DateRangePicker = ({ onChange, initialRange }) => {
     }, []);
 
     const handleDayClick = (day) => {
+        const cb = onChange || onRangeChange;
+        const dayStart = startOfDay(day);
+        // Starting new selection (or resetting)
         if (!range.from || (range.from && range.to)) {
-            // Start new selection
-            setRange({ from: day, to: null });
+            const newRange = { from: dayStart, to: null };
+            setRange(newRange);
+            // don't call callback until a to-date is chosen
         } else {
             // Complete selection
+            let newRange;
             if (isBefore(day, range.from)) {
-                setRange({ from: day, to: range.from });
+                newRange = { from: startOfDay(day), to: endOfDay(range.from) };
             } else {
-                setRange({ ...range, to: day });
+                newRange = { from: startOfDay(range.from), to: endOfDay(day) };
             }
+            setRange(newRange);
+            if (cb) cb(newRange);
         }
     };
 
@@ -44,15 +51,25 @@ const DateRangePicker = ({ onChange, initialRange }) => {
 
     const handleDone = () => {
         setIsOpen(false);
-        if (onChange) {
-            onChange(range);
+        const cb = onChange || onRangeChange;
+        if (cb) {
+            // Normalize range so 'to' includes entire day (endOfDay)
+            const normalized = { ...range };
+            if (range.from) normalized.from = startOfDay(range.from);
+            if (range.to) normalized.to = endOfDay(range.to);
+            cb(normalized);
         }
     };
 
     const handleCancel = () => {
         setIsOpen(false);
-        setRange(initialRange || { from: null, to: null });
+        setRange(controlledRange || initialRange || { from: null, to: null });
     };
+
+    // Sync with controlled props if provided
+    useEffect(() => {
+        if (controlledRange) setRange(controlledRange);
+    }, [controlledRange]);
 
     const formatDateRange = () => {
         if (range.from && range.to) {
@@ -204,13 +221,13 @@ const DateRangePicker = ({ onChange, initialRange }) => {
                     }
                 }}
             >
-                <div className={`w-full h-12 flex items-center pl-4 pr-10 bg-white dark:bg-slate-800 border rounded-lg cursor-pointer transition-all shadow-sm
-            ${isOpen ? 'border-indigo-600 ring-1 ring-indigo-600' : 'border-gray-300 dark:border-slate-700 hover:border-gray-400 dark:hover:border-slate-600'}`}>
+                <div className={`w-full h-12 flex items-center pl-4 pr-10 bg-white dark:bg-slate-800 border-2 rounded-2xl cursor-pointer transition-all shadow-sm font-bold
+            ${isOpen ? 'border-blue-200 dark:border-blue-800 ring-2 ring-blue-500/20 bg-blue-50 dark:bg-blue-900/20' : 'border-slate-100 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-600'}`}>
                     <span className={`text-base font-medium ${range.from ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-slate-400'}`}>
                         {range.from ? formatDateRange() : 'Select date range'}
                     </span>
                 </div>
-                <CalendarIcon className="absolute right-3 text-indigo-600 w-5 h-5 pointer-events-none" />
+                <CalendarIcon className={`absolute right-3 w-5 h-5 pointer-events-none transition-colors ${isOpen ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400'}`} />
             </div>
 
             {/* Popover */}
