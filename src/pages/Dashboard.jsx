@@ -12,7 +12,7 @@ import { GOVERNORATES, SOCIAL_PLATFORMS } from '../constants/iraq';
 import { isWithinInterval, parseISO, subDays, startOfMonth, endOfMonth, eachDayOfInterval, format } from 'date-fns';
 
 const Dashboard = () => {
-    const { orders, products, customers, loading, formatCurrency, brand, categories, theme } = useInventory();
+    const { orders, products, customers, loading, formatCurrency, brand, categories, theme, appearance } = useInventory();
 
     // Filters State
     const [dateRange, setDateRange] = useState({
@@ -306,15 +306,15 @@ const Dashboard = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[400px]">
                     <div className="lg:col-span-2 bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col">
                         <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2">
-                            <TrendingUp className="w-5 h-5 text-indigo-500" /> Revenue Trend
+                            <TrendingUp className="w-5 h-5" style={{ color: appearance.accentType === 'solid' ? appearance.accentColor : appearance.accentGradient.start }} /> Revenue Trend
                         </h3>
                         <div className="flex-1 min-h-0">
                             <ResponsiveContainer width="100%" height="100%">
                                 <AreaChart data={revenueData}>
                                     <defs>
                                         <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor={brand.color} stopOpacity={0.3} />
-                                            <stop offset="95%" stopColor={brand.color} stopOpacity={0} />
+                                            <stop offset="5%" stopColor={appearance.accentType === 'solid' ? appearance.accentColor : appearance.accentGradient.start} stopOpacity={0.3} />
+                                            <stop offset="95%" stopColor={appearance.accentType === 'solid' ? appearance.accentColor : appearance.accentGradient.start} stopOpacity={0} />
                                         </linearGradient>
                                     </defs>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
@@ -345,7 +345,7 @@ const Dashboard = () => {
                                     <Area
                                         type="monotone"
                                         dataKey="value"
-                                        stroke={brand.color}
+                                        stroke={appearance.accentType === 'solid' ? appearance.accentColor : appearance.accentGradient.start}
                                         strokeWidth={3}
                                         fillOpacity={1}
                                         fill="url(#colorValue)"

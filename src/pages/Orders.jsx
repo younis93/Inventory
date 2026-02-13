@@ -529,7 +529,7 @@ const Orders = () => {
                             placeholder="Search orders..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-10 pr-4 py-0 h-full w-full bg-slate-50 dark:bg-slate-900/50 border-2 border-slate-100 dark:border-slate-800 rounded-2xl outline-none focus:border-accent/30 focus:ring-4 focus:ring-accent/10 transition-all font-bold text-sm"
+                            className="pl-10 pr-4 py-0 h-full w-full bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-2xl outline-none focus:border-accent/40 focus:ring-4 focus:ring-accent/10 transition-all font-bold text-sm text-slate-700 dark:text-white"
                         />
                     </div>
 

@@ -37,8 +37,8 @@ const FilterDropdown = ({ title, options, selectedValues, onChange, icon: Icon, 
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 aria-label={ariaLabel || title || 'Filter'}
-                className={`flex items-center gap-2 px-4 py-3.5 rounded-2xl border-2 transition-all font-bold text-sm outline-none ${isOpen || hasSelection
-                    ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300'
+                className={`flex items-center gap-1.5 px-3 h-[44px] rounded-2xl border-2 transition-all font-bold text-[11px] outline-none ${isOpen || hasSelection
+                    ? 'bg-accent/10 border-accent/30 text-accent'
                     : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-800 text-slate-500 hover:border-slate-300 dark:hover:border-slate-600'
                     }`}
             >

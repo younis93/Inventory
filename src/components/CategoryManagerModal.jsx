@@ -61,13 +61,13 @@ const CategoryManagerModal = ({ categories, products, onClose, onAdd, onUpdate, 
                             value={newCategoryName}
                             onChange={(e) => setNewCategoryName(e.target.value)}
                             placeholder="New Category Name"
-                            className="flex-1 px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                            className="flex-1 px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent dark:text-white"
                             onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
                         />
                         <button
                             onClick={handleAdd}
                             disabled={!newCategoryName.trim()}
-                            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl shadow-lg shadow-indigo-200 dark:shadow-none transition-all flex items-center justify-center"
+                            className="px-4 py-2 bg-accent disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl shadow-lg shadow-accent/20 transition-all flex items-center justify-center"
                         >
                             <Plus className="w-5 h-5" />
                         </button>
@@ -86,7 +86,7 @@ const CategoryManagerModal = ({ categories, products, onClose, onAdd, onUpdate, 
                                         type="text"
                                         value={editName}
                                         onChange={(e) => setEditName(e.target.value)}
-                                        className="flex-1 px-2 py-1 bg-slate-50 dark:bg-slate-900 border border-indigo-300 rounded-lg text-sm outline-none"
+                                        className="flex-1 px-2 py-1 bg-slate-50 dark:bg-slate-900 border border-accent rounded-lg text-sm outline-none dark:text-white"
                                         onKeyDown={(e) => {
                                             if (e.key === 'Enter') handleUpdate();
                                             if (e.key === 'Escape') setEditingCategory(null);
@@ -106,7 +106,7 @@ const CategoryManagerModal = ({ categories, products, onClose, onAdd, onUpdate, 
                                     <div className="flex gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
                                         <button
                                             onClick={() => { setEditingCategory(cat); setEditName(cat); }}
-                                            className="p-2 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
+                                            className="p-2 text-slate-400 hover:text-accent hover:bg-accent/10 rounded-lg transition-colors"
                                             title="Rename"
                                         >
                                             <Edit2 className="w-4 h-4" />
@@ -114,8 +114,8 @@ const CategoryManagerModal = ({ categories, products, onClose, onAdd, onUpdate, 
                                         <button
                                             onClick={() => handleDelete(cat)}
                                             className={`p-2 rounded-lg transition-colors ${categoryCounts[cat] > 0
-                                                    ? 'text-slate-300 cursor-not-allowed'
-                                                    : 'text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30'
+                                                ? 'text-slate-300 cursor-not-allowed'
+                                                : 'text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30'
                                                 }`}
                                             title={categoryCounts[cat] > 0 ? "Cannot delete used category" : "Delete"}
                                         >

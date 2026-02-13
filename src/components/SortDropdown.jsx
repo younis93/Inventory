@@ -30,8 +30,8 @@ const SortDropdown = ({ title, options, selectedValue, onChange, icon: Icon }) =
         <div className="relative" ref={containerRef}>
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className={`flex items-center gap-2 px-4 py-3.5 rounded-2xl border-2 transition-all font-bold text-sm outline-none ${isOpen
-                    ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300'
+                className={`flex items-center gap-1.5 px-3 h-[44px] rounded-2xl border-2 transition-all font-bold text-[11px] outline-none ${isOpen
+                    ? 'bg-accent/10 border-accent/30 text-accent'
                     : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-800 text-slate-500 hover:border-slate-300 dark:hover:border-slate-600'
                     }`}
             >
@@ -59,11 +59,11 @@ const SortDropdown = ({ title, options, selectedValue, onChange, icon: Icon }) =
                                         key={option.value}
                                         onClick={() => handleSelect(option.value)}
                                         className={`flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer transition-all group ${isSelected
-                                            ? 'bg-blue-50 dark:bg-blue-900/20'
+                                            ? 'bg-accent/10'
                                             : 'hover:bg-slate-50 dark:hover:bg-slate-700/50'
                                             }`}
                                     >
-                                        <span className={`text-sm font-semibold ${isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-slate-600 dark:text-slate-300'}`}>
+                                        <span className={`text-sm font-semibold ${isSelected ? 'text-accent' : 'text-slate-600 dark:text-slate-300'}`}>
                                             {option.label}
                                         </span>
                                     </div>

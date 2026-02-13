@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Download, Trash2, Maximize2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, X, Maximize2 } from 'lucide-react';
 
 const ImageSlider = ({
     images = [],
@@ -75,11 +75,10 @@ const ImageSlider = ({
                     className="flex transition-transform duration-500 ease-out h-full"
                     style={{
                         transform: `translateX(-${currentIndex * 100}%)`,
-                        width: `${images.length * 100}%`
                     }}
                 >
                     {images.map((img, idx) => (
-                        <div key={idx} className="w-full h-full flex items-center justify-center p-4">
+                        <div key={idx} className="min-w-full h-full flex-none flex items-center justify-center p-4">
                             <img
                                 src={typeof img === 'string' ? img : img.url}
                                 alt={`Product view ${idx + 1}`}
@@ -127,7 +126,7 @@ const ImageSlider = ({
             </div>
 
             {/* Thumbnail Filmstrip */}
-            <div className="flex items-center gap-3 overflow-x-auto pb-2 custom-scrollbar">
+            <div className="flex items-center gap-3 overflow-x-auto pb-4 pt-2 px-1 custom-scrollbar">
                 {images.map((img, idx) => (
                     <div key={idx} className="relative shrink-0 group">
                         <button
@@ -150,7 +149,7 @@ const ImageSlider = ({
                                 onClick={(e) => { e.stopPropagation(); onDelete(idx); }}
                                 className="absolute -top-1 -right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:bg-red-600 hover:scale-110 z-10"
                             >
-                                <Trash2 className="w-3 h-3" />
+                                <X className="w-3 h-3" />
                             </button>
                         )}
                     </div>

@@ -3,10 +3,11 @@ import { Search, Bell, Sun, User, Menu } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 
 const Header = ({ title }) => {
-    const { currentUser, toggleMobileMenu, theme, toggleTheme } = useInventory();
+    const { currentUser, toggleMobileMenu, theme, toggleTheme, brand } = useInventory();
+    const isHidden = brand.hideHeader;
 
     return (
-        <header className="h-24 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 md:px-8 sticky top-0 z-20 transition-all duration-300">
+        <header className={`${isHidden ? 'lg:hidden' : 'flex'} h-24 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 md:px-8 sticky top-0 z-20 transition-all duration-300`}>
             <div className="flex items-center gap-4">
                 {/* Mobile Menu Toggle */}
                 <button

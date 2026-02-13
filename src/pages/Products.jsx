@@ -1,9 +1,10 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import Layout from '../components/Layout';
-import { Search, Plus, Filter, Edit, Trash2, ArrowUpDown, X, Image as ImageIcon, Upload, Save, Download, Package, ShoppingBag } from 'lucide-react';
+import { Search, Plus, Filter, Edit, Trash2, ArrowUpDown, X, Image as ImageIcon, Upload, Save, Download, Package, ShoppingBag, MessageSquare, Info } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 import CategoryManagerModal from '../components/CategoryManagerModal';
 import FilterDropdown from '../components/FilterDropdown';
+import SearchableSelect from '../components/SearchableSelect';
 import ProductImageModal from '../components/ProductImageModal';
 import { exportProductsToCSV } from '../utils/CSVExportUtil';
 
@@ -13,6 +14,8 @@ const getAutoStatus = (stock) => {
     if (s < 10) return 'Low Stock';
     return 'In Stock';
 };
+
+const roundToNearest500 = (num) => Math.round(num / 500) * 500;
 
 const STATUS_OPTIONS = ['In Stock', 'Low Stock', 'Out of Stock'];
 
@@ -63,7 +66,7 @@ const Products = () => {
         alibabaOrderNumber: '',
         // New Pricing Fields
         unitPriceUSD: '',
-        exchangeRate: '1320', // Default
+        exchangeRate: '1380', // Default
         unitPriceIQD: 0,
         additionalFeesIQD: '',
         shippingToIraqIQD: '',
@@ -71,7 +74,16 @@ const Products = () => {
         sellingPriceIQD: 0,
         profitPerUnitIQD: 0,
         unitsSold: 0,
-        totalProfitIQD: 0
+        totalProfitIQD: 0,
+        alibabaFeeUSD: '',
+        isSellingPriceOverridden: false,
+        costPriceIQD_total: 0,
+        costPriceIQD_perUnit: 0,
+        recommendedSellingPriceIQD_perUnit: 0,
+        alibabaNote: '',
+        description: '',
+        profitPerUnitUSD: 0,
+        totalProfitUSD: 0
     };
     const [formData, setFormData] = useState(initialFormState);
     const [newCategoryName, setNewCategoryName] = useState('');
@@ -140,56 +152,82 @@ const Products = () => {
 
     // Auto-calculate Pricing Fields
     useEffect(() => {
-        const usdPrice = parseFloat(formData.unitPriceUSD) || 0;
-        const rate = parseFloat(formData.exchangeRate) || 1500;
-        const fees = parseFloat(formData.additionalFeesIQD) || 0;
-        const shipping = parseFloat(formData.shippingToIraqIQD) || 0;
-        const margin = parseFloat(formData.marginPercent) || 0;
-        const sold = parseInt(formData.unitsSold) || 0;
+        const unitPriceUSD = parseFloat(formData.unitPriceUSD) || 0;
+        const alibabaFeeUSD = parseFloat(formData.alibabaFeeUSD) || 0;
+        const quantity = parseInt(formData.stock) || 0;
+        const exchangeRate = parseFloat(formData.exchangeRate) || 1320;
+        const shippingIQD = parseFloat(formData.shippingToIraqIQD) || 0;
+        const otherFeesIQD = parseFloat(formData.additionalFeesIQD) || 0;
+        const marginPercent = parseFloat(formData.marginPercent) || 0;
+        const unitsSold = parseInt(formData.unitsSold) || 0;
 
-        // 1. Unit Price IQD
-        const unitPriceIQD = usdPrice * rate;
+        // 1. Per Unit USD Cost
+        const costUSD_perUnit = unitPriceUSD + alibabaFeeUSD;
+        const totalCostUSD = costUSD_perUnit * quantity;
 
-        // 2. Selling Price IQD
-        let sellingPriceIQD = 0;
-        let profitPerUnitIQD = 0;
-        let totalProfitIQD = 0;
+        // 2. Total Cost Price (IQD)
+        const costPriceIQD_total = (totalCostUSD * exchangeRate) + shippingIQD + otherFeesIQD;
 
-        if (margin < 100) {
-            const m = margin / 100;
-            const costBase = unitPriceIQD + fees + shipping;
-            sellingPriceIQD = costBase / (1 - m);
-            profitPerUnitIQD = sellingPriceIQD - costBase;
-            totalProfitIQD = profitPerUnitIQD * sold;
-        }
+        // 3. Cost per Unit (IQD)
+        const costPriceIQD_perUnit = quantity > 0 ? costPriceIQD_total / quantity : 0;
+
+        // 4. Recommended Selling Price per Unit (IQD)
+        const recommendedSellingPriceIQD_perUnit_raw = costPriceIQD_perUnit * (1 + marginPercent / 100);
+        const recommendedSellingPriceIQD_perUnit = roundToNearest500(recommendedSellingPriceIQD_perUnit_raw);
 
         setFormData(prev => {
+            let nextSellingPrice = prev.sellingPriceIQD;
+
+            // If not overridden, selling price follows recommended
+            if (!prev.isSellingPriceOverridden) {
+                nextSellingPrice = recommendedSellingPriceIQD_perUnit;
+            }
+
+            // Calculate profit IQD
+            const profitPerUnitIQD = (parseFloat(nextSellingPrice) || 0) - costPriceIQD_perUnit;
+            const totalProfitIQD = profitPerUnitIQD * unitsSold;
+
+            // Calculate profit USD
+            const profitPerUnitUSD = exchangeRate > 0 ? profitPerUnitIQD / exchangeRate : 0;
+            const totalProfitUSD = profitPerUnitUSD * unitsSold;
+
             // Check if values actually changed to avoid infinite loop
             if (
-                prev.unitPriceIQD === unitPriceIQD &&
-                prev.sellingPriceIQD === sellingPriceIQD &&
+                prev.costPriceIQD_total === costPriceIQD_total &&
+                prev.costPriceIQD_perUnit === costPriceIQD_perUnit &&
+                prev.recommendedSellingPriceIQD_perUnit === recommendedSellingPriceIQD_perUnit &&
+                prev.sellingPriceIQD === nextSellingPrice &&
                 prev.profitPerUnitIQD === profitPerUnitIQD &&
-                prev.totalProfitIQD === totalProfitIQD
+                prev.totalProfitIQD === totalProfitIQD &&
+                prev.profitPerUnitUSD === profitPerUnitUSD &&
+                prev.totalProfitUSD === totalProfitUSD
             ) return prev;
 
             return {
                 ...prev,
-                unitPriceIQD,
-                sellingPriceIQD,
+                costPriceIQD_total,
+                costPriceIQD_perUnit,
+                recommendedSellingPriceIQD_perUnit,
+                sellingPriceIQD: nextSellingPrice,
                 profitPerUnitIQD,
                 totalProfitIQD,
-                // Also update legacy fields for compatibility
-                unitPrice: usdPrice,
-                price: sellingPriceIQD
+                profitPerUnitUSD,
+                totalProfitUSD,
+                // Legacy support
+                unitPrice: unitPriceUSD,
+                price: nextSellingPrice
             };
         });
     }, [
         formData.unitPriceUSD,
+        formData.alibabaFeeUSD,
+        formData.stock,
         formData.exchangeRate,
-        formData.additionalFeesIQD,
         formData.shippingToIraqIQD,
+        formData.additionalFeesIQD,
         formData.marginPercent,
-        formData.unitsSold
+        formData.unitsSold,
+        formData.isSellingPriceOverridden
     ]);
 
     // Modal & Form Handlers
@@ -220,9 +258,31 @@ const Products = () => {
         if (name === 'category' && value === 'new') {
             setIsAddingNewCategory(true);
             setFormData(prev => ({ ...prev, category: '' }));
+        } else if (name === 'sellingPriceIQD') {
+            // Keep raw value for typing, but set override flag
+            const val = value === '' ? '' : parseFloat(value);
+            setFormData(prev => ({
+                ...prev,
+                sellingPriceIQD: val,
+                isSellingPriceOverridden: true
+            }));
         } else {
             setFormData(prev => ({ ...prev, [name]: value }));
         }
+    };
+
+    const handlePriceBlur = () => {
+        setFormData(prev => {
+            if (!prev.isSellingPriceOverridden) return prev;
+            const roundedVal = roundToNearest500(parseFloat(prev.sellingPriceIQD) || 0);
+            const cost = prev.costPriceIQD_perUnit;
+            const newMargin = cost > 0 ? ((roundedVal / cost) - 1) * 100 : 0;
+            return {
+                ...prev,
+                sellingPriceIQD: roundedVal,
+                marginPercent: newMargin.toFixed(2)
+            };
+        });
     };
 
     const handleSaveNewCategory = () => {
@@ -268,7 +328,8 @@ const Products = () => {
             ...formData,
             // Ensure numeric fields are correctly typed
             unitPriceUSD: parseFloat(formData.unitPriceUSD) || 0,
-            exchangeRate: parseFloat(formData.exchangeRate) || 1500,
+            alibabaFeeUSD: parseFloat(formData.alibabaFeeUSD) || 0,
+            exchangeRate: parseFloat(formData.exchangeRate) || 1380,
             additionalFeesIQD: parseFloat(formData.additionalFeesIQD) || 0,
             shippingToIraqIQD: parseFloat(formData.shippingToIraqIQD) || 0,
             marginPercent: parseFloat(formData.marginPercent) || 0,
@@ -375,7 +436,7 @@ const Products = () => {
                             placeholder="Search inventory..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-10 pr-4 py-0 h-full w-full bg-slate-50 dark:bg-slate-900/50 border-2 border-slate-100 dark:border-slate-800 rounded-2xl outline-none focus:border-blue-200 dark:focus:border-blue-800 focus:ring-2 focus:ring-[var(--brand-color)]/20 transition-all font-bold text-sm"
+                            className="pl-10 pr-4 py-0 h-full w-full bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-2xl outline-none focus:border-accent/40 focus:ring-4 focus:ring-accent/10 transition-all font-bold text-sm text-slate-700 dark:text-white"
                         />
                     </div>
 
@@ -501,7 +562,7 @@ const Products = () => {
                             </button>
                         </div>
 
-                        <form onSubmit={handleSubmit} className="overflow-y-auto p-6 space-y-8 custom-scrollbar">
+                        <form id="productForm" onSubmit={handleSubmit} className="overflow-y-auto p-6 space-y-8 custom-scrollbar relative">
 
                             {/* Section 1: Basic Information */}
                             <section>
@@ -517,30 +578,23 @@ const Products = () => {
                                     </div>
                                     <div className="col-span-2 md:col-span-1">
                                         <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Category</label>
-                                        {isAddingNewCategory ? (
-                                            <div className="flex gap-2">
-                                                <input
-                                                    autoFocus
-                                                    className="flex-1 p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-[var(--brand-color)]/20"
-                                                    value={newCategoryName}
-                                                    onChange={(e) => setNewCategoryName(e.target.value)}
-                                                    placeholder="New Category Name"
-                                                />
-                                                <button type="button" onClick={handleSaveNewCategory} className="p-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors"><Plus className="w-5 h-5" /></button>
-                                                <button type="button" onClick={() => setIsAddingNewCategory(false)} className="p-2 text-slate-500 hover:text-red-500 transition-colors"><X className="w-5 h-5" /></button>
-                                            </div>
-                                        ) : (
-                                            <select name="category" value={formData.category} onChange={handleInputChange} className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--brand-color)]/20 outline-none dark:text-white transition-all appearance-none cursor-pointer">
-                                                <option value="">Select Category</option>
-                                                {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                                                <option value="new" className="font-bold text-[var(--brand-color)]">+ Create New Category</option>
-                                            </select>
-                                        )}
+                                        <SearchableSelect
+                                            title="Select Category"
+                                            options={categories.map(cat => ({ value: cat, label: cat }))}
+                                            selectedValue={formData.category}
+                                            onChange={(val) => setFormData(prev => ({ ...prev, category: val }))}
+                                            icon={Package}
+                                            customAction={{
+                                                label: "Create New Category",
+                                                icon: Plus,
+                                                onClick: () => setIsCategoryManagerOpen(true)
+                                            }}
+                                        />
                                     </div>
                                     <div className="col-span-2 md:col-span-1">
                                         <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Current Stock</label>
                                         <div className="relative">
-                                            <input required type="number" name="stock" value={formData.stock} onChange={handleInputChange} className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--brand-color)]/20 outline-none dark:text-white transition-all" />
+                                            <input required type="number" name="stock" value={formData.stock} onChange={handleInputChange} className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--brand-color)]/20 outline-none dark:text-white transition-all shadow-sm" />
                                             <div className="absolute right-3 top-1/2 -translate-y-1/2">
                                                 <StatusBadge status={getAutoStatus(formData.stock)} />
                                             </div>
@@ -567,15 +621,28 @@ const Products = () => {
                                     </div>
                                     <div className="col-span-2 md:col-span-1">
                                         <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Alibaba Order #</label>
-                                        <input name="alibabaOrderNumber" value={formData.alibabaOrderNumber} onChange={handleInputChange} className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[var(--brand-color)]/20 transition-all font-bold" placeholder="1234..." />
+                                        <input name="alibabaOrderNumber" value={formData.alibabaOrderNumber} onChange={handleInputChange} className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[var(--brand-color)]/20 transition-all font-bold shadow-sm" placeholder="1234..." />
+                                    </div>
+                                    <div className="col-span-2">
+                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Alibaba Note</label>
+                                        <div className="relative">
+                                            <MessageSquare className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+                                            <textarea
+                                                name="alibabaNote"
+                                                value={formData.alibabaNote}
+                                                onChange={handleInputChange}
+                                                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none focus:ring-2 focus:ring-[var(--brand-color)]/20 transition-all font-medium min-h-[80px] resize-none"
+                                                placeholder="Shipping notes, supplier contact details, etc."
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                             </section>
 
                             {/* Section 3: Cost & Pricing */}
                             <section>
-                                <h4 className="text-[11px] font-bold text-[var(--brand-color)] uppercase tracking-widest mb-4 border-b border-indigo-50 dark:border-indigo-900/30 pb-2">3. Cost & Pricing (USD → IQD)</h4>
-                                <div className="grid grid-cols-3 gap-4">
+                                <h4 className="text-[11px] font-bold text-[var(--brand-color)] uppercase tracking-widest mb-4 border-b border-indigo-50 dark:border-indigo-900/30 pb-2">3. Cost & Pricing</h4>
+                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                                     <div>
                                         <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Unit Price ($)</label>
                                         <div className="relative">
@@ -584,24 +651,15 @@ const Products = () => {
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Exchange Rate</label>
+                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Alibaba Fee ($ / unit)</label>
                                         <div className="relative">
-                                            <input required type="number" name="exchangeRate" value={formData.exchangeRate} onChange={handleInputChange} className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--brand-color)]/20 outline-none font-bold" />
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
+                                            <input type="number" step="0.01" name="alibabaFeeUSD" value={formData.alibabaFeeUSD} onChange={handleInputChange} className="w-full pl-7 p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--brand-color)]/20 outline-none font-bold" />
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-semibold text-[var(--brand-color)] uppercase mb-1">Price in IQD</label>
-                                        <div className="p-2.5 bg-indigo-50/50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 rounded-xl font-bold text-indigo-700 dark:text-indigo-400">
-                                            {(formData.unitPriceIQD || 0).toLocaleString()}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Fees (IQD)</label>
-                                        <input type="number" name="additionalFeesIQD" value={formData.additionalFeesIQD} onChange={handleInputChange} className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--brand-color)]/20 outline-none" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Shipping (IQD)</label>
-                                        <input type="number" name="shippingToIraqIQD" value={formData.shippingToIraqIQD} onChange={handleInputChange} className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--brand-color)]/20 outline-none" />
+                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Exchange Rate</label>
+                                        <input required type="number" name="exchangeRate" value={formData.exchangeRate} onChange={handleInputChange} className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--brand-color)]/20 outline-none font-bold" />
                                     </div>
                                     <div>
                                         <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Margin (%)</label>
@@ -610,19 +668,59 @@ const Products = () => {
                                             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">%</span>
                                         </div>
                                     </div>
-                                    <div className="col-span-3 p-4 bg-[var(--brand-color)]/10 rounded-2xl border-2 border-[var(--brand-color)]/30">
-                                        <div className="flex justify-between items-center">
-                                            <div>
-                                                <span className="text-[10px] font-bold text-[var(--brand-color)] uppercase tracking-wider block">Recommended Selling Price</span>
-                                                <span className="text-2xl font-black text-[var(--brand-color)]">IQD {(formData.sellingPriceIQD || 0).toLocaleString()}</span>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Shipping (Total IQD)</label>
+                                        <input type="number" name="shippingToIraqIQD" value={formData.shippingToIraqIQD} onChange={handleInputChange} className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--brand-color)]/20 outline-none" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Other Fees (Total IQD)</label>
+                                        <input type="number" name="additionalFeesIQD" value={formData.additionalFeesIQD} onChange={handleInputChange} className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--brand-color)]/20 outline-none" />
+                                    </div>
+
+                                    <div className="col-span-2 grid grid-cols-2 gap-3">
+                                        <div className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
+                                            <span className="block text-[10px] font-bold text-slate-400 uppercase">Cost (Total)</span>
+                                            <span className="text-sm font-bold text-slate-700 dark:text-slate-200">IQD {(formData.costPriceIQD_total || 0).toLocaleString()}</span>
+                                        </div>
+                                        <div className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
+                                            <span className="block text-[10px] font-bold text-slate-400 uppercase">Cost (Per Unit)</span>
+                                            <span className="text-sm font-bold text-slate-700 dark:text-slate-200">IQD {(formData.costPriceIQD_perUnit || 0).toLocaleString()}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="col-span-full grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Recommended Selling Price</span>
+                                            <span className="text-xl font-bold text-slate-600 dark:text-slate-400">IQD {(formData.recommendedSellingPriceIQD_perUnit || 0).toLocaleString()}</span>
+                                        </div>
+
+                                        <div className={`p-4 rounded-2xl border-2 transition-all ${formData.isSellingPriceOverridden ? 'bg-orange-50 border-orange-200 dark:bg-orange-900/10 dark:border-orange-800/50' : 'bg-[var(--brand-color)]/5 border-[var(--brand-color)]/20'}`}>
+                                            <div className="flex justify-between items-start mb-1">
+                                                <span className="text-[10px] font-bold text-[var(--brand-color)] uppercase tracking-wider">Final Selling Price (Per Unit)</span>
+                                                {formData.isSellingPriceOverridden && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setFormData(prev => ({ ...prev, isSellingPriceOverridden: false }))}
+                                                        className="text-[10px] font-bold text-orange-600 hover:underline flex items-center gap-1"
+                                                    >
+                                                        <X className="w-3 h-3" /> Reset
+                                                    </button>
+                                                )}
                                             </div>
-                                            <div className="text-right">
-                                                <div className="flex items-center gap-1.5 justify-end">
-                                                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                                                    <span className="text-[10px] font-bold text-slate-500 uppercase">Calculation Active</span>
-                                                </div>
-                                                <span className="text-xs text-slate-400 font-medium whitespace-pre-wrap">Based on {formData.marginPercent}% margin</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-lg font-black text-[var(--brand-color)]">IQD</span>
+                                                <input
+                                                    type="number"
+                                                    name="sellingPriceIQD"
+                                                    value={formData.sellingPriceIQD}
+                                                    onChange={handleInputChange}
+                                                    onBlur={handlePriceBlur}
+                                                    className="w-full bg-transparent border-b-2 border-[var(--brand-color)] animate-pulse-slow outline-none text-2xl font-black text-[var(--brand-color)]"
+                                                />
                                             </div>
+                                            <p className="text-[10px] text-slate-400 mt-1 font-medium italic">
+                                                {formData.isSellingPriceOverridden ? 'Manual override active (Rounded to 500)' : 'Auto-calculated from margin'}
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
@@ -631,28 +729,98 @@ const Products = () => {
                             {/* Section 4: Profit Analysis */}
                             <section>
                                 <h4 className="text-[11px] font-bold text-[var(--brand-color)] uppercase tracking-widest mb-4 border-b border-indigo-50 dark:border-indigo-900/30 pb-2">4. Profit Analysis</h4>
-                                <div className="grid grid-cols-3 gap-4">
-                                    <div className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
-                                        <span className="block text-[10px] font-bold text-slate-400 uppercase">Profit / Unit</span>
-                                        <span className="text-sm font-bold text-green-600 dark:text-green-400">+ IQD {(formData.profitPerUnitIQD || 0).toLocaleString()}</span>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {/* IQD Analysis */}
+                                    <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+                                        <div className="flex items-center gap-2 mb-4">
+                                            <div className="w-2 h-4 bg-green-500 rounded-full"></div>
+                                            <span className="text-xs font-black uppercase tracking-widest text-slate-400">IQD Analysis</span>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <span className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Profit / Unit</span>
+                                                <span className={`text-lg font-black ${formData.profitPerUnitIQD >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500'}`}>
+                                                    {formData.profitPerUnitIQD >= 0 ? '+' : '-'} IQD {Math.abs(formData.profitPerUnitIQD || 0).toLocaleString()}
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <span className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Total Profit</span>
+                                                <span className={`text-lg font-black ${formData.totalProfitIQD >= 0 ? 'text-green-500' : 'text-red-400'}`}>
+                                                    IQD {(formData.totalProfitIQD || 0).toLocaleString()}
+                                                </span>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
-                                        <span className="block text-[10px] font-bold text-slate-400 uppercase">Units Sold</span>
-                                        <input type="number" name="unitsSold" value={formData.unitsSold} onChange={handleInputChange} className="w-full mt-1 p-1 bg-transparent border-b border-slate-200 dark:border-slate-700 outline-none text-sm font-bold" />
+
+                                    {/* USD Analysis */}
+                                    <div className="p-4 bg-slate-900 dark:bg-slate-950 rounded-2xl border border-slate-800">
+                                        <div className="flex items-center gap-2 mb-4">
+                                            <div className="w-2 h-4 bg-blue-500 rounded-full"></div>
+                                            <span className="text-xs font-black uppercase tracking-widest text-slate-500">USD Analysis</span>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <span className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Profit / Unit</span>
+                                                <span className={`text-lg font-black ${formData.profitPerUnitUSD >= 0 ? 'text-blue-500' : 'text-red-400'}`}>
+                                                    {formData.profitPerUnitUSD >= 0 ? '+' : '-'} ${Math.abs(formData.profitPerUnitUSD || 0).toFixed(2)}
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <span className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Total Profit</span>
+                                                <span className={`text-lg font-black ${formData.totalProfitUSD >= 0 ? 'text-blue-400' : 'text-red-400'}`}>
+                                                    ${(formData.totalProfitUSD || 0).toFixed(2)}
+                                                </span>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="p-3 bg-slate-900 dark:bg-slate-950 rounded-xl border border-slate-800">
-                                        <span className="block text-[10px] font-bold text-slate-500 uppercase">Total Profit</span>
-                                        <span className="text-sm font-bold text-green-500">IQD {(formData.totalProfitIQD || 0).toLocaleString()}</span>
+
+                                    {/* Quantity Splitter */}
+                                    <div className="col-span-full p-4 bg-white dark:bg-slate-800 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-slate-100 dark:bg-slate-700 rounded-lg">
+                                                <ShoppingBag className="w-4 h-4 text-slate-500" />
+                                            </div>
+                                            <div>
+                                                <span className="block text-[10px] font-bold text-slate-400 uppercase">Quantity for Calculation</span>
+                                                <span className="text-xs font-medium text-slate-500 italic">Units expected to be sold</span>
+                                            </div>
+                                        </div>
+                                        <input
+                                            type="number"
+                                            name="unitsSold"
+                                            value={formData.unitsSold}
+                                            onChange={handleInputChange}
+                                            className="w-24 text-right p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg outline-none text-base font-black text-accent focus:ring-2 focus:ring-accent/20"
+                                        />
                                     </div>
                                 </div>
                             </section>
 
                             {/* Section 5: Image Gallery Preview */}
                             <section>
-                                <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 dark:border-slate-700 pb-2">5. Product Gallery</h4>
+                                <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 dark:border-slate-700 pb-2">6. General Information</h4>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Product Description</label>
+                                        <div className="relative">
+                                            <Info className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+                                            <textarea
+                                                name="description"
+                                                value={formData.description}
+                                                onChange={handleInputChange}
+                                                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[var(--brand-color)]/20 transition-all font-medium min-h-[120px] resize-none"
+                                                placeholder="General product description, features, or internal notes..."
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section>
+                                <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 dark:border-slate-700 pb-2">7. Product Gallery</h4>
                                 <div className="grid grid-cols-5 gap-2">
                                     {formData.images.map((img, index) => (
-                                        <div key={index} className="relative group aspect-square rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
+                                        <div key={index} className="relative group aspect-square rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 group">
                                             <img src={img} alt="Product" className="w-full h-full object-cover" />
                                             <button type="button" onClick={() => removeImage(index)} className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity transform hover:scale-110">
                                                 <X className="w-3 h-3" />
@@ -671,17 +839,28 @@ const Products = () => {
                                 <input type="file" ref={fileInputRef} className="hidden" onChange={handleImageUpload} multiple accept="image/*" />
                             </section>
 
-                            {/* Sticky Footer in Form */}
-                            <div className="pt-6 border-t border-slate-100 dark:border-slate-700 flex justify-end gap-3 sticky bottom-0 bg-white dark:bg-slate-800 pb-2">
-                                <button type="button" onClick={() => setIsModalOpen(false)} className="px-6 py-2.5 text-slate-500 dark:text-slate-400 font-bold hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl transition-all">Cancel</button>
-                                <button type="submit"
-                                    className="px-8 py-2.5 text-white font-black rounded-xl transition-all bg-accent shadow-accent active:scale-95 flex items-center gap-2"
-                                >
-                                    <Save className="w-5 h-5" />
-                                    {editingProduct ? 'Update Product' : 'Create Product'}
-                                </button>
-                            </div>
+                            {/* Added padding to prevent overlap with sticky footer */}
+                            <div className="h-20"></div>
                         </form>
+
+                        {/* Sticky Footer in Modal Bottom */}
+                        <div className="p-6 border-t border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row justify-end gap-3 sticky bottom-0 bg-white dark:bg-slate-800 rounded-b-2xl shadow-[0_-10px_20px_rgba(0,0,0,0.05)] z-20">
+                            <button
+                                type="button"
+                                onClick={() => setIsModalOpen(false)}
+                                className="order-2 sm:order-1 px-6 py-2.5 text-slate-500 dark:text-slate-400 font-bold hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl transition-all"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                form="productForm"
+                                className="order-1 sm:order-2 px-8 py-2.5 text-white font-black rounded-xl transition-all bg-accent shadow-accent active:scale-95 flex items-center justify-center gap-2"
+                            >
+                                <Save className="w-5 h-5" />
+                                {editingProduct ? 'Update Product' : 'Create Product'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

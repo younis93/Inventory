@@ -132,7 +132,7 @@ export const InventoryProvider = ({ children }) => {
 
         const unsubOrders = firebaseService.subscribeToCollection("orders", setOrders, "date", "desc");
         const unsubCustomers = firebaseService.subscribeToCollection("customers", setCustomers, "name");
-        const unsubUsers = firebaseService.subscribeToCollection("users", setUsers);
+        const unsubUsers = firebaseService.subscribeToCollection("users", setUsers, "username");
 
         const unsubBranding = firebaseService.subscribeToCollection("settings", (data) => {
             const branding = data.find(d => d._id === "branding");

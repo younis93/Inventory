@@ -8,6 +8,8 @@ import FilterDropdown from '../components/FilterDropdown';
 import SortDropdown from '../components/SortDropdown';
 import { isWithinInterval, parseISO, subDays } from 'date-fns';
 import { exportCustomersToCSV } from '../utils/CSVExportUtil';
+import SearchableSelect from '../components/SearchableSelect';
+import { Package } from 'lucide-react';
 
 const Customers = () => {
     const { customers, orders, addCustomer, updateCustomer, formatCurrency, brand } = useInventory();
@@ -315,7 +317,7 @@ const Customers = () => {
                             placeholder="Search by name or phone..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-10 pr-4 py-0 h-full w-full bg-slate-50 dark:bg-slate-900/50 border-2 border-slate-100 dark:border-slate-800 rounded-2xl outline-none focus:border-blue-200 dark:focus:border-blue-800 focus:ring-2 focus:ring-[var(--brand-color)]/20 transition-all font-bold text-sm"
+                            className="pl-10 pr-4 py-0 h-full w-full bg-slate-50 dark:bg-slate-900/50 border-2 border-slate-100 dark:border-slate-800 rounded-2xl outline-none focus:border-blue-200 dark:focus:border-blue-800 focus:ring-2 focus:ring-[var(--brand-color)]/20 transition-all font-bold text-sm dark:text-white"
                         />
                     </div>
 
@@ -555,35 +557,26 @@ const Customers = () => {
                                         <input placeholder="customer@example.com" type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className="w-full p-4 border-2 border-slate-100 dark:border-slate-800 rounded-2xl dark:bg-slate-900 dark:text-white outline-none focus:border-[var(--brand-color)] transition-all font-bold placeholder:opacity-30" />
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div className="space-y-1.5">
                                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Governorate</label>
-                                            <div className="relative">
-                                                <select
-                                                    required
-                                                    value={formData.governorate}
-                                                    onChange={e => setFormData({ ...formData, governorate: e.target.value })}
-                                                    className="w-full p-4 border-2 border-slate-100 dark:border-slate-800 rounded-2xl dark:bg-slate-900 dark:text-white outline-none focus:border-[var(--brand-color)] transition-all font-bold appearance-none cursor-pointer"
-                                                >
-                                                    <option value="">Select...</option>
-                                                    {GOVERNORATES.map(g => <option key={g} value={g}>{g}</option>)}
-                                                </select>
-                                                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                                            </div>
+                                            <SearchableSelect
+                                                title="Select Governorate"
+                                                options={GOVERNORATES.map(g => ({ value: g, label: g }))}
+                                                selectedValue={formData.governorate}
+                                                onChange={(val) => setFormData(prev => ({ ...prev, governorate: val }))}
+                                                icon={MapPin}
+                                            />
                                         </div>
                                         <div className="space-y-1.5">
                                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Channel</label>
-                                            <div className="relative">
-                                                <select
-                                                    value={formData.social}
-                                                    onChange={e => setFormData({ ...formData, social: e.target.value })}
-                                                    className="w-full p-4 border-2 border-slate-100 dark:border-slate-800 rounded-2xl dark:bg-slate-900 dark:text-white outline-none focus:border-[var(--brand-color)] transition-all font-bold appearance-none cursor-pointer"
-                                                >
-                                                    <option value="">Select...</option>
-                                                    {SOCIAL_PLATFORMS.map(p => <option key={p} value={p}>{p}</option>)}
-                                                </select>
-                                                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                                            </div>
+                                            <SearchableSelect
+                                                title="Select Channel"
+                                                options={SOCIAL_PLATFORMS.map(p => ({ value: p, label: p }))}
+                                                selectedValue={formData.social}
+                                                onChange={(val) => setFormData(prev => ({ ...prev, social: val }))}
+                                                icon={Globe}
+                                            />
                                         </div>
                                     </div>
 

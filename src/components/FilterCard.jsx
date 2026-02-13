@@ -23,7 +23,7 @@ const FilterCard = ({ title, options, selectedValues, onChange, onClear, showPro
             {showProductCount ? (
                 <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700">
                     <span className="text-sm font-bold text-slate-600 dark:text-slate-400">
-                        Products: <span className="text-[var(--brand-color)]">{productCount}</span>
+                        Products: <span className="text-accent">{productCount}</span>
                     </span>
                 </div>
             ) : (
@@ -52,7 +52,7 @@ const FilterCard = ({ title, options, selectedValues, onChange, onClear, showPro
                             placeholder="Search..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                            className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg text-sm outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all dark:text-white"
                         />
                     </div>
                 </div>
@@ -66,22 +66,22 @@ const FilterCard = ({ title, options, selectedValues, onChange, onClear, showPro
                             key={option.value}
                             onClick={() => handleToggle(option.value)}
                             className={`flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer transition-all group ${isSelected
-                                ? 'bg-blue-50 dark:bg-blue-900/20'
+                                ? 'bg-accent/10'
                                 : 'hover:bg-slate-50 dark:hover:bg-slate-700/50'
                                 }`}
                         >
                             <div className="flex items-center gap-3">
                                 <div className={`w-5 h-5 rounded-[5px] border flex items-center justify-center transition-all ${isSelected
-                                    ? 'bg-blue-600 border-blue-600 shadow-sm'
+                                    ? 'bg-accent border-accent shadow-sm'
                                     : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800'
                                     }`}>
                                     {isSelected && <Check className="w-3.5 h-3.5 text-white stroke-[3px]" />}
                                 </div>
-                                <span className={`text-sm font-semibold ${isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-slate-600 dark:text-slate-300'}`}>
+                                <span className={`text-sm font-semibold ${isSelected ? 'text-accent' : 'text-slate-600 dark:text-slate-300'}`}>
                                     {option.label}
                                 </span>
                             </div>
-                            <span className={`text-xs font-bold ${isSelected ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 group-hover:text-slate-500'}`}>
+                            <span className={`text-xs font-bold ${isSelected ? 'text-accent' : 'text-slate-400 group-hover:text-slate-500'}`}>
                                 {option.count}
                             </span>
                         </div>
@@ -93,7 +93,7 @@ const FilterCard = ({ title, options, selectedValues, onChange, onClear, showPro
                 <div className="px-4 py-3 border-t border-slate-50 dark:border-slate-700/50">
                     <button
                         onClick={onClear}
-                        className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 hover:underline transition-colors flex items-center gap-1"
+                        className="text-xs font-bold text-accent hover:underline transition-colors flex items-center gap-1"
                     >
                         Clear All
                     </button>

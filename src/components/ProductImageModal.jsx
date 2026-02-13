@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { X, Upload, Download, Save, ZoomIn, ChevronLeft, ChevronRight, Image as ImageIcon, Trash2 } from 'lucide-react';
+import { X, Upload, Download, Save, ZoomIn, ChevronLeft, ChevronRight, Image as ImageIcon, Trash2, Tag } from 'lucide-react';
+import { useInventory } from '../context/InventoryContext';
 import ImageSlider from './ImageSlider';
 
 const ProductImageModal = ({ product, onClose, onSave, onUpload }) => {
+    const { formatCurrency } = useInventory();
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [editedTitle, setEditedTitle] = useState(product.name || '');
     const [editedDescription, setEditedDescription] = useState(product.description || '');
@@ -153,14 +155,15 @@ const ProductImageModal = ({ product, onClose, onSave, onUpload }) => {
                             />
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
-                                <span className="block text-[10px] font-bold text-slate-400 uppercase">SKU</span>
-                                <span className="text-sm font-mono font-bold text-slate-700 dark:text-slate-200">{product.sku || 'N/A'}</span>
+                        <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                            <div>
+                                <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Selling Price</span>
+                                <span className="text-xl font-black text-slate-800 dark:text-white">
+                                    {formatCurrency(product.sellingPriceIQD || product.price || 0)}
+                                </span>
                             </div>
-                            <div className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
-                                <span className="block text-[10px] font-bold text-slate-400 uppercase">Category</span>
-                                <span className="text-sm font-bold text-accent">{product.category || 'Uncategorized'}</span>
+                            <div className="p-2 bg-accent/10 rounded-lg">
+                                <Tag className="w-5 h-5 text-accent" />
                             </div>
                         </div>
                     </div>

@@ -222,13 +222,13 @@ const DateRangePicker = ({ onChange, initialRange, range: controlledRange, onRan
                     }
                 }}
             >
-                <div className={`w-full h-12 flex items-center pl-4 pr-10 bg-white dark:bg-slate-800 border-2 rounded-2xl cursor-pointer transition-all shadow-sm font-bold
+                <div className={`w-full h-[44px] flex items-center pl-4 pr-10 bg-white dark:bg-slate-800 border-2 rounded-2xl cursor-pointer transition-all shadow-sm font-bold
             ${isOpen ? 'border-accent/30 ring-4 ring-accent/10 bg-accent/5' : 'border-slate-100 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-600'}`}>
-                    <span className={`text-base font-medium ${range.from ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-slate-400'}`}>
+                    <span className={`text-[11px] font-bold ${range.from ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-slate-400'}`}>
                         {range.from ? formatDateRange() : 'Select date range'}
                     </span>
                 </div>
-                <CalendarIcon className={`absolute right-3 w-5 h-5 pointer-events-none transition-colors ${isOpen ? 'text-accent' : 'text-slate-400'}`} />
+                <CalendarIcon className={`absolute right-3 w-4 h-4 pointer-events-none transition-colors ${isOpen ? 'text-accent' : 'text-slate-400'}`} />
             </div>
 
             {/* Popover */}

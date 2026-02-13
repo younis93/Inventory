@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'; // Added useEffect
 import Layout from '../components/Layout';
 import { Moon, Sun, Monitor, User, Trash2, Plus, CheckCircle, Settings as SettingsIcon, Users, Lock, Edit, Upload, Image as ImageIcon, Sparkles, Droplets, Palette, Layout as LayoutIcon } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
+import ImageCropperModal from '../components/ImageCropperModal';
 
 const Settings = () => {
     const { theme, toggleTheme, appearance, setAppearance, users, addUser, updateUser, deleteUser, currentUser, updateUserProfile, brand, updateBrand } = useInventory();
@@ -9,6 +10,10 @@ const Settings = () => {
     const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
     const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
+
+    // Image Cropping State
+    const [croppingImage, setCroppingImage] = useState(null);
+    const [cropType, setCropType] = useState(null); // 'avatar' or 'logo'
 
     // Account Settings State
     const [displayName, setDisplayName] = useState(currentUser?.displayName || '');
@@ -35,10 +40,11 @@ const Settings = () => {
     const handleAvatarUpload = (e) => {
         const file = e.target.files[0];
         if (file) {
-            if (file.size > 500 * 1024) return alert("Avatar too large. Max 500KB.");
+            if (file.size > 3 * 1024 * 1024) return alert("Avatar too large. Max 3MB.");
             const reader = new FileReader();
-            reader.onloadend = async () => {
-                await updateUserProfile({ photoURL: reader.result });
+            reader.onloadend = () => {
+                setCroppingImage(reader.result);
+                setCropType('avatar');
             };
             reader.readAsDataURL(file);
         }
@@ -72,13 +78,24 @@ const Settings = () => {
     const handleLogoUpload = (e) => {
         const file = e.target.files[0];
         if (file) {
-            if (file.size > 1024 * 1024) return alert("File too large. Max 1MB.");
+            if (file.size > 3 * 1024 * 1024) return alert("File too large. Max 3MB.");
             const reader = new FileReader();
             reader.onloadend = () => {
-                setBrandForm(prev => ({ ...prev, logo: reader.result }));
+                setCroppingImage(reader.result);
+                setCropType('logo');
             };
             reader.readAsDataURL(file);
         }
+    };
+
+    const handleCropComplete = async (croppedImage) => {
+        if (cropType === 'avatar') {
+            await updateUserProfile({ photoURL: croppedImage });
+        } else if (cropType === 'logo') {
+            setBrandForm(prev => ({ ...prev, logo: croppedImage }));
+        }
+        setCroppingImage(null);
+        setCropType(null);
     };
 
     // User Management State
@@ -200,8 +217,8 @@ const Settings = () => {
                                     <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-200">Branding</h3>
                                     <button
                                         onClick={handleSaveBranding}
-                                        className="px-4 py-2 text-white text-sm font-bold rounded-xl shadow-lg transition-all active:scale-95"
-                                        style={{ backgroundColor: brand.color, boxShadow: `0 10px 15px -3px ${brand.color}33` }}
+                                        className="px-4 py-2 text-white text-sm font-bold rounded-xl shadow-lg transition-all active:scale-95 bg-accent"
+                                        style={{ boxShadow: `0 10px 15px -3px var(--accent-color)33` }}
                                     >
                                         Save Branding Settings
                                     </button>
@@ -225,7 +242,7 @@ const Settings = () => {
                                         <div className="flex items-center gap-6">
                                             <div
                                                 className="w-20 h-20 rounded-xl flex items-center justify-center border border-slate-200 dark:border-slate-600 overflow-hidden bg-slate-100 dark:bg-slate-800"
-                                                style={{ backgroundColor: brandForm.color }}
+                                                style={{ backgroundColor: appearance.accentType === 'solid' ? appearance.accentColor : appearance.accentGradient.start }}
                                             >
                                                 {brandForm.logo ? (
                                                     <img src={brandForm.logo} alt="Logo" className="w-full h-full object-cover" />
@@ -239,7 +256,7 @@ const Settings = () => {
                                                     <span>Upload Logo</span>
                                                     <input type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} />
                                                 </label>
-                                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">Recommended size: 512x512px. Max 1MB.</p>
+                                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">Recommended size: 512x512px. Max 3MB.</p>
                                                 {brandForm.logo && (
                                                     <button
                                                         onClick={() => setBrandForm({ ...brandForm, logo: null })}
@@ -435,7 +452,7 @@ const Settings = () => {
 
                             <div className="max-w-xl space-y-6">
                                 <div className="flex items-center gap-6 mb-8">
-                                    <div className="w-24 h-24 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center text-3xl font-bold text-indigo-600 dark:text-indigo-400 overflow-hidden border-4 border-white dark:border-slate-800 shadow-lg">
+                                    <div className="w-24 h-24 bg-accent/20 rounded-full flex items-center justify-center text-3xl font-bold text-accent overflow-hidden border-4 border-white dark:border-slate-800 shadow-lg">
                                         {currentUser?.photoURL ? (
                                             <img src={currentUser.photoURL} alt="Avatar" className="w-full h-full object-cover" />
                                         ) : (
@@ -444,13 +461,13 @@ const Settings = () => {
                                     </div>
                                     <div>
                                         <label
-                                            className="cursor-pointer px-4 py-2 text-white text-sm font-bold rounded-xl shadow-lg transition-all inline-block hover:scale-[1.02]"
-                                            style={{ backgroundColor: brand.color, boxShadow: `0 10px 15px -3px ${brand.color}33` }}
+                                            className="cursor-pointer px-4 py-2 text-white text-sm font-bold rounded-xl shadow-lg transition-all inline-block hover:scale-[1.02] bg-accent"
+                                            style={{ boxShadow: `0 10px 15px -3px var(--accent-color)33` }}
                                         >
                                             Change Avatar
                                             <input type="file" className="hidden" accept="image/*" onChange={handleAvatarUpload} />
                                         </label>
-                                        <p className="text-xs text-slate-500 mt-2">JPG, GIF or PNG. Max size of 800K</p>
+                                        <p className="text-xs text-slate-500 mt-2">JPG, GIF or PNG. Max size of 3MB</p>
                                     </div>
                                 </div>
 
@@ -488,8 +505,8 @@ const Settings = () => {
                                     {!isEditingProfile ? (
                                         <button
                                             onClick={() => setIsEditingProfile(true)}
-                                            className="px-6 py-3 text-white font-bold rounded-xl transition-all shadow-lg"
-                                            style={{ backgroundColor: brand.color, boxShadow: `0 10px 15px -3px ${brand.color}33` }}
+                                            className="px-6 py-3 text-white font-bold rounded-xl transition-all shadow-lg bg-accent"
+                                            style={{ boxShadow: `0 10px 15px -3px var(--accent-color)33` }}
                                         >
                                             Edit Profile
                                         </button>
@@ -506,8 +523,8 @@ const Settings = () => {
                                             </button>
                                             <button
                                                 onClick={handleSaveProfile}
-                                                className="px-6 py-3 text-white font-bold rounded-xl transition-all shadow-lg"
-                                                style={{ backgroundColor: brand.color, boxShadow: `0 10px 15px -3px ${brand.color}33` }}
+                                                className="px-6 py-3 text-white font-bold rounded-xl transition-all shadow-lg bg-accent"
+                                                style={{ boxShadow: `0 10px 15px -3px var(--accent-color)33` }}
                                             >
                                                 Save Changes
                                             </button>
@@ -524,8 +541,8 @@ const Settings = () => {
                                 <h2 className="text-xl font-bold text-slate-800 dark:text-white">User Management</h2>
                                 <button
                                     onClick={handleOpenAddUser}
-                                    className="flex items-center gap-2 px-4 py-2 text-white font-medium rounded-xl transition-colors shadow-lg"
-                                    style={{ backgroundColor: brand.color, boxShadow: `0 10px 15px -3px ${brand.color}33` }}
+                                    className="flex items-center gap-2 px-4 py-2 text-white font-medium rounded-xl transition-colors shadow-lg bg-accent"
+                                    style={{ boxShadow: `0 10px 15px -3px var(--accent-color)33` }}
                                 >
                                     <Plus className="w-5 h-5" /> Add User
                                 </button>
@@ -535,8 +552,7 @@ const Settings = () => {
                                 <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
                                     <thead>
                                         <tr>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Username</th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Display Name</th>
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">User</th>
                                             <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Email</th>
                                             <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Role</th>
                                             <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
@@ -544,22 +560,41 @@ const Settings = () => {
                                     </thead>
                                     <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
                                         {users.map((user) => (
-                                            <tr key={user._id}>
-                                                <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-white">{user.username}</td>
-                                                <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-300">{user.displayName}</td>
+                                            <tr key={user._id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                                                <td className="px-4 py-4 whitespace-nowrap">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden flex-shrink-0 border-2 border-white dark:border-slate-700 shadow-sm">
+                                                            {user.photoURL ? (
+                                                                <img src={user.photoURL} alt={user.displayName} className="w-full h-full object-cover" />
+                                                            ) : (
+                                                                <div className="w-full h-full flex items-center justify-center bg-accent text-white font-bold">
+                                                                    {user.displayName?.charAt(0) || user.username?.charAt(0) || 'U'}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <div>
+                                                            <div className="text-sm font-bold text-slate-900 dark:text-white">{user.displayName}</div>
+                                                            <div className="text-xs text-slate-500">@{user.username}</div>
+                                                        </div>
+                                                    </div>
+                                                </td>
                                                 <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-300">{user.email}</td>
-                                                <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-300">{user.role}</td>
+                                                <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-300">
+                                                    <span className={`px-2 py-1 rounded-lg text-xs font-bold ${user.role === 'Admin' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'}`}>
+                                                        {user.role}
+                                                    </span>
+                                                </td>
                                                 <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                     <div className="flex items-center justify-end gap-2">
                                                         <button
                                                             onClick={() => handleOpenEditUser(user)}
-                                                            className="text-accent hover:brightness-110 transition-colors"
+                                                            className="p-2 text-accent hover:bg-accent/10 rounded-lg transition-all"
                                                         >
                                                             <Edit className="w-4 h-4" />
                                                         </button>
                                                         <button
                                                             onClick={() => handleDeleteUser(user._id)}
-                                                            className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+                                                            className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all"
                                                         >
                                                             <Trash2 className="w-4 h-4" />
                                                         </button>
@@ -591,8 +626,8 @@ const Settings = () => {
                                     <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-200 mb-3">Two-Factor Authentication (2FA)</h3>
                                     <p className="text-slate-600 dark:text-slate-400 mb-4">Add an extra layer of security to your account.</p>
                                     <button
-                                        className="px-6 py-3 text-white font-bold rounded-xl transition-all shadow-lg"
-                                        style={{ backgroundColor: brand.color, boxShadow: `0 10px 15px -3px ${brand.color}33` }}
+                                        className="px-6 py-3 text-white font-bold rounded-xl transition-all shadow-lg bg-accent"
+                                        style={{ boxShadow: `0 10px 15px -3px var(--accent-color)33` }}
                                     >
                                         Enable 2FA
                                     </button>
@@ -625,8 +660,8 @@ const Settings = () => {
                                 <div className="flex gap-3 mt-6">
                                     <button type="button" onClick={() => setIsAddUserModalOpen(false)} className="flex-1 py-3 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition-colors">Cancel</button>
                                     <button type="submit"
-                                        className="flex-1 py-3 text-white font-bold rounded-xl transition-colors shadow-lg"
-                                        style={{ backgroundColor: brand.color, boxShadow: `0 10px 15px -3px ${brand.color}33` }}
+                                        className="flex-1 py-3 text-white font-bold rounded-xl transition-colors shadow-lg bg-accent"
+                                        style={{ boxShadow: `0 10px 15px -3px var(--accent-color)33` }}
                                     >
                                         {editingUser ? 'Update User' : 'Create User'}
                                     </button>
@@ -651,8 +686,8 @@ const Settings = () => {
                                 <div className="flex gap-3 mt-6">
                                     <button type="button" onClick={() => setIsChangePasswordOpen(false)} className="flex-1 py-3 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition-colors">Cancel</button>
                                     <button type="submit"
-                                        className="flex-1 py-3 text-white font-bold rounded-xl transition-colors shadow-lg"
-                                        style={{ backgroundColor: brand.color, boxShadow: `0 10px 15px -3px ${brand.color}33` }}
+                                        className="flex-1 py-3 text-white font-bold rounded-xl transition-colors shadow-lg bg-accent"
+                                        style={{ boxShadow: `0 10px 15px -3px var(--accent-color)33` }}
                                     >Change Password</button>
                                 </div>
                             </form>
@@ -660,6 +695,14 @@ const Settings = () => {
                     </div>
                 )
             }
+            {croppingImage && (
+                <ImageCropperModal
+                    image={croppingImage}
+                    onCrop={handleCropComplete}
+                    onClose={() => { setCroppingImage(null); setCropType(null); }}
+                    aspect={1}
+                />
+            )}
         </Layout >
     );
 };
