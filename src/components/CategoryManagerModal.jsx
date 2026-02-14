@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { X, Plus, Edit2, Trash2, Save, Ban } from 'lucide-react';
+import { useInventory } from '../context/InventoryContext';
 
 const CategoryManagerModal = ({ categories, products, onClose, onAdd, onUpdate, onDelete }) => {
+    const { addToast } = useInventory();
     const [newCategoryName, setNewCategoryName] = useState('');
     const [editingCategory, setEditingCategory] = useState(null);
     const [editName, setEditName] = useState('');
@@ -33,7 +35,7 @@ const CategoryManagerModal = ({ categories, products, onClose, onAdd, onUpdate, 
 
     const handleDelete = (cat) => {
         if (categoryCounts[cat] > 0) {
-            alert(`Cannot delete category "${cat}" because it is used by ${categoryCounts[cat]} products.`);
+            addToast(`Cannot delete category "${cat}" because it is used by ${categoryCounts[cat]} products.`, "error");
             return;
         }
         if (window.confirm(`Are you sure you want to delete category "${cat}"?`)) {

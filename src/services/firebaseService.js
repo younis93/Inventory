@@ -106,5 +106,20 @@ export const firebaseService = {
             console.error(`Error deleting from ${collectionName}:`, error);
             throw error;
         }
+    },
+
+    /**
+     * Clear an entire collection
+     */
+    clearCollection: async (collectionName) => {
+        if (!collectionName) throw new Error('clearCollection: collectionName is required');
+        try {
+            const querySnapshot = await getDocs(collection(db, collectionName));
+            const deletePromises = querySnapshot.docs.map(d => deleteDoc(d.ref));
+            await Promise.all(deletePromises);
+        } catch (error) {
+            console.error(`Error clearing ${collectionName}:`, error);
+            throw error;
+        }
     }
 };

@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react'; // Added useEffect
 import Layout from '../components/Layout';
-import { Moon, Sun, Monitor, User, Trash2, Plus, CheckCircle, Settings as SettingsIcon, Users, Lock, Edit, Upload, Image as ImageIcon, Sparkles, Droplets, Palette, Layout as LayoutIcon } from 'lucide-react';
+import { Moon, Sun, Monitor, User, Trash2, Plus, CheckCircle, Settings as SettingsIcon, Users, Lock, Edit, Upload, Image as ImageIcon, Sparkles, Droplets, Palette, Layout as LayoutIcon, AlertTriangle, ShieldAlert } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 import ImageCropperModal from '../components/ImageCropperModal';
 
 const Settings = () => {
-    const { theme, toggleTheme, appearance, setAppearance, users, addUser, updateUser, deleteUser, currentUser, updateUserProfile, brand, updateBrand } = useInventory();
+    const { theme, toggleTheme, appearance, setAppearance, users, addUser, updateUser, deleteUser, currentUser, updateUserProfile, brand, updateBrand, addToast, seedData } = useInventory();
     const [activeTab, setActiveTab] = useState('general');
     const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
     const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
@@ -30,17 +30,17 @@ const Settings = () => {
         try {
             await updateUserProfile({ displayName });
             setIsEditingProfile(false);
-            alert("Profile updated successfully!");
+            addToast("Profile updated successfully!", "success");
         } catch (error) {
             console.error("Profile update error:", error);
-            alert("Failed to update profile.");
+            addToast("Failed to update profile.", "error");
         }
     };
 
     const handleAvatarUpload = (e) => {
         const file = e.target.files[0];
         if (file) {
-            if (file.size > 3 * 1024 * 1024) return alert("Avatar too large. Max 3MB.");
+            if (file.size > 3 * 1024 * 1024) return addToast("Avatar too large. Max 3MB.", "error");
             const reader = new FileReader();
             reader.onloadend = () => {
                 setCroppingImage(reader.result);
@@ -69,16 +69,16 @@ const Settings = () => {
     const handleSaveBranding = async () => {
         try {
             await updateBrand(brandForm);
-            alert("Branding settings saved successfully!");
+            addToast("Branding settings saved successfully!", "success");
         } catch (error) {
-            alert("Failed to save branding settings.");
+            addToast("Failed to save branding settings.", "error");
         }
     };
 
     const handleLogoUpload = (e) => {
         const file = e.target.files[0];
         if (file) {
-            if (file.size > 3 * 1024 * 1024) return alert("File too large. Max 3MB.");
+            if (file.size > 3 * 1024 * 1024) return addToast("File too large. Max 3MB.", "error");
             const reader = new FileReader();
             reader.onloadend = () => {
                 setCroppingImage(reader.result);
@@ -91,8 +91,10 @@ const Settings = () => {
     const handleCropComplete = async (croppedImage) => {
         if (cropType === 'avatar') {
             await updateUserProfile({ photoURL: croppedImage });
+            addToast("Avatar updated successfully!", "success");
         } else if (cropType === 'logo') {
             setBrandForm(prev => ({ ...prev, logo: croppedImage }));
+            addToast("Logo updated successfully!", "success");
         }
         setCroppingImage(null);
         setCropType(null);
@@ -118,15 +120,15 @@ const Settings = () => {
         try {
             if (editingUser) {
                 await updateUser({ ...userForm, _id: editingUser._id });
-                alert("User updated successfully!");
+                addToast("User updated successfully!", "success");
             } else {
                 await addUser({ ...userForm });
-                alert("User created successfully!");
+                addToast("User created successfully!", "success");
             }
             setIsAddUserModalOpen(false);
         } catch (error) {
             console.error("User management error:", error);
-            alert("Failed to save user.");
+            addToast("Failed to save user.", "error");
         }
     };
 
@@ -134,9 +136,9 @@ const Settings = () => {
         if (window.confirm("Are you sure you want to delete this user?")) {
             try {
                 await deleteUser(id);
-                alert("User deleted.");
+                addToast("User deleted successfully.", "success");
             } catch (error) {
-                alert("Failed to delete user.");
+                addToast("Failed to delete user.", "error");
             }
         }
     };
@@ -170,12 +172,6 @@ const Settings = () => {
                             className={`flex items-center gap-3 w-full px-4 py-2 rounded-xl text-left font-medium transition-all ${activeTab === 'users' ? 'shadow-sm bg-accent text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}
                         >
                             <Users className="w-5 h-5" /> Users
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('security')}
-                            className={`flex items-center gap-3 w-full px-4 py-2 rounded-xl text-left font-medium transition-all ${activeTab === 'security' ? 'shadow-sm bg-accent text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}
-                        >
-                            <Lock className="w-5 h-5" /> Security
                         </button>
                     </nav>
                 </aside>
@@ -286,8 +282,7 @@ const Settings = () => {
                                     {[
                                         { id: 'liquid', name: 'Liquid Glass', icon: Droplets, desc: 'Apple macOS style' },
                                         { id: 'light', name: 'Pro Light', icon: Sun, desc: 'Clean & minimal' },
-                                        { id: 'dark', name: 'Pro Dark', icon: Moon, desc: 'Deep & elegant' },
-                                        { id: 'default', name: 'Default', icon: Monitor, desc: 'System standard' }
+                                        { id: 'dark', name: 'Pro Dark', icon: Moon, desc: 'Deep & elegant' }
                                     ].map((t) => (
                                         <button
                                             key={t.id}
@@ -301,8 +296,8 @@ const Settings = () => {
                                             <span className="font-bold text-slate-800 dark:text-white">{t.name}</span>
                                             <span className="text-xs text-slate-500 mt-1">{t.desc}</span>
                                             {appearance.theme === t.id && (
-                                                <div className="absolute top-3 right-3 text-accent">
-                                                    <CheckCircle className="w-5 h-5 fill-current bg-white dark:bg-slate-800 rounded-full" />
+                                                <div className="absolute top-3 right-3 w-6 h-6 bg-accent rounded-full flex items-center justify-center shadow-lg border-2 border-white dark:border-slate-800 animate-in zoom-in duration-200">
+                                                    <CheckCircle className="w-3.5 h-3.5 text-white" />
                                                 </div>
                                             )}
                                         </button>
@@ -353,7 +348,7 @@ const Settings = () => {
                                                         type="color"
                                                         value={appearance.accentColor}
                                                         onChange={(e) => setAppearance({ accentColor: e.target.value })}
-                                                        className="w-10 h-10 rounded-xl cursor-pointer border-0 p-0 overflow-hidden bg-transparent"
+                                                        className="w-10 h-10 rounded-full cursor-pointer border-0 p-0 overflow-hidden bg-transparent"
                                                     />
                                                     <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap">Custom Color</div>
                                                 </div>
@@ -531,6 +526,35 @@ const Settings = () => {
                                         </div>
                                     )}
                                 </div>
+
+                                <div className="mt-12 pt-8 border-t border-slate-100 dark:border-slate-700">
+                                    <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2">
+                                        <Lock className="w-5 h-5 text-accent" />
+                                        Security Settings
+                                    </h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        <div className="p-6 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
+                                            <h4 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">Password</h4>
+                                            <p className="text-xs text-slate-500 mb-4 leading-relaxed">Change your password to keep your account safe.</p>
+                                            <button
+                                                onClick={() => setIsChangePasswordOpen(true)}
+                                                className="w-full py-2.5 bg-accent text-white text-sm font-bold rounded-xl shadow-lg hover:brightness-110 transition-all"
+                                                style={{ boxShadow: `0 4px 10px -2px var(--accent-color)44` }}
+                                            >
+                                                Change Password
+                                            </button>
+                                        </div>
+                                        <div className="p-6 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
+                                            <h4 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">Two-Factor Authentication</h4>
+                                            <p className="text-xs text-slate-500 mb-4 leading-relaxed">Add an extra layer of protection to your profile.</p>
+                                            <button
+                                                className="w-full py-2.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm font-bold rounded-xl hover:bg-slate-300 dark:hover:bg-slate-600 transition-all"
+                                            >
+                                                Enable 2FA
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     )}
@@ -608,33 +632,7 @@ const Settings = () => {
                         </div>
                     )}
 
-                    {activeTab === 'security' && (
-                        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                            <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-6">Security Settings</h2>
-                            <div className="space-y-6">
-                                <div>
-                                    <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-200 mb-3">Password</h3>
-                                    <p className="text-slate-600 dark:text-slate-400 mb-4">Change your account password.</p>
-                                    <button
-                                        onClick={() => setIsChangePasswordOpen(true)}
-                                        className="px-6 py-3 bg-accent text-white font-bold rounded-xl shadow-accent hover:brightness-110 transition-all"
-                                    >
-                                        Change Password
-                                    </button>
-                                </div>
-                                <div>
-                                    <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-200 mb-3">Two-Factor Authentication (2FA)</h3>
-                                    <p className="text-slate-600 dark:text-slate-400 mb-4">Add an extra layer of security to your account.</p>
-                                    <button
-                                        className="px-6 py-3 text-white font-bold rounded-xl transition-all shadow-lg bg-accent"
-                                        style={{ boxShadow: `0 10px 15px -3px var(--accent-color)33` }}
-                                    >
-                                        Enable 2FA
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
+
                 </div>
             </div>
 
@@ -678,7 +676,7 @@ const Settings = () => {
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in zoom-in duration-200">
                         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6">
                             <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-4">Change Password</h3>
-                            <form onSubmit={(e) => { e.preventDefault(); alert("Password changed successfully (Mock)"); setIsChangePasswordOpen(false); }} className="space-y-4">
+                            <form onSubmit={(e) => { e.preventDefault(); addToast("Password changed successfully!", "success"); setIsChangePasswordOpen(false); }} className="space-y-4">
                                 <input required placeholder="Current Password" type="password" className="w-full p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700 dark:text-white outline-none" />
                                 <input required placeholder="New Password" type="password" className="w-full p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700 dark:text-white outline-none" />
                                 <input required placeholder="Confirm New Password" type="password" className="w-full p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700 dark:text-white outline-none" />

@@ -1,6 +1,7 @@
 import React from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import Toasts from './Toasts';
 import { useInventory } from '../context/InventoryContext';
 
 const Layout = ({ children, title }) => {
@@ -25,6 +26,7 @@ const Layout = ({ children, title }) => {
                         {children}
                     </div>
                 </main>
+                <Toasts />
             </div>
         </div>
     );

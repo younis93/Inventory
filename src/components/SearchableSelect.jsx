@@ -72,7 +72,7 @@ const SearchableSelect = ({
             </button>
 
             {isOpen && (
-                <div className={`absolute left-0 z-[100] w-full min-w-[280px] animate-in fade-in zoom-in-95 duration-200 ${direction === 'up' ? 'bottom-full mb-2' : 'top-full mt-2'}`}>
+                <div className={`absolute left-0 z-[100] w-full animate-in fade-in zoom-in-95 duration-200 ${direction === 'up' ? 'bottom-full mb-2' : 'top-full mt-2'}`}>
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-700 overflow-hidden flex flex-col">
 
                         {showSearch && (
@@ -91,11 +91,11 @@ const SearchableSelect = ({
                             </div>
                         )}
 
-                        <div className="flex-1 max-h-64 overflow-y-auto p-2 space-y-1 custom-scrollbar">
+                        <div className="flex-1 max-h-48 overflow-y-auto p-2 space-y-1">
                             {customAction && (
                                 <div
                                     onClick={() => { customAction.onClick(); setIsOpen(false); }}
-                                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 text-accent font-bold text-sm border border-dashed border-accent/30 mb-1"
+                                    className="flex items-center gap-3 px-3 py-2 rounded-xl cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 text-accent font-bold text-sm border border-dashed border-accent/30 mb-1"
                                 >
                                     {customAction.icon && <customAction.icon className="w-4 h-4" />}
                                     <span>{customAction.label}</span>
@@ -112,7 +112,7 @@ const SearchableSelect = ({
                                     <div
                                         key={option.value}
                                         onClick={() => handleSelect(option.value)}
-                                        className={`flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer transition-all group ${isSelected
+                                        className={`flex items-center justify-between px-3 py-2 rounded-xl cursor-pointer transition-all group ${isSelected
                                             ? 'bg-accent/10 text-accent font-bold'
                                             : 'hover:bg-slate-50 dark:hover:bg-slate-700/50 text-slate-600 dark:text-slate-300'
                                             }`}

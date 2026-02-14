@@ -37,7 +37,7 @@ const StatusBadge = ({ status }) => {
 };
 
 const Products = () => {
-    const { products, addProduct, updateProduct, deleteProduct, categories, addCategory, updateCategory, deleteCategory, formatCurrency, loading, brand } = useInventory();
+    const { products, addProduct, updateProduct, deleteProduct, categories, addCategory, updateCategory, deleteCategory, formatCurrency, loading, brand, addToast } = useInventory();
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategories, setSelectedCategories] = useState([]);
     const [selectedStatuses, setSelectedStatuses] = useState([]);
@@ -320,7 +320,7 @@ const Products = () => {
 
         // Final validation for margin
         if (parseFloat(formData.marginPercent) >= 100) {
-            alert('Margin percentage must be less than 100%');
+            addToast('Margin percentage must be less than 100%', "error");
             return;
         }
 
@@ -385,7 +385,10 @@ const Products = () => {
                         </button>
 
                         <button
-                            onClick={() => exportProductsToCSV(filteredProducts)}
+                            onClick={() => {
+                                if (filteredProducts.length === 0) return addToast("No products matching filters to export", "info");
+                                exportProductsToCSV(filteredProducts);
+                            }}
                             className="flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-xl font-bold transition-all shadow-lg hover:bg-green-700 active:scale-95"
                         >
                             <Download className="w-5 h-5" />
@@ -509,7 +512,15 @@ const Products = () => {
                                                     setIsImageModalOpen(true);
                                                 }}
                                             >
-                                                <img src={product.images && product.images[0] ? product.images[0] : 'https://via.placeholder.com/150'} alt={product.name} className="w-full h-full object-cover" />
+                                                <img
+                                                    src={
+                                                        product.images && product.images[0]
+                                                            ? (typeof product.images[0] === 'string' ? product.images[0] : product.images[0].url)
+                                                            : (product.imageUrl || 'https://via.placeholder.com/150')
+                                                    }
+                                                    alt={product.name}
+                                                    className="w-full h-full object-cover"
+                                                />
                                             </div>
                                             <div>
                                                 <h4 className="text-sm font-bold text-slate-800 dark:text-white">{product.name}</h4>

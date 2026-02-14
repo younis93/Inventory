@@ -75,7 +75,6 @@ const downloadCSV = (csvContent, filename) => {
  */
 export const exportOrdersToCSV = (orders, filename = null) => {
     if (!orders || orders.length === 0) {
-        alert('No orders to export');
         return;
     }
 
@@ -110,7 +109,6 @@ export const exportOrdersToCSV = (orders, filename = null) => {
  */
 export const exportCustomersToCSV = (customers, filename = null) => {
     if (!customers || customers.length === 0) {
-        alert('No customers to export');
         return;
     }
 
@@ -139,7 +137,6 @@ export const exportCustomersToCSV = (customers, filename = null) => {
  */
 export const exportProductsToCSV = (products, filename = null) => {
     if (!products || products.length === 0) {
-        alert('No products to export');
         return;
     }
 

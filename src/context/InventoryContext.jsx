@@ -76,6 +76,15 @@ export const InventoryProvider = ({ children }) => {
     const [users, setUsers] = useState([]);
     const [categories, setCategories] = useState(['Electronics', 'Clothing', 'Home', 'Beauty', 'Sports']);
     const [loading, setLoading] = useState(true);
+    const [toasts, setToasts] = useState([]);
+
+    const addToast = (message, type = 'info') => {
+        const id = Math.random().toString(36).substr(2, 9);
+        setToasts(prev => [...prev, { id, message, type }]);
+        setTimeout(() => {
+            setToasts(prev => prev.filter(t => t.id !== id));
+        }, 3000);
+    };
 
     // Branding State
     const [brand, setBrand] = useState({
@@ -161,6 +170,7 @@ export const InventoryProvider = ({ children }) => {
         // Check if exists
         if (categories.includes(name)) return;
         await firebaseService.add("categories", { name });
+        addToast(`Category "${name}" added!`, "success");
     };
 
     const updateCategory = async (oldName, newName) => {
@@ -168,6 +178,7 @@ export const InventoryProvider = ({ children }) => {
         const catObj = categoryObjects.find(c => c.name === oldName);
         if (catObj) {
             await firebaseService.update("categories", catObj._id, { name: newName });
+            addToast(`Category updated to "${newName}"`, "success");
             // Also need to update all products with this category?
             // "Update inventory product category dropdowns/lists immediately" -> This is auto via subscription.
             // "Update products?" -> Usually yes.
@@ -182,6 +193,7 @@ export const InventoryProvider = ({ children }) => {
         const catObj = categoryObjects.find(c => c.name === name);
         if (catObj) {
             await firebaseService.delete("categories", catObj._id);
+            addToast(`Category "${name}" deleted!`, "success");
         }
     };
 
@@ -244,7 +256,9 @@ export const InventoryProvider = ({ children }) => {
 
     // --- Actions (using Service) ---
     const addProduct = async (newProduct) => {
-        await firebaseService.add("products", newProduct);
+        const result = await firebaseService.add("products", newProduct);
+        addToast('Product added successfully', 'success');
+        return result;
     };
 
     const updateProduct = async (updatedProduct) => {
@@ -259,7 +273,13 @@ export const InventoryProvider = ({ children }) => {
 
 
     const addCustomer = async (newCustomer) => {
-        return await firebaseService.add("customers", newCustomer);
+        const customerWithDate = {
+            ...newCustomer,
+            createdOn: new Date().toISOString()
+        };
+        const result = await firebaseService.add("customers", customerWithDate);
+        addToast('Customer added successfully', 'success');
+        return result;
     };
 
     const updateCustomer = async (updatedCustomer) => {
@@ -268,36 +288,89 @@ export const InventoryProvider = ({ children }) => {
     };
 
     const addOrder = async (newOrder) => {
+        const orderId = `#ORD-${Math.floor(1000 + Math.random() * 9000)}`;
         const orderWithDetails = {
             ...newOrder,
-            orderId: `#ORD-${Math.floor(1000 + Math.random() * 9000)}`,
+            orderId,
             date: new Date().toISOString()
         };
 
         // Add the order
         const addedOrder = await firebaseService.add("orders", orderWithDetails);
 
-        // Decrement Stock for each item
+        // Decrement Stock
         for (const item of newOrder.items) {
             const product = products.find(p => p._id === item.product._id);
             if (product) {
                 const newStock = Math.max(0, product.stock - item.quantity);
                 await firebaseService.update("products", product._id, {
                     stock: newStock,
-                    status: newStock === 0 ? 'Out of Stock' : (newStock <= 5 ? 'Low Stock' : 'In Stock')
+                    status: newStock === 0 ? 'Out of Stock' : (newStock <= 10 ? 'Low Stock' : 'In Stock')
                 });
             }
         }
+
+        addToast('Order created successfully', 'success');
         return addedOrder;
     };
 
     const deleteOrder = async (id) => {
+        const order = orders.find(o => o._id === id);
+        if (order) {
+            // Restore stock
+            for (const item of order.items) {
+                const product = products.find(p => p._id === item.product._id);
+                if (product) {
+                    const newStock = product.stock + item.quantity;
+                    await firebaseService.update("products", product._id, {
+                        stock: newStock,
+                        status: newStock === 0 ? 'Out of Stock' : (newStock <= 10 ? 'Low Stock' : 'In Stock')
+                    });
+                }
+            }
+        }
         await firebaseService.delete("orders", id);
+        addToast('Order deleted and stock restored', 'info');
     };
 
     const updateOrder = async (updatedOrder) => {
         const { _id, ...data } = updatedOrder;
+        const oldOrder = orders.find(o => o._id === _id);
+
+        if (oldOrder) {
+            // 1. Restore old stock
+            for (const item of oldOrder.items) {
+                const product = products.find(p => p._id === item.product._id);
+                if (product) {
+                    await firebaseService.update("products", product._id, {
+                        stock: product.stock + item.quantity
+                    });
+                }
+            }
+            // 2. Subtract new stock (from updated products list)
+            // Note: We need to pull the very latest stock here, but since we updated it above, 
+            // the 'products' from context might be slightly behind if we don't wait.
+            // Firestore is fast but let's be careful.
+            for (const item of updatedOrder.items) {
+                const product = products.find(p => p._id === item.product._id);
+                if (product) {
+                    // Calculate based on the restore we just did (mentally)
+                    // The 'product' in the list still has the OLD stock before restoration.
+                    // So newStock = (oldProductStock + oldOrderItemQty) - newOrderItemQty
+                    const oldItem = oldOrder.items.find(oi => oi.product._id === item.product._id);
+                    const oldQty = oldItem ? oldItem.quantity : 0;
+                    const newStock = Math.max(0, product.stock + oldQty - item.quantity);
+
+                    await firebaseService.update("products", product._id, {
+                        stock: newStock,
+                        status: newStock === 0 ? 'Out of Stock' : (newStock <= 10 ? 'Low Stock' : 'In Stock')
+                    });
+                }
+            }
+        }
+
         await firebaseService.update("orders", _id, data);
+        addToast('Order updated successfully', 'success');
     };
 
     const addUser = async (user) => {
@@ -340,7 +413,8 @@ export const InventoryProvider = ({ children }) => {
             currentUser, updateUserProfile,
             formatCurrency,
             isSidebarCollapsed, toggleSidebar,
-            isMobileMenuOpen, toggleMobileMenu, closeMobileMenu
+            isMobileMenuOpen, toggleMobileMenu, closeMobileMenu,
+            toasts, addToast
         }}>
             {children}
         </InventoryContext.Provider>

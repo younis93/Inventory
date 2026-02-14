@@ -15,10 +15,33 @@ const Dashboard = () => {
     const { orders, products, customers, loading, formatCurrency, brand, categories, theme, appearance } = useInventory();
 
     // Filters State
-    const [dateRange, setDateRange] = useState({
-        from: subDays(new Date(), 30),
+    const minDate = useMemo(() => {
+        if (orders.length === 0) return subDays(new Date(), 30);
+        return orders.reduce((min, o) => {
+            try {
+                const d = parseISO(o.date);
+                return d < min ? d : min;
+            } catch (e) {
+                return min;
+            }
+        }, new Date());
+    }, [orders]);
+
+    const defaultRange = useMemo(() => ({
+        from: minDate,
         to: new Date()
-    });
+    }), [minDate]);
+
+    const [dateRange, setDateRange] = useState(defaultRange);
+
+    // Update dateRange once orders are loaded
+    const [hasInitializedDate, setHasInitializedDate] = useState(false);
+    React.useEffect(() => {
+        if (!loading && orders.length > 0 && !hasInitializedDate) {
+            setDateRange(defaultRange);
+            setHasInitializedDate(true);
+        }
+    }, [loading, orders.length, defaultRange, hasInitializedDate]);
 
     // Multi-select filters
     const [selectedStatuses, setSelectedStatuses] = useState([]);
@@ -186,19 +209,22 @@ const Dashboard = () => {
 
                     <div className="flex gap-3 items-center flex-wrap">
                         {/* Clear Filters Button */}
-                        {(selectedStatuses.length > 0 || selectedGovernorates.length > 0 || selectedSocials.length > 0 || selectedCategories.length > 0) && (
-                            <button
-                                onClick={() => {
-                                    setSelectedStatuses([]);
-                                    setSelectedGovernorates([]);
-                                    setSelectedSocials([]);
-                                    setSelectedCategories([]);
-                                }}
-                                className="px-4 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-xl font-bold text-sm transition-all border border-slate-200 dark:border-slate-700"
-                            >
-                                Clear Filters
-                            </button>
-                        )}
+                        {(selectedStatuses.length > 0 || selectedGovernorates.length > 0 || selectedSocials.length > 0 || selectedCategories.length > 0 ||
+                            dateRange.from?.getTime() !== defaultRange.from?.getTime() ||
+                            dateRange.to?.getTime() !== defaultRange.to?.getTime()) && (
+                                <button
+                                    onClick={() => {
+                                        setSelectedStatuses([]);
+                                        setSelectedGovernorates([]);
+                                        setSelectedSocials([]);
+                                        setSelectedCategories([]);
+                                        setDateRange(defaultRange);
+                                    }}
+                                    className="px-4 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-xl font-bold text-sm transition-all border border-slate-200 dark:border-slate-700"
+                                >
+                                    Clear Filters
+                                </button>
+                            )}
 
                         {/* Order Count for Context */}
                         <div className="flex items-center gap-3 px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
