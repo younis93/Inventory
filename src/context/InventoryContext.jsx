@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { db, auth } from '../firebase';
 import { firebaseService } from '../services/firebaseService';
+import { useTranslation } from 'react-i18next';
 
 const InventoryContext = createContext();
 
@@ -237,6 +238,32 @@ export const InventoryProvider = ({ children }) => {
         localStorage.setItem('theme', theme);
     }, [theme]);
 
+    // Language Logic
+    const { i18n } = useTranslation();
+    const [language, setLanguage] = useState(localStorage.getItem('language') || i18n.language || 'en');
+
+    const changeLanguage = (lng) => {
+        setLanguage(lng);
+        i18n.changeLanguage(lng);
+        localStorage.setItem('language', lng);
+
+        // Update document direction
+        const dir = lng === 'ar' ? 'rtl' : 'ltr';
+        document.documentElement.setAttribute('dir', dir);
+        document.documentElement.setAttribute('lang', lng);
+    };
+
+    // Initialize direction on load
+    useEffect(() => {
+        const savedLang = localStorage.getItem('language') || 'en';
+        const dir = savedLang === 'ar' ? 'rtl' : 'ltr';
+        document.documentElement.setAttribute('dir', dir);
+        document.documentElement.setAttribute('lang', savedLang);
+        if (savedLang !== i18n.language) {
+            i18n.changeLanguage(savedLang);
+        }
+    }, [i18n]);
+
     // Sidebar Logic
     const toggleSidebar = () => {
         setIsSidebarCollapsed(prev => {
@@ -411,6 +438,7 @@ export const InventoryProvider = ({ children }) => {
                 });
             },
             currentUser, updateUserProfile,
+            language, changeLanguage,
             formatCurrency,
             isSidebarCollapsed, toggleSidebar,
             isMobileMenuOpen, toggleMobileMenu, closeMobileMenu,

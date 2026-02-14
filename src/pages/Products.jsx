@@ -2,6 +2,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import Layout from '../components/Layout';
 import { Search, Plus, Filter, Edit, Trash2, ArrowUpDown, X, Image as ImageIcon, Upload, Save, Download, Package, ShoppingBag, MessageSquare, Info } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
+import { useTranslation } from 'react-i18next';
 import CategoryManagerModal from '../components/CategoryManagerModal';
 import FilterDropdown from '../components/FilterDropdown';
 import SearchableSelect from '../components/SearchableSelect';
@@ -37,6 +38,7 @@ const StatusBadge = ({ status }) => {
 };
 
 const Products = () => {
+    const { t, i18n } = useTranslation();
     const { products, addProduct, updateProduct, deleteProduct, categories, addCategory, updateCategory, deleteCategory, formatCurrency, loading, brand, addToast } = useInventory();
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategories, setSelectedCategories] = useState([]);
@@ -370,7 +372,7 @@ const Products = () => {
     };
 
     return (
-        <Layout title="Products">
+        <Layout title={t('products.title')}>
             {/* Unified Actions Bar - Based on Orders template */}
             <div className="flex flex-col gap-4 mb-8 bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
                 {/* Top Row: Add Button + Export | Clear Filters Button + Count */}
@@ -381,18 +383,18 @@ const Products = () => {
                             className="flex items-center gap-2 px-6 py-2.5 text-white rounded-xl font-bold transition-all bg-accent shadow-accent hover:brightness-110 active:scale-95"
                         >
                             <Plus className="w-5 h-5" />
-                            <span>Add Product</span>
+                            <span>{t('products.addProduct')}</span>
                         </button>
 
                         <button
                             onClick={() => {
-                                if (filteredProducts.length === 0) return addToast("No products matching filters to export", "info");
+                                if (filteredProducts.length === 0) return addToast(t('common.noDataToExport'), "info");
                                 exportProductsToCSV(filteredProducts);
                             }}
                             className="flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-xl font-bold transition-all shadow-lg hover:bg-green-700 active:scale-95"
                         >
                             <Download className="w-5 h-5" />
-                            <span className="hidden sm:inline">Export CSV</span>
+                            <span className="hidden sm:inline">{t('common.exportCSV')}</span>
                         </button>
 
                         <button
@@ -400,7 +402,7 @@ const Products = () => {
                             className="flex items-center gap-2 px-6 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-xl font-bold text-sm transition-all border border-slate-200 dark:border-slate-700 active:scale-95"
                         >
                             <Filter className="w-4 h-4" />
-                            <span>Manage Categories</span>
+                            <span>{t('products.manageCategories')}</span>
                         </button>
                     </div>
 
@@ -415,7 +417,7 @@ const Products = () => {
                                 }}
                                 className="px-4 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-xl font-bold text-sm transition-all border border-slate-200 dark:border-slate-700"
                             >
-                                Clear Filters
+                                {t('common.clearFilters')}
                             </button>
                         )}
 
@@ -423,7 +425,7 @@ const Products = () => {
                         <div className="flex items-center gap-3 px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
                             <ImageIcon className="w-4 h-4 text-slate-400" />
                             <span className="text-sm font-bold text-slate-500">
-                                <span className="text-slate-900 dark:text-white">{filteredProducts.length}</span> Products
+                                <span className="text-slate-900 dark:text-white">{filteredProducts.length}</span> {t('products.title')}
                             </span>
                         </div>
                     </div>
@@ -436,7 +438,7 @@ const Products = () => {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                         <input
                             type="text"
-                            placeholder="Search inventory..."
+                            placeholder={t('products.searchPlaceholder')}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="pl-10 pr-4 py-0 h-full w-full bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-2xl outline-none focus:border-accent/40 focus:ring-4 focus:ring-accent/10 transition-all font-bold text-sm text-slate-700 dark:text-white"
@@ -444,7 +446,7 @@ const Products = () => {
                     </div>
 
                     <FilterDropdown
-                        title="Categories"
+                        title={t('products.categories')}
                         options={categoryOptions}
                         selectedValues={selectedCategories}
                         onChange={setSelectedCategories}
@@ -453,7 +455,7 @@ const Products = () => {
                     />
 
                     <FilterDropdown
-                        title="Status"
+                        title={t('products.status')}
                         options={statusOptions}
                         selectedValues={selectedStatuses}
                         onChange={setSelectedStatuses}
@@ -480,12 +482,12 @@ const Products = () => {
                     <table className="w-full text-left">
                         <thead>
                             <tr className="bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                                <SortableHeader column="name" label="Product" />
-                                <SortableHeader column="category" label="Category" />
-                                <SortableHeader column="stock" label="Stock" border={true} />
-                                <SortableHeader column="price" label="Sell Price" border={true} />
-                                <SortableHeader column="status" label="Status" border={true} />
-                                <th className="px-6 py-4 text-right border-l dark:border-slate-700">Actions</th>
+                                <SortableHeader column="name" label={t('products.table.product')} />
+                                <SortableHeader column="category" label={t('products.table.category')} />
+                                <SortableHeader column="stock" label={t('products.table.stock')} border={true} />
+                                <SortableHeader column="price" label={t('products.table.price')} border={true} />
+                                <SortableHeader column="status" label={t('products.table.status')} border={true} />
+                                <th className="px-6 py-4 text-right border-l dark:border-slate-700">{t('common.actions')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
@@ -493,13 +495,13 @@ const Products = () => {
                                 <tr><td colSpan="6" className="text-center py-12">
                                     <div className="flex flex-col items-center gap-2">
                                         <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-                                        <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Loading Inventory...</span>
+                                        <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t('products.loading')}</span>
                                     </div>
                                 </td></tr>
                             ) : filteredProducts.length === 0 ? (
                                 <tr><td colSpan="6" className="text-center py-12 text-slate-400">
                                     <ImageIcon className="w-12 h-12 mx-auto mb-2 opacity-20" />
-                                    <p className="font-bold uppercase tracking-widest text-xs">No products found</p>
+                                    <p className="font-bold uppercase tracking-widest text-xs">{t('products.noProducts')}</p>
                                 </td></tr>
                             ) : filteredProducts.map((product) => (
                                 <tr key={product._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/50 transition-colors">
@@ -564,9 +566,9 @@ const Products = () => {
                         <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-white dark:bg-slate-800 sticky top-0 z-10 rounded-t-2xl">
                             <div>
                                 <h3 className="text-lg font-bold text-slate-800 dark:text-white">
-                                    {editingProduct ? 'Edit Product' : 'Add New Product'}
+                                    {editingProduct ? t('products.editProduct') : t('products.addProduct')}
                                 </h3>
-                                <p className="text-xs text-slate-500 font-medium">{editingProduct ? `SKU: ${formData.sku}` : 'Fill in the information below'}</p>
+                                <p className="text-xs text-slate-500 font-medium">{editingProduct ? `SKU: ${formData.sku}` : t('products.fillInfo')}</p>
                             </div>
                             <button onClick={() => setIsModalOpen(false)} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-all">
                                 <X className="w-5 h-5" />
@@ -577,33 +579,33 @@ const Products = () => {
 
                             {/* Section 1: Basic Information */}
                             <section>
-                                <h4 className="text-[11px] font-bold text-[var(--brand-color)] uppercase tracking-widest mb-4 border-b border-indigo-50 dark:border-indigo-900/30 pb-2">1. Basic Information</h4>
+                                <h4 className="text-[11px] font-bold text-[var(--brand-color)] uppercase tracking-widest mb-4 border-b border-indigo-50 dark:border-indigo-900/30 pb-2">{t('products.form.basicInfo')}</h4>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="col-span-2 md:col-span-1">
-                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Product Name</label>
+                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">{t('products.form.productName')}</label>
                                         <input required name="name" value={formData.name} onChange={handleInputChange} className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--brand-color)]/20 outline-none dark:text-white transition-all" placeholder="e.g. Wireless Headset" />
                                     </div>
                                     <div className="col-span-2 md:col-span-1">
-                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">SKU / Code</label>
+                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">{t('products.form.sku')}</label>
                                         <input required name="sku" value={formData.sku} onChange={handleInputChange} className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--brand-color)]/20 outline-none dark:text-white transition-all" placeholder="e.g. WH-001" />
                                     </div>
                                     <div className="col-span-2 md:col-span-1">
-                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Category</label>
+                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">{t('products.form.category')}</label>
                                         <SearchableSelect
-                                            title="Select Category"
+                                            title={t('products.form.selectCategory')}
                                             options={categories.map(cat => ({ value: cat, label: cat }))}
                                             selectedValue={formData.category}
                                             onChange={(val) => setFormData(prev => ({ ...prev, category: val }))}
                                             icon={Package}
                                             customAction={{
-                                                label: "Create New Category",
+                                                label: t('products.form.createCategory'),
                                                 icon: Plus,
                                                 onClick: () => setIsCategoryManagerOpen(true)
                                             }}
                                         />
                                     </div>
                                     <div className="col-span-2 md:col-span-1">
-                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Current Stock</label>
+                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">{t('products.form.stock')}</label>
                                         <div className="relative">
                                             <input required type="number" name="stock" value={formData.stock} onChange={handleInputChange} className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--brand-color)]/20 outline-none dark:text-white transition-all shadow-sm" />
                                             <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -616,26 +618,26 @@ const Products = () => {
 
                             {/* Section 2: Alibaba Information */}
                             <section>
-                                <h4 className="text-[11px] font-bold text-[var(--brand-color)] uppercase tracking-widest mb-4 border-b border-indigo-50 dark:border-indigo-900/30 pb-2">2. Alibaba Sourcing</h4>
+                                <h4 className="text-[11px] font-bold text-[var(--brand-color)] uppercase tracking-widest mb-4 border-b border-indigo-50 dark:border-indigo-900/30 pb-2">{t('products.form.alibabaSourcing')}</h4>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="col-span-2">
-                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Product Link (Alibaba)</label>
+                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">{t('products.form.productLink')}</label>
                                         <input name="alibabaProductLink" value={formData.alibabaProductLink} onChange={handleInputChange} className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none focus:ring-2 focus:ring-[var(--brand-color)]/20 transition-all font-medium" placeholder="https://..." />
                                     </div>
                                     <div className="col-span-2 md:col-span-1">
-                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Message Detail Link</label>
+                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">{t('products.form.messageLink')}</label>
                                         <input name="alibabaMessageLink" value={formData.alibabaMessageLink} onChange={handleInputChange} className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none focus:ring-2 focus:ring-[var(--brand-color)]/20 transition-all font-medium" placeholder="https://..." />
                                     </div>
                                     <div className="col-span-2 md:col-span-1">
-                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Order Link</label>
+                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">{t('products.form.orderLink')}</label>
                                         <input name="alibabaOrderLink" value={formData.alibabaOrderLink} onChange={handleInputChange} className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none focus:ring-2 focus:ring-[var(--brand-color)]/20 transition-all font-medium" placeholder="https://..." />
                                     </div>
                                     <div className="col-span-2 md:col-span-1">
-                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Alibaba Order #</label>
+                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">{t('products.form.alibabaOrderNo')}</label>
                                         <input name="alibabaOrderNumber" value={formData.alibabaOrderNumber} onChange={handleInputChange} className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[var(--brand-color)]/20 transition-all font-bold shadow-sm" placeholder="1234..." />
                                     </div>
                                     <div className="col-span-2">
-                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Alibaba Note</label>
+                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">{t('products.form.alibabaNote')}</label>
                                         <div className="relative">
                                             <MessageSquare className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
                                             <textarea
@@ -643,7 +645,7 @@ const Products = () => {
                                                 value={formData.alibabaNote}
                                                 onChange={handleInputChange}
                                                 className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none focus:ring-2 focus:ring-[var(--brand-color)]/20 transition-all font-medium min-h-[80px] resize-none"
-                                                placeholder="Shipping notes, supplier contact details, etc."
+                                                placeholder={t('products.form.notePlaceholder')}
                                             />
                                         </div>
                                     </div>
@@ -652,69 +654,69 @@ const Products = () => {
 
                             {/* Section 3: Cost & Pricing */}
                             <section>
-                                <h4 className="text-[11px] font-bold text-[var(--brand-color)] uppercase tracking-widest mb-4 border-b border-indigo-50 dark:border-indigo-900/30 pb-2">3. Cost & Pricing</h4>
+                                <h4 className="text-[11px] font-bold text-[var(--brand-color)] uppercase tracking-widest mb-4 border-b border-indigo-50 dark:border-indigo-900/30 pb-2">{t('products.form.costAndPricing')}</h4>
                                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                                     <div>
-                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Unit Price ($)</label>
+                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">{t('products.form.unitPrice')}</label>
                                         <div className="relative">
                                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
                                             <input required type="number" step="0.01" name="unitPriceUSD" value={formData.unitPriceUSD} onChange={handleInputChange} className="w-full pl-7 p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--brand-color)]/20 outline-none font-bold" />
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Alibaba Fee ($ / unit)</label>
+                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">{t('products.form.alibabaFee')}</label>
                                         <div className="relative">
                                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
                                             <input type="number" step="0.01" name="alibabaFeeUSD" value={formData.alibabaFeeUSD} onChange={handleInputChange} className="w-full pl-7 p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--brand-color)]/20 outline-none font-bold" />
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Exchange Rate</label>
+                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">{t('products.form.exchangeRate')}</label>
                                         <input required type="number" name="exchangeRate" value={formData.exchangeRate} onChange={handleInputChange} className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--brand-color)]/20 outline-none font-bold" />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Margin (%)</label>
+                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">{t('products.form.margin')}</label>
                                         <div className="relative">
                                             <input required type="number" name="marginPercent" value={formData.marginPercent} onChange={handleInputChange} className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--brand-color)]/20 outline-none font-bold" />
                                             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">%</span>
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Shipping (Total IQD)</label>
+                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">{t('products.form.shippingIQD')}</label>
                                         <input type="number" name="shippingToIraqIQD" value={formData.shippingToIraqIQD} onChange={handleInputChange} className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--brand-color)]/20 outline-none" />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Other Fees (Total IQD)</label>
+                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">{t('products.form.otherFeesIQD')}</label>
                                         <input type="number" name="additionalFeesIQD" value={formData.additionalFeesIQD} onChange={handleInputChange} className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--brand-color)]/20 outline-none" />
                                     </div>
 
                                     <div className="col-span-2 grid grid-cols-2 gap-3">
                                         <div className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
-                                            <span className="block text-[10px] font-bold text-slate-400 uppercase">Cost (Total)</span>
+                                            <span className="block text-[10px] font-bold text-slate-400 uppercase">{t('products.form.costTotal')}</span>
                                             <span className="text-sm font-bold text-slate-700 dark:text-slate-200">IQD {(formData.costPriceIQD_total || 0).toLocaleString()}</span>
                                         </div>
                                         <div className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
-                                            <span className="block text-[10px] font-bold text-slate-400 uppercase">Cost (Per Unit)</span>
+                                            <span className="block text-[10px] font-bold text-slate-400 uppercase">{t('products.form.costPerUnit')}</span>
                                             <span className="text-sm font-bold text-slate-700 dark:text-slate-200">IQD {(formData.costPriceIQD_perUnit || 0).toLocaleString()}</span>
                                         </div>
                                     </div>
 
                                     <div className="col-span-full grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800">
-                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Recommended Selling Price</span>
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">{t('products.form.recommendedPrice')}</span>
                                             <span className="text-xl font-bold text-slate-600 dark:text-slate-400">IQD {(formData.recommendedSellingPriceIQD_perUnit || 0).toLocaleString()}</span>
                                         </div>
 
                                         <div className={`p-4 rounded-2xl border-2 transition-all ${formData.isSellingPriceOverridden ? 'bg-orange-50 border-orange-200 dark:bg-orange-900/10 dark:border-orange-800/50' : 'bg-[var(--brand-color)]/5 border-[var(--brand-color)]/20'}`}>
                                             <div className="flex justify-between items-start mb-1">
-                                                <span className="text-[10px] font-bold text-[var(--brand-color)] uppercase tracking-wider">Final Selling Price (Per Unit)</span>
+                                                <span className="text-[10px] font-bold text-[var(--brand-color)] uppercase tracking-wider">{t('products.form.finalPrice')}</span>
                                                 {formData.isSellingPriceOverridden && (
                                                     <button
                                                         type="button"
                                                         onClick={() => setFormData(prev => ({ ...prev, isSellingPriceOverridden: false }))}
                                                         className="text-[10px] font-bold text-orange-600 hover:underline flex items-center gap-1"
                                                     >
-                                                        <X className="w-3 h-3" /> Reset
+                                                        <X className="w-3 h-3" /> {t('common.reset')}
                                                     </button>
                                                 )}
                                             </div>
@@ -730,7 +732,7 @@ const Products = () => {
                                                 />
                                             </div>
                                             <p className="text-[10px] text-slate-400 mt-1 font-medium italic">
-                                                {formData.isSellingPriceOverridden ? 'Manual override active (Rounded to 500)' : 'Auto-calculated from margin'}
+                                                {formData.isSellingPriceOverridden ? t('products.form.manualOverride') : t('products.form.autoCalculated')}
                                             </p>
                                         </div>
                                     </div>
@@ -739,23 +741,23 @@ const Products = () => {
 
                             {/* Section 4: Profit Analysis */}
                             <section>
-                                <h4 className="text-[11px] font-bold text-[var(--brand-color)] uppercase tracking-widest mb-4 border-b border-indigo-50 dark:border-indigo-900/30 pb-2">4. Profit Analysis</h4>
+                                <h4 className="text-[11px] font-bold text-[var(--brand-color)] uppercase tracking-widest mb-4 border-b border-indigo-50 dark:border-indigo-900/30 pb-2">{t('products.form.profitAnalysis')}</h4>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     {/* IQD Analysis */}
                                     <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800">
                                         <div className="flex items-center gap-2 mb-4">
                                             <div className="w-2 h-4 bg-green-500 rounded-full"></div>
-                                            <span className="text-xs font-black uppercase tracking-widest text-slate-400">IQD Analysis</span>
+                                            <span className="text-xs font-black uppercase tracking-widest text-slate-400">{t('products.form.iqdAnalysis')}</span>
                                         </div>
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>
-                                                <span className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Profit / Unit</span>
+                                                <span className="block text-[10px] font-bold text-slate-400 uppercase mb-1">{t('products.form.profitPerUnit')}</span>
                                                 <span className={`text-lg font-black ${formData.profitPerUnitIQD >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500'}`}>
                                                     {formData.profitPerUnitIQD >= 0 ? '+' : '-'} IQD {Math.abs(formData.profitPerUnitIQD || 0).toLocaleString()}
                                                 </span>
                                             </div>
                                             <div>
-                                                <span className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Total Profit</span>
+                                                <span className="block text-[10px] font-bold text-slate-400 uppercase mb-1">{t('products.form.totalProfit')}</span>
                                                 <span className={`text-lg font-black ${formData.totalProfitIQD >= 0 ? 'text-green-500' : 'text-red-400'}`}>
                                                     IQD {(formData.totalProfitIQD || 0).toLocaleString()}
                                                 </span>
@@ -767,17 +769,17 @@ const Products = () => {
                                     <div className="p-4 bg-slate-900 dark:bg-slate-950 rounded-2xl border border-slate-800">
                                         <div className="flex items-center gap-2 mb-4">
                                             <div className="w-2 h-4 bg-blue-500 rounded-full"></div>
-                                            <span className="text-xs font-black uppercase tracking-widest text-slate-500">USD Analysis</span>
+                                            <span className="text-xs font-black uppercase tracking-widest text-slate-500">{t('products.form.usdAnalysis')}</span>
                                         </div>
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>
-                                                <span className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Profit / Unit</span>
+                                                <span className="block text-[10px] font-bold text-slate-500 uppercase mb-1">{t('products.form.profitPerUnit')}</span>
                                                 <span className={`text-lg font-black ${formData.profitPerUnitUSD >= 0 ? 'text-blue-500' : 'text-red-400'}`}>
                                                     {formData.profitPerUnitUSD >= 0 ? '+' : '-'} ${Math.abs(formData.profitPerUnitUSD || 0).toFixed(2)}
                                                 </span>
                                             </div>
                                             <div>
-                                                <span className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Total Profit</span>
+                                                <span className="block text-[10px] font-bold text-slate-500 uppercase mb-1">{t('products.form.totalProfit')}</span>
                                                 <span className={`text-lg font-black ${formData.totalProfitUSD >= 0 ? 'text-blue-400' : 'text-red-400'}`}>
                                                     ${(formData.totalProfitUSD || 0).toFixed(2)}
                                                 </span>
@@ -792,8 +794,8 @@ const Products = () => {
                                                 <ShoppingBag className="w-4 h-4 text-slate-500" />
                                             </div>
                                             <div>
-                                                <span className="block text-[10px] font-bold text-slate-400 uppercase">Quantity for Calculation</span>
-                                                <span className="text-xs font-medium text-slate-500 italic">Units expected to be sold</span>
+                                                <span className="block text-[10px] font-bold text-slate-400 uppercase">{t('products.form.qtyCalculation')}</span>
+                                                <span className="text-xs font-medium text-slate-500 italic">{t('products.form.unitsExpected')}</span>
                                             </div>
                                         </div>
                                         <input
@@ -809,10 +811,10 @@ const Products = () => {
 
                             {/* Section 5: Image Gallery Preview */}
                             <section>
-                                <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 dark:border-slate-700 pb-2">6. General Information</h4>
+                                <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 dark:border-slate-700 pb-2">{t('products.form.generalInfo')}</h4>
                                 <div className="space-y-4">
                                     <div>
-                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">Product Description</label>
+                                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">{t('products.form.description')}</label>
                                         <div className="relative">
                                             <Info className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
                                             <textarea
@@ -820,7 +822,7 @@ const Products = () => {
                                                 value={formData.description}
                                                 onChange={handleInputChange}
                                                 className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[var(--brand-color)]/20 transition-all font-medium min-h-[120px] resize-none"
-                                                placeholder="General product description, features, or internal notes..."
+                                                placeholder={t('products.form.descriptionPlaceholder')}
                                             />
                                         </div>
                                     </div>
@@ -828,7 +830,7 @@ const Products = () => {
                             </section>
 
                             <section>
-                                <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 dark:border-slate-700 pb-2">7. Product Gallery</h4>
+                                <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4 border-b border-slate-100 dark:border-slate-700 pb-2">{t('products.form.gallery')}</h4>
                                 <div className="grid grid-cols-5 gap-2">
                                     {formData.images.map((img, index) => (
                                         <div key={index} className="relative group aspect-square rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 group">
@@ -844,7 +846,7 @@ const Products = () => {
                                         className="aspect-square rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 flex flex-col items-center justify-center text-slate-400 hover:border-[var(--brand-color)] hover:text-[var(--brand-color)] transition-all hover:bg-slate-50 dark:hover:bg-slate-900 group"
                                     >
                                         <Upload className="w-5 h-5 mb-1 group-hover:scale-110 transition-transform" />
-                                        <span className="text-[9px] font-black uppercase">Add Image</span>
+                                        <span className="text-[9px] font-black uppercase">{t('products.form.addImage')}</span>
                                     </button>
                                 </div>
                                 <input type="file" ref={fileInputRef} className="hidden" onChange={handleImageUpload} multiple accept="image/*" />
@@ -861,7 +863,7 @@ const Products = () => {
                                 onClick={() => setIsModalOpen(false)}
                                 className="order-2 sm:order-1 px-6 py-2.5 text-slate-500 dark:text-slate-400 font-bold hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl transition-all"
                             >
-                                Cancel
+                                {t('common.cancel')}
                             </button>
                             <button
                                 type="submit"
@@ -869,7 +871,7 @@ const Products = () => {
                                 className="order-1 sm:order-2 px-8 py-2.5 text-white font-black rounded-xl transition-all bg-accent shadow-accent active:scale-95 flex items-center justify-center gap-2"
                             >
                                 <Save className="w-5 h-5" />
-                                {editingProduct ? 'Update Product' : 'Create Product'}
+                                {editingProduct ? t('products.update') : t('products.create')}
                             </button>
                         </div>
                     </div>

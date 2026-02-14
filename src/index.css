@@ -2,6 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Arabic Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@200..1000&family=Tajawal:wght@200;300;400;500;700;800;900&display=swap');
+
+@layer utilities {
+  .rtl {
+    direction: rtl;
+    font-family: 'Tajawal', sans-serif;
+  }
+
+  .ltr {
+    direction: ltr;
+  }
+
+  /* Flip icons in RTL */
+  [dir="rtl"] .rtl-flip {
+    transform: scaleX(-1);
+  }
+}
+
 :root {
   --accent-color: #1e3a5f;
   --accent-gradient: #1e3a5f;

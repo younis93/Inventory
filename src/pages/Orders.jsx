@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import Layout from '../components/Layout';
 import { Search, Plus, Printer, Trash2, X, Tag, Filter, Eye, Edit, ShoppingBag, Download, MapPin, Globe } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
+import { useTranslation } from 'react-i18next';
 import { GOVERNORATES, SOCIAL_PLATFORMS } from '../constants/iraq';
 import DateRangePicker from '../components/DateRangePicker';
 import FilterDropdown from '../components/FilterDropdown';
@@ -30,6 +31,8 @@ const StatusCell = ({ order, onUpdate }) => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
+    const { t } = useTranslation();
+
     const getStatusColor = (status) => {
         switch (status) {
             case 'Processing': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
@@ -47,18 +50,22 @@ const StatusCell = ({ order, onUpdate }) => {
         setIsOpen(false);
     };
 
+    const getStatusLabel = (status) => {
+        return t(`common.status.${status.toLowerCase()}`, status);
+    };
+
     return (
         <div className="relative" ref={containerRef}>
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold transition-all hover:brightness-95 active:scale-95 ${getStatusColor(order.status)}`}
             >
-                {order.status}
-                <div className="w-0 h-0 border-l-[3px] border-l-transparent border-t-[4px] border-t-current border-r-[3px] border-r-transparent opacity-50" />
+                {getStatusLabel(order.status)}
+                <div className={`w-0 h-0 border-l-[3px] border-l-transparent border-t-[4px] border-t-current border-r-[3px] border-r-transparent opacity-50 ${document.dir === 'rtl' ? 'mr-1' : 'ml-1'}`} />
             </button>
             {isOpen && (
-                <div className="absolute top-full left-0 mt-1 w-32 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-100 dark:border-slate-700 py-1 z-50 animate-in fade-in zoom-in-95 duration-100">
-                    {STATUS_OPTIONS.map((status) => (
+                <div className={`absolute top-full mt-1 w-32 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-100 dark:border-slate-700 py-1 z-50 animate-in fade-in zoom-in-95 duration-100 ${document.dir === 'rtl' ? 'right-0' : 'left-0'}`}>
+                    {['Processing', 'Completed', 'Cancelled', 'Pending'].map((status) => (
                         <button
                             key={status}
                             onClick={() => handleSelect(status)}
@@ -67,7 +74,7 @@ const StatusCell = ({ order, onUpdate }) => {
                                 : 'text-slate-600 dark:text-slate-300'
                                 }`}
                         >
-                            {status}
+                            {getStatusLabel(status)}
                         </button>
                     ))}
                 </div>
@@ -77,6 +84,7 @@ const StatusCell = ({ order, onUpdate }) => {
 };
 
 const Orders = () => {
+    const { t } = useTranslation();
     const { orders, products, customers, addOrder, updateOrder, deleteOrder, addCustomer, formatCurrency, brand, loading } = useInventory();
     const [searchTerm, setSearchTerm] = useState('');
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -151,10 +159,10 @@ const Orders = () => {
             const status = o.status;
             if (status) counts[status] = (counts[status] || 0) + 1;
         });
-        return STATUS_OPTIONS.map(s => ({
-            value: s, label: s, count: counts[s] || 0
+        return ['Processing', 'Completed', 'Cancelled', 'Pending'].map(s => ({
+            value: s, label: t(`common.status.${s.toLowerCase()}`, s), count: counts[s] || 0
         }));
-    }, [orders]);
+    }, [orders, t]);
 
     const [newOrder, setNewOrder] = useState({
         customerId: 'new',
@@ -236,7 +244,7 @@ const Orders = () => {
         const totalAvailable = latestProduct.stock + stockInHand;
 
         if (requestedQty > totalAvailable) {
-            return addToast(`Only ${totalAvailable} units available (including this order)`, "error");
+            return addToast(t('orders.stockError', { available: totalAvailable }), "error");
         }
 
         const existingItemIndex = newOrder.items.findIndex(item => item.product._id === latestProduct._id);
@@ -247,7 +255,7 @@ const Orders = () => {
             const newQty = updatedItems[existingItemIndex].quantity + requestedQty;
 
             if (newQty > totalAvailable) {
-                return addToast(`Cannot add more. Limit reached: ${totalAvailable}`, "error");
+                return addToast(t('orders.limitReached', { available: totalAvailable }), "error");
             }
 
             updatedItems[existingItemIndex].quantity = newQty;
@@ -347,8 +355,8 @@ const Orders = () => {
     };
 
     const handleSubmitOrder = async () => {
-        if (newOrder.items.length === 0) return addToast("Please add items to the order", "error");
-        if (!newOrder.customerName || !newOrder.customerPhone) return addToast("Please fill in customer name and phone", "error");
+        if (newOrder.items.length === 0) return addToast(t('orders.addItemsError'), "error");
+        if (!newOrder.customerName || !newOrder.customerPhone) return addToast(t('orders.customerError'), "error");
 
         // Advanced Stock Check
         const currentOrder = orders.find(o => o._id === editingOrderId);
@@ -359,7 +367,7 @@ const Orders = () => {
             const available = (product?.stock || 0) + oldQty;
 
             if (item.quantity > available) {
-                return addToast(`Not enough stock for ${item.product.name}. Max available: ${available}`, "error");
+                return addToast(t('orders.stockErrorWithName', { name: item.product.name, available: available }), "error");
             }
         }
 
@@ -411,7 +419,7 @@ const Orders = () => {
             setNewOrder({ customerId: 'new', customerName: '', customerPhone: '', customerGender: '', customerAddress: '', customerGovernorate: '', customerSocial: '', customerNotes: '', items: [], discount: 0 });
         } catch (error) {
             console.error("Order submission error:", error);
-            addToast("Failed to submit order: " + (error.message || "Unknown error"), "error");
+            addToast(t('orders.errors.submitError', { message: error.message || t('orders.errors.unknown') }), "error");
         } finally {
             setIsSubmitting(false);
         }
@@ -421,32 +429,33 @@ const Orders = () => {
 
     const printReceipt = (order) => {
         const printWindow = window.open('', '', 'width=600,height=800');
+        const isRtl = document.dir === 'rtl';
         printWindow.document.write(`
-            <html>
+            <html dir="${isRtl ? 'rtl' : 'ltr'}">
                 <head>
-                    <title>Receipt</title>
+                    <title>${t('orders.receipt.title')}</title>
                     <style>
-                        body { font-family: 'Courier New', monospace; padding: 20px; font-size: 14px; }
+                        body { font-family: 'Cairo', 'Courier New', monospace; padding: 20px; font-size: 14px; direction: ${isRtl ? 'rtl' : 'ltr'}; }
                         .header { text-align: center; margin-bottom: 20px; }
                         .item { display: flex; justify-content: space-between; margin-bottom: 5px; }
                         .divider { border-top: 1px dashed black; margin: 10px 0; }
-                        .totals { text-align: right; margin-top: 10px; }
+                        .totals { text-align: ${isRtl ? 'left' : 'right'}; margin-top: 10px; }
                         .total-row { display: flex; justify-content: space-between; font-weight: bold; margin-top: 5px; }
                         .discount { color: red; }
                     </style>
                 </head>
                 <body>
                     <div class="header">
-                        <h2>SHAN ENTERPRISE</h2>
-                        <p>Baghdad, Iraq</p>
-                        <p>Order: ${order.orderId || '###'}</p>
+                        <h2>${t('orders.receipt.companyName')}</h2>
+                        <p>${t('orders.receipt.address')}</p>
+                        <p>${t('orders.receipt.order')}: ${order.orderId || '###'}</p>
                         <p>${order.date}</p>
                     </div>
                     <div class="divider"></div>
                     <div>
-                        <p><strong>Customer:</strong> ${order.customer.name}</p>
-                        <p><strong>Phone:</strong> ${order.customer.phone || 'N/A'}</p>
-                        <p><strong>Gov:</strong> ${order.customer.governorate || 'N/A'}</p>
+                        <p><strong>${t('orders.receipt.customer')}:</strong> ${order.customer.name}</p>
+                        <p><strong>${t('orders.receipt.phone')}:</strong> ${order.customer.phone || t('orders.receipt.na')}</p>
+                        <p><strong>${t('orders.receipt.gov')}:</strong> ${order.customer.governorate || t('orders.receipt.na')}</p>
                     </div>
                     <div class="divider"></div>
                     <div>
@@ -460,24 +469,24 @@ const Orders = () => {
                     <div class="divider"></div>
                     <div class="totals">
                         <div class="total-row" style="font-weight: normal;">
-                            <span>Subtotal:</span>
+                            <span>${t('orders.receipt.subtotal')}:</span>
                             <span>${formatCurrency(order.subtotal || order.total)}</span>
                         </div>
                         ${order.discount ? `
                         <div class="total-row discount" style="font-weight: normal;">
-                            <span>Discount (${order.discount}%):</span>
+                            <span>${t('orders.receipt.discount')} (${order.discount}%):</span>
                             <span>-${formatCurrency((order.subtotal || order.total) - order.total)}</span>
                         </div>
                         ` : ''}
                         <div class="total-row" style="font-size: 18px; margin-top: 10px;">
-                            <span>TOTAL:</span>
+                            <span>${t('orders.receipt.total')}:</span>
                             <span>${formatCurrency(order.total)}</span>
                         </div>
                     </div>
                     <div class="divider"></div>
                     <div style="text-align: center; margin-top: 20px;">
-                        <p>Thank you for your business!</p>
-                        <p>Items checked out cannot be returned.</p>
+                        <p>${t('orders.receipt.thankYou')}</p>
+                        <p>${t('orders.receipt.noReturn')}</p>
                     </div>
                 </body>
             </html>
@@ -521,7 +530,7 @@ const Orders = () => {
     };
 
     return (
-        <Layout title="Orders">
+        <Layout title={t('orders.title')}>
             {/* Actions Bar */}
             <div className="flex flex-col gap-4 mb-8 bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
                 {/* Top Row: Add Button + Export | Clear Filters Button + Order Count */}
@@ -532,18 +541,18 @@ const Orders = () => {
                             className="flex items-center justify-center gap-2 px-6 py-2.5 text-white rounded-xl font-bold transition-all bg-accent shadow-accent active:scale-95"
                         >
                             <Plus className="w-5 h-5" />
-                            <span>Create Order</span>
+                            <span>{t('orders.createOrder')}</span>
                         </button>
 
                         <button
                             onClick={() => {
-                                if (filteredAndSortedOrders.length === 0) return addToast("No orders matching filters to export", "info");
+                                if (filteredAndSortedOrders.length === 0) return addToast(t('common.noDataToExport'), "info");
                                 exportOrdersToCSV(filteredAndSortedOrders);
                             }}
                             className="flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-xl font-bold transition-all shadow-lg hover:bg-green-700"
                         >
                             <Download className="w-5 h-5" />
-                            <span className="hidden sm:inline">Export CSV</span>
+                            <span className="hidden sm:inline">{t('common.exportCSV')}</span>
                         </button>
                     </div>
 
@@ -562,7 +571,7 @@ const Orders = () => {
                                     }}
                                     className="px-4 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-xl font-bold text-sm transition-all border border-slate-200 dark:border-slate-700"
                                 >
-                                    Clear Filters
+                                    {t('common.clearFilters')}
                                 </button>
                             )}
 
@@ -570,7 +579,7 @@ const Orders = () => {
                         <div className="flex items-center gap-3 px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
                             <ShoppingBag className="w-4 h-4 text-slate-400" />
                             <span className="text-sm font-bold text-slate-500">
-                                <span className="text-slate-900 dark:text-white">{filteredAndSortedOrders.length}</span> Orders
+                                <span className="text-slate-900 dark:text-white">{filteredAndSortedOrders.length}</span> {t('orders.title')}
                             </span>
                         </div>
                     </div>
@@ -583,7 +592,7 @@ const Orders = () => {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                         <input
                             type="text"
-                            placeholder="Search orders..."
+                            placeholder={t('orders.searchPlaceholder')}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="pl-10 pr-4 py-0 h-full w-full bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-2xl outline-none focus:border-accent/40 focus:ring-4 focus:ring-accent/10 transition-all font-bold text-sm text-slate-700 dark:text-white"
@@ -601,7 +610,7 @@ const Orders = () => {
 
                     {/* Status Filter */}
                     <FilterDropdown
-                        title="Status"
+                        title={t('orders.status')}
                         options={statusOptions}
                         selectedValues={filterStatuses}
                         onChange={setFilterStatuses}
@@ -611,7 +620,7 @@ const Orders = () => {
 
                     {/* Governorate Filter */}
                     <FilterDropdown
-                        title="Governorate"
+                        title={t('orders.governorate')}
                         options={governorateOptions}
                         selectedValues={filterGovernorates}
                         onChange={setFilterGovernorates}
@@ -621,7 +630,7 @@ const Orders = () => {
 
                     {/* Social Media Filter */}
                     <FilterDropdown
-                        title="Social Media"
+                        title={t('orders.socialMedia')}
                         options={socialOptions}
                         selectedValues={filterSocials}
                         onChange={setFilterSocials}
@@ -631,13 +640,13 @@ const Orders = () => {
 
                     {/* Sort */}
                     <SortDropdown
-                        title="Sort"
+                        title={t('common.sort')}
                         options={[
-                            { value: 'date-new', label: 'Newest First' },
-                            { value: 'date-old', label: 'Oldest First' },
-                            { value: 'total-high', label: 'Highest Total' },
-                            { value: 'total-low', label: 'Lowest Total' },
-                            { value: 'name-asc', label: 'Customer Name (A-Z)' }
+                            { value: 'date-new', label: t('common.dateNew') },
+                            { value: 'date-old', label: t('common.dateOld') },
+                            { value: 'total-high', label: t('common.priceHigh') },
+                            { value: 'total-low', label: t('common.priceLow') },
+                            { value: 'name-asc', label: t('common.nameAZ') }
                         ]}
                         selectedValue={sortBy}
                         onChange={handleSortChange}
@@ -652,12 +661,12 @@ const Orders = () => {
                     <table className="w-full text-left">
                         <thead>
                             <tr className="bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-500 uppercase">
-                                <SortableHeader column="orderId" label="Order ID" />
-                                <SortableHeader column="customer" label="Customer" />
-                                <SortableHeader column="date" label="Date" />
-                                <SortableHeader column="total" label="Total (IQD)" />
-                                <SortableHeader column="status" label="Status" />
-                                <th className="px-6 py-4 text-right">Actions</th>
+                                <SortableHeader column="orderId" label={t('orders.table.orderId')} />
+                                <SortableHeader column="customer" label={t('orders.table.customer')} />
+                                <SortableHeader column="date" label={t('orders.table.date')} />
+                                <SortableHeader column="total" label={t('orders.table.total')} />
+                                <SortableHeader column="status" label={t('orders.table.status')} />
+                                <th className="px-6 py-4 text-right">{t('common.actions')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
@@ -689,7 +698,7 @@ const Orders = () => {
                                             <button onClick={() => printReceipt(order)} className="p-2 text-slate-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg" title="Print Receipt">
                                                 <Printer className="w-4 h-4" />
                                             </button>
-                                            <button onClick={() => { if (window.confirm('Are you sure you want to delete this order?')) deleteOrder(order._id) }} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg" title="Delete Order">
+                                            <button onClick={() => { if (window.confirm(t('orders.deleteConfirm'))) deleteOrder(order._id) }} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg" title="Delete Order">
                                                 <Trash2 className="w-4 h-4" />
                                             </button>
                                         </div>
@@ -713,21 +722,21 @@ const Orders = () => {
                                 <div className="space-y-4">
                                     <div className="flex flex-col sm:flex-row gap-4 items-end">
                                         <div className="flex-1 w-full min-w-0">
-                                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Search & Select Product</label>
+                                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">{t('orders.searchProduct')}</label>
                                             <SearchableSelect
-                                                title="Choose Product"
+                                                title={t('orders.chooseProduct')}
                                                 options={products.filter(p => p.stock > 0).map(p => ({
                                                     value: p._id,
-                                                    label: `${p.name} (${p.stock} in stock) - ${formatCurrency(p.price)}`
+                                                    label: `${p.name} (${p.stock}) - ${formatCurrency(p.price)}`
                                                 }))}
                                                 selectedValue={selectedProductId}
                                                 onChange={setSelectedProductId}
                                                 icon={Package}
-                                                placeholder="Search products..."
+                                                placeholder={t('orders.searchPlaceholder')}
                                             />
                                         </div>
                                         <div className="w-24">
-                                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Qty</label>
+                                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">{t('orders.qty')}</label>
                                             <input
                                                 type="number"
                                                 min="1"
@@ -755,8 +764,8 @@ const Orders = () => {
                                 {newOrder.items.length === 0 ? (
                                     <div className="h-full flex flex-col items-center justify-center text-slate-400 border-2 border-dashed border-slate-100 dark:border-slate-700/50 rounded-3xl py-12">
                                         <ShoppingBag className="w-12 h-12 mb-2 opacity-20" />
-                                        <p className="font-bold">Your cart is empty</p>
-                                        <p className="text-xs">Add products to start building the order</p>
+                                        <p className="font-bold">{t('orders.cartEmpty')}</p>
+                                        <p className="text-xs">{t('orders.cartEmptySub')}</p>
                                     </div>
                                 ) : (
                                     newOrder.items.map((item, idx) => (
@@ -769,7 +778,7 @@ const Orders = () => {
                                                     <h4 className="text-sm font-black text-slate-800 dark:text-white truncate">{item.product.name}</h4>
                                                     <div className="flex items-center gap-4 mt-1">
                                                         <div className="flex items-center gap-2">
-                                                            <span className="text-[10px] font-bold text-slate-400">PRICE</span>
+                                                            <span className="text-[10px] font-bold text-slate-400">{t('orders.price')}</span>
                                                             <input
                                                                 type="number"
                                                                 value={item.price}
@@ -778,7 +787,7 @@ const Orders = () => {
                                                             />
                                                         </div>
                                                         <div className="flex items-center gap-2">
-                                                            <span className="text-[10px] font-bold text-slate-400">QTY</span>
+                                                            <span className="text-[10px] font-bold text-slate-400">{t('orders.qty')}</span>
                                                             <div className="relative">
                                                                 <input
                                                                     type="number"
@@ -789,7 +798,7 @@ const Orders = () => {
                                                                 />
                                                                 {item.quantity > item.product.stock && (
                                                                     <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-red-500 text-white text-[8px] px-1.5 py-0.5 rounded font-black whitespace-nowrap animate-bounce">
-                                                                        ONLY {item.product.stock} LEFT
+                                                                        {t('orders.onlyLeft', { count: item.product.stock })}
                                                                     </div>
                                                                 )}
                                                             </div>
@@ -799,7 +808,7 @@ const Orders = () => {
                                             </div>
                                             <div className="flex items-center gap-4 ml-4">
                                                 <div className="text-right">
-                                                    <p className="text-[10px] font-bold text-slate-400 uppercase">Subtotal</p>
+                                                    <p className="text-[10px] font-bold text-slate-400 uppercase">{t('orders.subtotal')}</p>
                                                     <span className="text-sm font-black dark:text-white">{formatCurrency(item.price * item.quantity)}</span>
                                                 </div>
                                                 <button onClick={() => handleRemoveFromOrder(idx)} className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all">
@@ -815,19 +824,19 @@ const Orders = () => {
                             <div className="mt-8 pt-6 pb-8 border-t border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 sticky bottom-0">
                                 <div className="flex flex-col gap-3">
                                     <div className="flex justify-between items-center text-sm">
-                                        <span className="font-bold text-slate-400 uppercase tracking-widest text-[10px]">Order Subtotal</span>
+                                        <span className="font-bold text-slate-400 uppercase tracking-widest text-[10px]">{t('orders.orderSubtotal')}</span>
                                         <span className="font-black dark:text-white text-lg">{formatCurrency(calculateSubtotal(newOrder.items))}</span>
                                     </div>
                                     <div className="flex justify-between items-center p-3.5 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-700">
                                         <span className="text-xs font-bold text-slate-500 flex items-center gap-2">
-                                            <Tag className="w-4 h-4 text-accent" /> APPLY DISCOUNT
+                                            <Tag className="w-4 h-4 text-accent" /> {t('orders.applyDiscount')}
                                         </span>
                                         <div className="w-48">
                                             <SearchableSelect
-                                                title="No Discount"
+                                                title={t('orders.noDiscount')}
                                                 options={[0, 5, 10, 15, 20, 30, 40, 50].map(v => ({
                                                     value: v,
-                                                    label: v === 0 ? 'No Discount' : `${v}% OFF DISCOUNT`
+                                                    label: v === 0 ? t('orders.noDiscount') : t('orders.offDiscount', { percent: v })
                                                 }))}
                                                 selectedValue={newOrder.discount}
                                                 onChange={(val) => setNewOrder(prev => ({ ...prev, discount: val }))}
@@ -837,7 +846,7 @@ const Orders = () => {
                                         </div>
                                     </div>
                                     <div className="flex justify-between items-center pt-2">
-                                        <span className="font-black text-slate-800 dark:text-white uppercase tracking-tighter text-sm">Grand Total (Rounded)</span>
+                                        <span className="font-black text-slate-800 dark:text-white uppercase tracking-tighter text-sm">{t('orders.grandTotal')}</span>
                                         <span className="font-black text-3xl text-accent">{formatCurrency(calculateTotal())}</span>
                                     </div>
                                 </div>
@@ -847,7 +856,7 @@ const Orders = () => {
                         {/* Right: Customer Details & Save */}
                         <div className="w-full md:w-1/3 p-4 bg-slate-50 dark:bg-slate-900/50 flex flex-col min-h-0 border-t md:border-t-0 md:border-l border-slate-100 dark:border-slate-700 relative z-10">
                             <div className="flex justify-between items-center mb-4">
-                                <h3 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tighter">Customer Info</h3>
+                                <h3 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tighter">{t('orders.customerInfo')}</h3>
                                 <button onClick={() => setIsCreateModalOpen(false)} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-lg hover:bg-white dark:hover:bg-slate-800 transition-colors">
                                     <X className="w-5 h-5" />
                                 </button>
@@ -856,14 +865,14 @@ const Orders = () => {
                             <div className="space-y-2 flex-1 overflow-y-auto pr-1 custom-scrollbar">
                                 <div className="space-y-2">
                                     <SearchableSelect
-                                        title="Choose a Customer"
+                                        title={t('orders.chooseCustomer')}
                                         options={customers.map(c => ({ value: c._id, label: c.name }))}
                                         selectedValue={newOrder.customerId}
                                         onChange={handleCustomerSelectValue}
                                         icon={User}
-                                        placeholder="Search customers..."
+                                        placeholder={t('orders.searchCustomers')}
                                         customAction={{
-                                            label: "Create New Customer",
+                                            label: t('orders.createNewCustomer'),
                                             icon: Plus,
                                             onClick: () => handleCustomerSelectValue('new')
                                         }}
@@ -872,7 +881,7 @@ const Orders = () => {
 
                                 <div className={`space-y-2 transition-all duration-300 ${newOrder.customerId ? 'opacity-100 pointer-events-auto' : 'opacity-30 pointer-events-none grayscale'}`}>
                                     <div className="space-y-1.5">
-                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">{t('orders.fullName')}</label>
                                         <input
                                             placeholder="e.g. Ahmed Ali"
                                             value={newOrder.customerName}
@@ -883,7 +892,7 @@ const Orders = () => {
                                     </div>
                                     <div className="grid grid-cols-2 gap-2">
                                         <div className="space-y-1.5">
-                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Phone Number</label>
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">{t('orders.phone')}</label>
                                             <input
                                                 placeholder="07XX XXX XXXX"
                                                 value={newOrder.customerPhone}
@@ -893,10 +902,10 @@ const Orders = () => {
                                             />
                                         </div>
                                         <div className="space-y-1.5">
-                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Gender</label>
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">{t('orders.gender')}</label>
                                             <SearchableSelect
-                                                title="Select..."
-                                                options={[{ value: 'Male', label: 'Male' }, { value: 'Female', label: 'Female' }]}
+                                                title={t('common.select')}
+                                                options={[{ value: 'Male', label: t('common.male') }, { value: 'Female', label: t('common.female') }]}
                                                 selectedValue={newOrder.customerGender}
                                                 onChange={val => setNewOrder({ ...newOrder, customerGender: val })}
                                                 showSearch={false}
@@ -907,9 +916,9 @@ const Orders = () => {
 
                                     <div className="grid grid-cols-2 gap-2">
                                         <div className="space-y-1.5">
-                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Governorate</label>
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">{t('orders.governorate')}</label>
                                             <SearchableSelect
-                                                title="Select..."
+                                                title={t('common.select')}
                                                 options={GOVERNORATES.map(g => ({ value: g, label: g }))}
                                                 selectedValue={newOrder.customerGovernorate}
                                                 onChange={val => setNewOrder({ ...newOrder, customerGovernorate: val })}
@@ -919,9 +928,9 @@ const Orders = () => {
                                             />
                                         </div>
                                         <div className="space-y-1.5">
-                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Social</label>
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">{t('orders.social')}</label>
                                             <SearchableSelect
-                                                title="Select..."
+                                                title={t('common.select')}
                                                 options={SOCIAL_PLATFORMS.map(p => ({ value: p, label: p }))}
                                                 selectedValue={newOrder.customerSocial}
                                                 onChange={val => setNewOrder({ ...newOrder, customerSocial: val })}
@@ -933,7 +942,7 @@ const Orders = () => {
                                     </div>
 
                                     <div className="space-y-1.5">
-                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Shipping Address</label>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">{t('orders.shippingAddress')}</label>
                                         <textarea
                                             placeholder="House/District/Street..."
                                             value={newOrder.customerAddress}
@@ -945,7 +954,7 @@ const Orders = () => {
                                     </div>
 
                                     <div className="space-y-1.5">
-                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Internal Notes</label>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">{t('orders.internalNotes')}</label>
                                         <textarea
                                             placeholder="Special instructions..."
                                             value={newOrder.customerNotes}
@@ -971,12 +980,12 @@ const Orders = () => {
                                     {isSubmitting ? (
                                         <>
                                             <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                            Saving...
+                                            {t('common.saving')}
                                         </>
                                     ) : (
                                         <>
                                             <ShoppingBag className="w-5 h-5" />
-                                            {editingOrderId ? 'UPDATE ORDER' : 'SAVE ORDER'}
+                                            {editingOrderId ? t('orders.updateOrder') : t('orders.saveOrder')}
                                         </>
                                     )}
                                 </button>
@@ -993,7 +1002,7 @@ const Orders = () => {
                         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
                             <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center sticky top-0 bg-white dark:bg-slate-800 z-10">
                                 <div>
-                                    <h3 className="text-xl font-bold text-slate-800 dark:text-white">Order Details</h3>
+                                    <h3 className="text-xl font-bold text-slate-800 dark:text-white">{t('orders.orderDetails')}</h3>
                                     <p className="text-sm text-slate-500">{viewingOrder.orderId} • {viewingOrder.date}</p>
                                 </div>
                                 <button onClick={() => setIsViewModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
@@ -1003,13 +1012,13 @@ const Orders = () => {
                             <div className="p-6 space-y-6">
                                 <div className="flex justify-between items-start bg-slate-50 dark:bg-slate-700/30 p-4 rounded-xl">
                                     <div>
-                                        <h4 className="text-xs font-bold text-slate-500 uppercase mb-2">Customer Info</h4>
+                                        <h4 className="text-xs font-bold text-slate-500 uppercase mb-2">{t('orders.customerInfo')}</h4>
                                         <p className="font-bold text-slate-800 dark:text-white">{viewingOrder.customer.name}</p>
                                         <p className="text-sm text-slate-600 dark:text-slate-300">{viewingOrder.customer.phone}</p>
                                         <p className="text-sm text-slate-600 dark:text-slate-300">{viewingOrder.customer.address}, {viewingOrder.customer.governorate}</p>
                                     </div>
                                     <div className="text-right">
-                                        <h4 className="text-xs font-bold text-slate-500 uppercase mb-2">Order Status</h4>
+                                        <h4 className="text-xs font-bold text-slate-500 uppercase mb-2">{t('orders.orderStatus')}</h4>
                                         <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold ${viewingOrder.status === 'Completed' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
                                             {viewingOrder.status}
                                         </span>
@@ -1017,7 +1026,7 @@ const Orders = () => {
                                 </div>
 
                                 <div>
-                                    <h4 className="text-xs font-bold text-slate-500 uppercase mb-3">Order Items</h4>
+                                    <h4 className="text-xs font-bold text-slate-500 uppercase mb-3">{t('orders.orderItems')}</h4>
                                     <div className="space-y-3">
                                         {viewingOrder.items.map((item, idx) => (
                                             <div key={idx} className="flex justify-between items-center border-b border-slate-100 dark:border-slate-700 pb-3 last:border-0 last:pb-0">
@@ -1043,17 +1052,17 @@ const Orders = () => {
                                 <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
                                     <div className="flex justify-end space-y-2 flex-col items-end">
                                         <div className="flex gap-8 text-sm">
-                                            <span className="text-slate-500">Subtotal:</span>
+                                            <span className="text-slate-500">{t('orders.subtotal')}:</span>
                                             <span className="font-medium text-slate-800 dark:text-white">{formatCurrency(viewingOrder.subtotal || viewingOrder.total)}</span>
                                         </div>
                                         {viewingOrder.discount > 0 && (
                                             <div className="flex gap-8 text-sm text-red-500">
-                                                <span>Discount ({viewingOrder.discount}%):</span>
+                                                <span>{t('orders.discount')} ({viewingOrder.discount}%):</span>
                                                 <span>-{formatCurrency((viewingOrder.subtotal || viewingOrder.total) - viewingOrder.total)}</span>
                                             </div>
                                         )}
                                         <div className="flex gap-8 text-lg font-bold pt-2">
-                                            <span className="text-slate-800 dark:text-white">Total:</span>
+                                            <span className="text-slate-800 dark:text-white">{t('orders.table.total')}:</span>
                                             <span className="text-accent">{formatCurrency(viewingOrder.total)}</span>
                                         </div>
                                     </div>
@@ -1061,10 +1070,10 @@ const Orders = () => {
 
                                 <div className="flex justify-end gap-3 pt-6 border-t border-slate-100 dark:border-slate-700">
                                     <button onClick={() => printReceipt(viewingOrder)} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-white rounded-lg font-medium transition-colors flex items-center gap-2">
-                                        <Printer className="w-4 h-4" /> Print Receipt
+                                        <Printer className="w-4 h-4" /> {t('orders.printReceipt')}
                                     </button>
                                     <button onClick={() => handleEditOrder(viewingOrder)} className="px-4 py-2 bg-accent text-white rounded-lg font-medium transition-all shadow-accent hover:brightness-110 active:scale-95 flex items-center gap-2">
-                                        <Edit className="w-4 h-4" /> Edit Order
+                                        <Edit className="w-4 h-4" /> {t('orders.editOrder')}
                                     </button>
                                 </div>
                             </div>

@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react'; // Added useEffect
 import Layout from '../components/Layout';
-import { Moon, Sun, Monitor, User, Trash2, Plus, CheckCircle, Settings as SettingsIcon, Users, Lock, Edit, Upload, Image as ImageIcon, Sparkles, Droplets, Palette, Layout as LayoutIcon, AlertTriangle, ShieldAlert } from 'lucide-react';
+import { Moon, Sun, Monitor, User, Trash2, Plus, CheckCircle, Settings as SettingsIcon, Users, Lock, Edit, Upload, Image as ImageIcon, Sparkles, Droplets, Palette, Layout as LayoutIcon, AlertTriangle, ShieldAlert, Globe } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
+import { useTranslation } from 'react-i18next';
 import ImageCropperModal from '../components/ImageCropperModal';
 
 const Settings = () => {
-    const { theme, toggleTheme, appearance, setAppearance, users, addUser, updateUser, deleteUser, currentUser, updateUserProfile, brand, updateBrand, addToast, seedData } = useInventory();
+    const { t } = useTranslation();
+    const { theme, toggleTheme, appearance, setAppearance, users, addUser, updateUser, deleteUser, currentUser, updateUserProfile, brand, updateBrand, addToast, seedData, language, changeLanguage } = useInventory();
     const [activeTab, setActiveTab] = useState('general');
     const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
     const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
@@ -153,25 +155,25 @@ const Settings = () => {
                             onClick={() => setActiveTab('general')}
                             className={`flex items-center gap-3 w-full px-4 py-2 rounded-xl text-left font-medium transition-all ${activeTab === 'general' ? 'shadow-sm bg-accent text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}
                         >
-                            <SettingsIcon className="w-5 h-5" /> General
+                            <SettingsIcon className="w-5 h-5 rtl:ml-3 ltr:mr-0" /> {t('settings.general')}
                         </button>
                         <button
                             onClick={() => setActiveTab('account')}
                             className={`flex items-center gap-3 w-full px-4 py-2 rounded-xl text-left font-medium transition-all ${activeTab === 'account' ? 'shadow-sm bg-accent text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}
                         >
-                            <User className="w-5 h-5" /> Account
+                            <User className="w-5 h-5 rtl:ml-3 ltr:mr-0" /> {t('settings.users')}
                         </button>
                         <button
                             onClick={() => setActiveTab('appearance')}
                             className={`flex items-center gap-3 w-full px-4 py-2 rounded-xl text-left font-medium transition-all ${activeTab === 'appearance' ? 'shadow-sm bg-accent text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}
                         >
-                            <Sparkles className="w-5 h-5" /> Appearance
+                            <Sparkles className="w-5 h-5 rtl:ml-3 ltr:mr-0" /> {t('settings.appearance')}
                         </button>
                         <button
                             onClick={() => setActiveTab('users')}
                             className={`flex items-center gap-3 w-full px-4 py-2 rounded-xl text-left font-medium transition-all ${activeTab === 'users' ? 'shadow-sm bg-accent text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}
                         >
-                            <Users className="w-5 h-5" /> Users
+                            <Users className="w-5 h-5 rtl:ml-3 ltr:mr-0" /> {t('settings.users')}
                         </button>
                     </nav>
                 </aside>
@@ -180,9 +182,31 @@ const Settings = () => {
                 <div className="flex-1">
                     {activeTab === 'general' && (
                         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                            <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-6">General Settings</h2>
+                            <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-6">{t('settings.general')}</h2>
 
                             <div className="space-y-6">
+                                {/* Language Switcher */}
+                                <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800">
+                                    <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-4 flex items-center gap-2">
+                                        <Globe className="w-4 h-4 text-accent" />
+                                        {t('settings.language')}
+                                    </h3>
+                                    <div className="flex gap-3">
+                                        <button
+                                            onClick={() => changeLanguage('en')}
+                                            className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all border-2 ${language === 'en' ? 'border-accent bg-white dark:bg-slate-800 text-accent shadow-sm' : 'border-transparent bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
+                                        >
+                                            🇬🇧 English
+                                        </button>
+                                        <button
+                                            onClick={() => changeLanguage('ar')}
+                                            className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all border-2 ${language === 'ar' ? 'border-accent bg-white dark:bg-slate-800 text-accent shadow-sm' : 'border-transparent bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
+                                        >
+                                            🇮🇶 العربية
+                                        </button>
+                                    </div>
+                                </div>
+
                                 {/* Header Visibility toggle */}
                                 <div className="">
                                     <div className="flex items-center justify-between">

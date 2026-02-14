@@ -2,8 +2,10 @@ import React from 'react';
 import { LayoutDashboard, Package, ShoppingCart, Settings, Users, Box, X, ChevronLeft, ChevronRight, Image as ImageIcon } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useInventory } from '../context/InventoryContext';
+import { useTranslation } from 'react-i18next';
 
 const Sidebar = () => {
+    const { t, i18n } = useTranslation();
     const location = useLocation();
     const {
         theme,
@@ -12,26 +14,29 @@ const Sidebar = () => {
         isSidebarCollapsed,
         toggleSidebar,
         isMobileMenuOpen,
-        closeMobileMenu
+        closeMobileMenu,
+        language
     } = useInventory();
 
+    const isRTL = language === 'ar';
+
     const menuItems = [
-        { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
-        { icon: Box, label: 'Inventory', path: '/products' },
-        { icon: ImageIcon, label: 'Product Picture', path: '/product-picture' },
-        { icon: ShoppingCart, label: 'Orders', path: '/orders' },
-        { icon: Users, label: 'Customers', path: '/customers' },
-        { icon: Settings, label: 'Settings', path: '/settings' },
+        { icon: LayoutDashboard, label: t('menu.dashboard'), path: '/' },
+        { icon: Box, label: t('menu.inventory'), path: '/products' },
+        { icon: ImageIcon, label: t('menu.productPicture'), path: '/product-picture' },
+        { icon: ShoppingCart, label: t('menu.orders'), path: '/orders' },
+        { icon: Users, label: t('menu.customers'), path: '/customers' },
+        { icon: Settings, label: t('menu.settings'), path: '/settings' },
     ];
 
     const sidebarClasses = `
-        fixed lg:static inset-y-0 left-0 z-40
+        fixed lg:static inset-y-0 ${isRTL ? 'right-0 border-l' : 'left-0 border-r'} z-40
         ${isSidebarCollapsed ? 'w-20' : 'w-56'}
         bg-white dark:bg-slate-900 
-        border-r border-slate-200 dark:border-slate-800 
+        border-slate-200 dark:border-slate-800 
         flex flex-col h-screen 
         transition-all duration-300 ease-in-out
-        ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        ${isMobileMenuOpen ? 'translate-x-0 shadow-2xl' : (isRTL ? 'translate-x-full' : '-translate-x-full') + ' lg:translate-x-0'}
         glass-panel
     `;
 
@@ -132,10 +137,10 @@ const Sidebar = () => {
             {/* Desktop Collapse Toggle Button (Fixed at bottom right of sidebar) */}
             <button
                 onClick={toggleSidebar}
-                className="hidden lg:flex absolute bottom-24 -right-3 w-6 h-6 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full items-center justify-center text-slate-400 shadow-sm z-50 transition-all hover:scale-110"
+                className={`hidden lg:flex absolute bottom-24 ${isRTL ? '-left-3' : '-right-3'} w-6 h-6 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full items-center justify-center text-slate-400 shadow-sm z-50 transition-all hover:scale-110`}
                 style={{ color: brand.color }}
             >
-                {isSidebarCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
+                {isSidebarCollapsed ? (isRTL ? <ChevronLeft className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />) : (isRTL ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />)}
             </button>
         </aside>
     );
