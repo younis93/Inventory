@@ -1,23 +1,37 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { ComposableMap, Geographies, Geography, ZoomableGroup, Marker } from 'react-simple-maps';
 import { scaleLinear } from 'd3-scale';
 import { geoCentroid } from 'd3-geo';
 import { useInventory } from '../context/InventoryContext';
 
-const GEO_URL = "https://raw.githubusercontent.com/deldar-h/iraq-governorates-geojson/master/Iraq_Governorates.json";
+import Skeleton from './common/Skeleton';
+
+
+const GEO_URL = "https://raw.githubusercontent.com/wmgeolab/geoBoundaries/rel/releaseData/gbOpen/IRQ/ADM1/geoBoundaries-IRQ-ADM1.geojson";
 
 const IraqMap = ({ data, selectedGovernorates = [], onSelect }) => {
     const { theme, brand } = useInventory();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
+    const [geoData, setGeoData] = useState(null);
 
-    // Safety timeout for loading state
-    React.useEffect(() => {
-        const timer = setTimeout(() => {
-            if (loading) setLoading(false);
-        }, 5000);
-        return () => clearTimeout(timer);
-    }, [loading]);
+    useEffect(() => {
+        fetch(GEO_URL)
+            .then(res => {
+                if (!res.ok) throw new Error('Failed to fetch map data');
+                return res.json();
+            })
+            .then(data => {
+                setGeoData(data);
+                setLoading(false);
+            })
+            .catch(err => {
+                console.error("Map Load Error:", err);
+                setError(true);
+                setLoading(false);
+            });
+    }, []);
+
     // Compute numeric counts from `data` which may be an object mapping name->count
     const { maxValue, minPositive } = useMemo(() => {
         const values = Object.values(data || {}).filter(v => typeof v === 'number');
@@ -37,10 +51,10 @@ const IraqMap = ({ data, selectedGovernorates = [], onSelect }) => {
     return (
         <div className="w-full h-full bg-slate-50 dark:bg-slate-900/50 rounded-2xl overflow-hidden relative flex items-center justify-center border border-slate-100 dark:border-slate-800">
             {loading && !error && (
-                <div className="absolute inset-0 flex items-center justify-center text-slate-400 bg-slate-50 dark:bg-slate-900 z-10">
-                    <div className="flex flex-col items-center gap-2">
-                        <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-                        <span className="text-xs font-bold uppercase tracking-widest">Loading Map Data...</span>
+                <div className="absolute inset-0 z-10 bg-white dark:bg-slate-900 overflow-hidden">
+                    <Skeleton className="w-full h-full rounded-none" />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="bg-white/50 dark:bg-slate-900/50 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-slate-500 uppercase tracking-widest">Loading Map...</span>
                     </div>
                 </div>
             )}
@@ -52,98 +66,116 @@ const IraqMap = ({ data, selectedGovernorates = [], onSelect }) => {
                 </div>
             )}
 
-            <ComposableMap
-                projection="geoMercator"
-                projectionConfig={{ scale: 3500, center: [44, 33] }} // Adjusted zoom/center
-                className="w-full h-full"
-            >
-                <ZoomableGroup zoom={1} maxZoom={3}>
-                    <Geographies
-                        geography={GEO_URL}
-                        onGeographyLoad={() => { setLoading(false); setError(false); }}
-                        onGeographyError={(err) => { console.error("Map Load Error:", err); setLoading(false); setError(true); }}
-                    >
-                        {({ geographies }) =>
-                            <>
-                                {geographies.map((geo) => {
-                                    // Enhanced Matching Logic
-                                    const governName = geo.properties.name || "";
-                                    const normalize = (str) => str.toLowerCase().replace(/[^a-z0-9]/g, '');
-                                    const matchingKey = Object.keys(data || {}).find(k => {
+            {!loading && !error && geoData && (
+                <ComposableMap
+                    projection="geoMercator"
+                    projectionConfig={{ scale: 3500, center: [44, 33] }} // Adjusted zoom/center
+                    className="w-full h-full"
+                >
+                    <ZoomableGroup zoom={1} maxZoom={3}>
+                        <Geographies geography={geoData}>
+                            {({ geographies }) =>
+                                <>
+                                    {geographies.map((geo) => {
+                                        // Robust Property Access: Check 'name', 'shapeName', or 'ADM1_EN' (common in geoBoundaries)
+                                        const p = geo.properties || {};
+                                        const governName = p.name || p.shapeName || p.ADM1_EN || "Unknown";
+
+                                        const normalize = (str) => typeof str === 'string' ? str.toLowerCase().replace(/[^a-z0-9]/g, '') : '';
                                         const n1 = normalize(governName);
-                                        const n2 = normalize(k);
-                                        return n1.includes(n2) || n2.includes(n1);
-                                    });
 
-                                    const effectiveName = matchingKey || governName;
-                                    const value = typeof data === 'object' && matchingKey ? (data[matchingKey] || 0) : 0;
-                                    const isSelected = selectedGovernorates.includes(effectiveName);
+                                        // Try to find a match in our data keys
+                                        const matchingKey = Object.keys(data || {}).find(k => {
+                                            const n2 = normalize(k);
+                                            return n1 && n2 && (n1.includes(n2) || n2.includes(n1));
+                                        });
 
-                                    // Choose fill: selected > positive gradient > zero color
-                                    const fillColor = isSelected ? "#F59E0B" : (value > 0 ? colorScale(value) : zeroColor);
+                                        const effectiveName = matchingKey || governName;
+                                        const value = (matchingKey && data[matchingKey]) || 0;
+                                        const isSelected = selectedGovernorates.includes(effectiveName);
 
-                                    return (
-                                        <Geography
-                                            key={geo.rsmKey}
-                                            geography={geo}
-                                            fill={fillColor}
-                                            stroke={isSelected ? "#ffffff" : (theme === 'dark' ? "#334155" : "#cbd5e1")}
-                                            strokeWidth={isSelected ? 2 : 0.5}
-                                            onClick={() => {
-                                                if (onSelect) onSelect(effectiveName);
-                                            }}
-                                            style={{
-                                                default: { outline: "none", transition: "all 250ms" },
-                                                hover: { fill: "#F59E0B", outline: "none", stroke: "#fff", strokeWidth: 2, cursor: "pointer", opacity: 0.8 },
-                                                pressed: { outline: "none" },
-                                            }}
-                                            title={`${effectiveName}: ${value} Orders`}
-                                        />
-                                    );
-                                })}
-                                {/* Render Labels on top */}
-                                {geographies.map((geo) => {
-                                    const centroid = geoCentroid(geo);
-                                    const governName = geo.properties.name || "";
-                                    const normalize = (str) => str.toLowerCase().replace(/[^a-z0-9]/g, '');
-                                    const matchingKey = Object.keys(data || {}).find(k => {
+                                        // Choose fill: selected > positive gradient > zero color
+                                        let fillColor = zeroColor;
+                                        if (isSelected) fillColor = "#F59E0B";
+                                        else if (value > 0) fillColor = colorScale(value);
+
+                                        return (
+                                            <Geography
+                                                key={geo.rsmKey}
+                                                geography={geo}
+                                                fill={fillColor}
+                                                stroke={isSelected ? "#ffffff" : (theme === 'dark' ? "#334155" : "#cbd5e1")}
+                                                strokeWidth={isSelected ? 2 : 0.5}
+                                                onClick={() => {
+                                                    if (onSelect) onSelect(effectiveName);
+                                                }}
+                                                style={{
+                                                    default: { outline: "none", transition: "all 250ms" },
+                                                    hover: { fill: "#F59E0B", outline: "none", stroke: "#fff", strokeWidth: 2, cursor: "pointer", opacity: 0.8 },
+                                                    pressed: { outline: "none" },
+                                                }}
+                                                title={`${effectiveName}: ${value} Orders`}
+                                            />
+                                        );
+                                    })}
+                                    {/* Render Labels on top */}
+                                    {geographies.map((geo) => {
+                                        const centroid = geoCentroid(geo);
+                                        // Check centroid validity
+                                        if (!centroid || isNaN(centroid[0]) || isNaN(centroid[1])) return null;
+
+                                        const p = geo.properties || {};
+                                        const governName = p.name || p.shapeName || p.ADM1_EN || "Unknown";
+
+                                        const normalize = (str) => typeof str === 'string' ? str.toLowerCase().replace(/[^a-z0-9]/g, '') : '';
                                         const n1 = normalize(governName);
-                                        const n2 = normalize(k);
-                                        return n1.includes(n2) || n2.includes(n1);
-                                    });
-                                    const effectiveName = matchingKey || governName;
-                                    const value = typeof data === 'object' && matchingKey ? (data[matchingKey] || 0) : 0;
 
-                                    // Only render a label if centroid is valid
-                                    const [cx, cy] = centroid || [];
-                                    if (!Number.isFinite(cx) || !Number.isFinite(cy)) return null;
+                                        const matchingKey = Object.keys(data || {}).find(k => {
+                                            const n2 = normalize(k);
+                                            return n1 && n2 && (n1.includes(n2) || n2.includes(n1));
+                                        });
+                                        const effectiveName = matchingKey || governName;
+                                        const value = (matchingKey && data[matchingKey]) || 0;
 
-                                    return (
-                                        <Marker key={`${geo.rsmKey}-label`} coordinates={centroid}>
-                                            <g className="pointer-events-none" style={{ transform: 'translateY(-6px)' }}>
-                                                <text
-                                                    y="-6"
-                                                    textAnchor="middle"
-                                                    style={{ fontSize: 8, fill: theme === 'dark' ? "#fff" : "#ffffff", fontWeight: "bold", pointerEvents: 'none' }}
-                                                >
-                                                    {effectiveName}
-                                                </text>
-                                                <text
-                                                    y="8"
-                                                    textAnchor="middle"
-                                                    style={{ fontSize: 10, fill: theme === 'dark' ? "#e6f0ff" : "#ffffff", fontWeight: "800", pointerEvents: 'none' }}
-                                                >
-                                                    {value}
-                                                </text>
-                                            </g>
-                                        </Marker>
-                                    );
-                                })}
-                            </>
-                        }
-                    </Geographies>
-                </ZoomableGroup>
-            </ComposableMap>
+                                        return (
+                                            <Marker key={`${geo.rsmKey}-label`} coordinates={centroid}>
+                                                <g className="pointer-events-none" style={{ transform: 'translateY(-6px)' }}>
+                                                    <text
+                                                        y="-6"
+                                                        textAnchor="middle"
+                                                        style={{
+                                                            fontSize: 8,
+                                                            fill: theme === 'dark' ? "#fff" : "#1e293b",
+                                                            fontWeight: "bold",
+                                                            pointerEvents: 'none',
+                                                            textShadow: "0px 0px 2px rgba(255,255,255,0.8)"
+                                                        }}
+                                                    >
+                                                        {effectiveName}
+                                                    </text>
+                                                    <text
+                                                        y="8"
+                                                        textAnchor="middle"
+                                                        style={{
+                                                            fontSize: 10,
+                                                            fill: theme === 'dark' ? "#e6f0ff" : "#0f172a",
+                                                            fontWeight: "800",
+                                                            pointerEvents: 'none',
+                                                            textShadow: "0px 0px 2px rgba(255,255,255,0.8)"
+                                                        }}
+                                                    >
+                                                        {value > 0 ? value : ''}
+                                                    </text>
+                                                </g>
+                                            </Marker>
+                                        );
+                                    })}
+                                </>
+                            }
+                        </Geographies>
+                    </ZoomableGroup>
+                </ComposableMap>
+            )}
 
             {/* Legend / Overlay */}
             <div className="absolute bottom-4 end-4 bg-white/90 dark:bg-slate-800/90 backdrop-blur p-3 rounded-xl shadow-lg border border-slate-100 dark:border-slate-700 text-xs text-slate-500 dark:text-slate-400 z-20 pointer-events-none">

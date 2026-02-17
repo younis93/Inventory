@@ -4,6 +4,9 @@ import { firebaseService } from '../services/firebaseService';
 import { useTranslation } from 'react-i18next';
 
 const InventoryContext = createContext();
+const PROFESSIONAL_LOGO = '/brand-logo.svg';
+const PROFESSIONAL_FAVICON = '/brand-favicon.svg';
+const LEGACY_LOGO = 'https://i.imgur.com/9YXqZ5K.png';
 
 export const useInventory = () => useContext(InventoryContext);
 
@@ -106,7 +109,8 @@ export const InventoryProvider = ({ children }) => {
     // Branding State
     const [brand, setBrand] = useState({
         name: 'Gem Toys',
-        logo: 'https://i.imgur.com/9YXqZ5K.png',
+        logo: PROFESSIONAL_LOGO,
+        favicon: PROFESSIONAL_FAVICON,
         color: '#1e3a5f',
         hideHeader: false
     });
@@ -129,6 +133,7 @@ export const InventoryProvider = ({ children }) => {
 
             if (brand?.favicon) setFavicon(brand.favicon);
             else if (brand?.logo) setFavicon(brand.logo);
+            else setFavicon(PROFESSIONAL_FAVICON);
         } catch (e) {
             // ignore in non-browser env
         }
@@ -142,59 +147,100 @@ export const InventoryProvider = ({ children }) => {
     };
 
     // --- Real-time Firestore Listeners (using Service) ---
+    // --- Real-time Firestore Listeners (using Service) ---
     useEffect(() => {
         setLoading(true);
+        let loaded = {
+            products: false,
+            categories: false,
+            orders: false,
+            customers: false,
+            users: false,
+            settings: false
+        };
 
-        const unsubProducts = firebaseService.subscribeToCollection("products", setProducts, "name");
+        const checkLoaded = () => {
+            if (Object.values(loaded).every(v => v)) {
+                setLoading(false);
+            }
+        };
 
-        // Subscribe to Categories Collection
-        // Note: If you don't have a 'categories' collection in Firestore yet, this will return empty.
-        // You might want to seed it or just start adding.
+        const handleError = (ctx, err) => {
+            console.error(`Error loading ${ctx}:`, err);
+            addToast(`Error loading ${ctx}. Refresh page.`, 'error');
+            // Mark as loaded effectively to remove skeleton even on error
+            loaded[ctx] = true;
+            checkLoaded();
+        };
+
+        const unsubProducts = firebaseService.subscribeToCollection("products", (data) => {
+            setProducts(data);
+            loaded.products = true;
+            checkLoaded();
+        }, "name", "asc", (err) => handleError('products', err));
+
         const unsubCategories = firebaseService.subscribeToCollection("categories", (data) => {
-            // Data is array of objects { id, name, ... }
-            // We map to array of strings for 'categories' state to keep compatibility with existing apps
-            // OR we store objects. Let's store Strings for now as that's what the app expects, 
-            // but we might need IDs for updates. 
-            // Actually, best to store objects { id, name } internally but `categories` public state 
-            // is currently used as strings array in dropdowns.
-            // Let's keep `categories` as strings for now, and handle the mapping internally or 
-            // update `categories` to be objects in a refactor. 
-            // To be safe and compliant with "Manage" (Rename), we really need objects.
-            // But to avoid breaking `Products.jsx` which expects `categories.map(cat => cat)`, 
-            // we will map to names. 
-            // To support Rename, we need to know the ID. 
-            // Let's add `categoryObjects` state for internal management, and `categories` as names for existing UI.
             if (data.length > 0) {
                 const sortedCats = data.map(d => d.name).sort();
                 setCategories(sortedCats);
                 setCategoryObjects(data);
             } else {
-                // Fallback: if no categories collection, derive from products (read-only mode essentially until they add one)
-                // But once they add one, we should probably stick to collection.
-                // For now, let's just initialize.
-                // We won't overwrite if products load first? 
-                // It's tricky. Let's stick to collection as source of truth.
-                // If empty, we start empty (or seed).
                 setCategories([]);
                 setCategoryObjects([]);
             }
-        });
+            loaded.categories = true;
+            checkLoaded();
+        }, "name", "asc", (err) => handleError('categories', err));
 
-        const unsubOrders = firebaseService.subscribeToCollection("orders", setOrders, "date", "desc");
-        const unsubCustomers = firebaseService.subscribeToCollection("customers", setCustomers, "name");
-        const unsubUsers = firebaseService.subscribeToCollection("users", setUsers, "username");
+        const unsubOrders = firebaseService.subscribeToCollection("orders", (data) => {
+            setOrders(data);
+            loaded.orders = true;
+            checkLoaded();
+        }, "date", "desc", (err) => handleError('orders', err));
+
+        const unsubCustomers = firebaseService.subscribeToCollection("customers", (data) => {
+            setCustomers(data);
+            loaded.customers = true;
+            checkLoaded();
+        }, "name", "asc", (err) => handleError('customers', err));
+
+        const unsubUsers = firebaseService.subscribeToCollection("users", (data) => {
+            setUsers(data);
+            loaded.users = true;
+            checkLoaded();
+        }, "username", "asc", (err) => handleError('users', err));
 
         const unsubBranding = firebaseService.subscribeToCollection("settings", (data) => {
             const branding = data.find(d => d._id === "branding");
             if (branding) {
                 const { _id, ...brandData } = branding;
-                setBrand(brandData);
+                const sanitizedLogo = brandData.logo === LEGACY_LOGO
+                    ? PROFESSIONAL_LOGO
+                    : brandData.logo;
+                const sanitizedFavicon = brandData.favicon === LEGACY_LOGO
+                    ? (sanitizedLogo || PROFESSIONAL_FAVICON)
+                    : brandData.favicon;
+                setBrand(prev => ({
+                    ...prev,
+                    ...brandData,
+                    logo: sanitizedLogo,
+                    favicon: sanitizedFavicon
+                }));
             }
-        });
+            loaded.settings = true;
+            checkLoaded();
+        }, "name", "asc", (err) => handleError('settings', err));
 
-        setLoading(false);
+        // Safety timeout in case a listener never fires
+        const safetyTimer = setTimeout(() => {
+            if (loading) {
+                console.warn("Loading safety timeout hit.");
+                setLoading(false);
+            }
+        }, 8000);
 
         return () => {
+            clearTimeout(safetyTimer);
             unsubProducts();
             unsubCategories();
             unsubOrders();
@@ -323,18 +369,36 @@ export const InventoryProvider = ({ children }) => {
 
     // --- Actions (using Service) ---
     const addProduct = async (newProduct) => {
-        const result = await firebaseService.add("products", newProduct);
-        addToast('Product added successfully', 'success');
-        return result;
+        try {
+            const result = await firebaseService.add("products", newProduct);
+            addToast('Product added successfully', 'success');
+            return result;
+        } catch (error) {
+            addToast('Error adding product', 'error');
+            console.error(error);
+            return null;
+        }
     };
 
     const updateProduct = async (updatedProduct) => {
         const { _id, ...data } = updatedProduct;
-        await firebaseService.update("products", _id, data);
+        try {
+            await firebaseService.update("products", _id, data);
+            addToast('Product updated successfully', 'success');
+        } catch (error) {
+            addToast('Error updating product', 'error');
+            console.error(error);
+        }
     };
 
     const deleteProduct = async (id) => {
-        await firebaseService.delete("products", id);
+        try {
+            await firebaseService.delete("products", id);
+            addToast('Product deleted successfully', 'success');
+        } catch (error) {
+            addToast('Error deleting product', 'error');
+            console.error(error);
+        }
     };
 
 
@@ -355,30 +419,36 @@ export const InventoryProvider = ({ children }) => {
     };
 
     const addOrder = async (newOrder) => {
-        const orderId = `#ORD-${Math.floor(1000 + Math.random() * 9000)}`;
-        const orderWithDetails = {
-            ...newOrder,
-            orderId,
-            date: new Date().toISOString()
-        };
+        try {
+            const orderId = `#ORD-${Math.floor(1000 + Math.random() * 9000)}`;
+            const orderWithDetails = {
+                ...newOrder,
+                orderId,
+                date: new Date().toISOString()
+            };
 
-        // Add the order
-        const addedOrder = await firebaseService.add("orders", orderWithDetails);
+            // Add the order
+            const addedOrder = await firebaseService.add("orders", orderWithDetails);
 
-        // Decrement Stock
-        for (const item of newOrder.items) {
-            const product = products.find(p => p._id === item.product._id);
-            if (product) {
-                const newStock = Math.max(0, product.stock - item.quantity);
-                await firebaseService.update("products", product._id, {
-                    stock: newStock,
-                    status: newStock === 0 ? 'Out of Stock' : (newStock <= 10 ? 'Low Stock' : 'In Stock')
-                });
+            // Decrement Stock
+            for (const item of newOrder.items) {
+                const product = products.find(p => p._id === item.product._id);
+                if (product) {
+                    const newStock = Math.max(0, product.stock - item.quantity);
+                    await firebaseService.update("products", product._id, {
+                        stock: newStock,
+                        status: newStock === 0 ? 'Out of Stock' : (newStock <= 10 ? 'Low Stock' : 'In Stock')
+                    });
+                }
             }
-        }
 
-        addToast('Order created successfully', 'success');
-        return addedOrder;
+            addToast('Order created successfully', 'success');
+            return addedOrder;
+        } catch (error) {
+            addToast('Error creating order', 'error');
+            console.error(error);
+            return null;
+        }
     };
 
     const deleteOrder = async (id) => {

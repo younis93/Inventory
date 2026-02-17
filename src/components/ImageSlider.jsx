@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Download, X, Maximize2 } from 'lucide-react';
+import ImageWithFallback from './common/ImageWithFallback';
 
 const ImageSlider = ({
     images = [],
@@ -79,10 +80,11 @@ const ImageSlider = ({
                 >
                     {images.map((img, idx) => (
                         <div key={idx} className="min-w-full h-full flex-none flex items-center justify-center p-4">
-                            <img
+                            <ImageWithFallback
                                 src={typeof img === 'string' ? img : img.url}
                                 alt={`Product view ${idx + 1}`}
-                                className="max-w-full max-h-full object-contain pointer-events-none select-none drop-shadow-md"
+                                className="w-full h-full flex items-center justify-center bg-transparent dark:bg-transparent"
+                                imageClassName="max-w-full max-h-full object-contain pointer-events-none select-none drop-shadow-md"
                             />
                         </div>
                     ))}
@@ -136,10 +138,11 @@ const ImageSlider = ({
                                 : 'border-transparent hover:border-slate-300 dark:hover:border-slate-600'
                                 }`}
                         >
-                            <img
+                            <ImageWithFallback
                                 src={typeof img === 'string' ? img : img.url}
                                 alt={`Thumbnail ${idx + 1} of ${images.length}`}
-                                className="w-full h-full object-cover"
+                                className="w-full h-full"
+                                imageClassName="w-full h-full object-cover"
                             />
                         </button>
 

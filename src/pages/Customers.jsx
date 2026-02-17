@@ -441,7 +441,7 @@ const Customers = () => {
 
             {viewMode === 'table' ? (
                 /* Customers Table */
-                <div className={`bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden transition-all ${['liquid', 'default_glass'].includes(appearance.theme) ? 'glass-panel' : ''}`}>
+                <div className={`rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden transition-all ${['liquid', 'default_glass'].includes(appearance.theme) ? 'glass-panel' : 'bg-white dark:bg-slate-800'}`}>
                     <div className="overflow-x-auto">
                         <table className="w-full text-start">
                             <thead>
@@ -626,8 +626,8 @@ const Customers = () => {
 
             {isModalOpen && (
                 <div className="fixed inset-0 z-[100] flex items-start justify-center bg-slate-900/80 backdrop-blur-md p-2 sm:p-4 overflow-y-auto">
-                    <div className={`bg-white dark:bg-slate-800 rounded-[32px] shadow-2xl w-full max-w-md my-4 sm:my-8 flex flex-col overflow-hidden animate-in fade-in zoom-in duration-300 relative ${['liquid', 'default_glass'].includes(appearance.theme) ? 'glass-panel' : ''}`}>
-                        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-white dark:bg-slate-800 sticky top-0 z-10">
+                    <div className={`rounded-[32px] shadow-2xl w-full max-w-md my-4 sm:my-8 flex flex-col overflow-hidden animate-in fade-in zoom-in duration-300 relative ${['liquid', 'default_glass'].includes(appearance.theme) ? 'glass-panel' : 'bg-white dark:bg-slate-800'}`}>
+                        <div className={`px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center sticky top-0 z-10 ${['liquid', 'default_glass'].includes(appearance.theme) ? 'bg-white/20 dark:bg-slate-900/20 backdrop-blur-md' : 'bg-white dark:bg-slate-800'}`}>
                             <div>
                                 <h3 className="text-xl font-black text-slate-900 dark:text-white">{editingCustomer ? t('customers.form.edit') : t('customers.form.new')}</h3>
                                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">{t('customers.form.sub')}</p>
@@ -641,17 +641,17 @@ const Customers = () => {
                                 <div className="space-y-3">
                                     <div className="space-y-1.5">
                                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ms-1">{t('customers.form.fullName')}</label>
-                                        <input required placeholder="Ahmed Ali" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full p-2.5 border-2 border-slate-100 dark:border-slate-800 rounded-2xl dark:bg-slate-900 dark:text-white outline-none focus:border-[var(--brand-color)] transition-all font-bold placeholder:opacity-30" />
+                                        <input required placeholder="Ahmed Ali" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className={`w-full p-2.5 border-2 border-slate-100 dark:border-slate-800 rounded-2xl dark:text-white outline-none focus:border-[var(--brand-color)] transition-all font-bold placeholder:opacity-30 ${['liquid', 'default_glass'].includes(appearance?.theme) ? 'bg-white/40 dark:bg-slate-900/40 backdrop-blur-sm' : 'bg-slate-50 dark:bg-slate-900'}`} />
                                     </div>
 
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         <div className="space-y-1.5">
                                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ms-1">{t('customers.form.phone')}</label>
-                                            <input required placeholder="07XX XXX XXXX" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} className="w-full p-2.5 border-2 border-slate-100 dark:border-slate-800 rounded-2xl dark:bg-slate-900 dark:text-white outline-none focus:border-[var(--brand-color)] transition-all font-bold placeholder:opacity-30" />
+                                            <input required placeholder="07XX XXX XXXX" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} className={`w-full p-2.5 border-2 border-slate-100 dark:border-slate-800 rounded-2xl dark:text-white outline-none focus:border-[var(--brand-color)] transition-all font-bold placeholder:opacity-30 ${['liquid', 'default_glass'].includes(appearance?.theme) ? 'bg-white/40 dark:bg-slate-900/40 backdrop-blur-sm' : 'bg-slate-50 dark:bg-slate-900'}`} />
                                         </div>
                                         <div className="space-y-1.5">
                                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ms-1">{t('customers.form.email')}</label>
-                                            <input placeholder="customer@example.com" type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className="w-full p-2.5 border-2 border-slate-100 dark:border-slate-800 rounded-2xl dark:bg-slate-900 dark:text-white outline-none focus:border-[var(--brand-color)] transition-all font-bold placeholder:opacity-30" />
+                                            <input placeholder="customer@example.com" type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className={`w-full p-2.5 border-2 border-slate-100 dark:border-slate-800 rounded-2xl dark:text-white outline-none focus:border-[var(--brand-color)] transition-all font-bold placeholder:opacity-30 ${['liquid', 'default_glass'].includes(appearance?.theme) ? 'bg-white/40 dark:bg-slate-900/40 backdrop-blur-sm' : 'bg-slate-50 dark:bg-slate-900'}`} />
                                         </div>
                                     </div>
 
@@ -682,12 +682,12 @@ const Customers = () => {
 
                                     <div className="space-y-1.5">
                                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ms-1">{t('customers.form.shippingAddress')}</label>
-                                        <textarea rows="2" placeholder="Street name, landmark, house number..." value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} className="w-full p-2.5 border-2 border-slate-100 dark:border-slate-800 rounded-2xl dark:bg-slate-900 dark:text-white outline-none focus:border-[var(--brand-color)] transition-all font-bold resize-none placeholder:opacity-30" />
+                                        <textarea rows="2" placeholder="Street name, landmark, house number..." value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} className={`w-full p-2.5 border-2 border-slate-100 dark:border-slate-800 rounded-2xl dark:text-white outline-none focus:border-[var(--brand-color)] transition-all font-bold resize-none placeholder:opacity-30 ${['liquid', 'default_glass'].includes(appearance?.theme) ? 'bg-white/40 dark:bg-slate-900/40 backdrop-blur-sm' : 'bg-slate-50 dark:bg-slate-900'}`} />
                                     </div>
                                 </div>
                             </form>
                         </div>
-                        <div className="p-6 pt-0 mt-auto border-t border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800">
+                        <div className={`p-6 pt-0 mt-auto border-t border-slate-100 dark:border-slate-700 ${['liquid', 'default_glass'].includes(appearance.theme) ? 'bg-white/20 dark:bg-slate-900/20 backdrop-blur-md' : 'bg-white dark:bg-slate-800'}`}>
                             <div className="flex gap-4 pt-4">
                                 <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-3 border-2 border-slate-100 dark:border-slate-800 rounded-2xl font-black text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all active:scale-95">{t('common.cancel')}</button>
                                 <button
@@ -706,8 +706,8 @@ const Customers = () => {
             {
                 isOrderHistoryOpen && selectedCustomer && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/90 backdrop-blur-md p-4">
-                        <div className={`bg-white dark:bg-slate-800 rounded-[32px] shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in slide-in-from-bottom-8 duration-500 ${['liquid', 'default_glass'].includes(appearance.theme) ? 'glass-panel' : ''}`}>
-                            <div className="px-10 py-8 border-b border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800">
+                        <div className={`rounded-[32px] shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in slide-in-from-bottom-8 duration-500 ${['liquid', 'default_glass'].includes(appearance.theme) ? 'glass-panel' : 'bg-white dark:bg-slate-800'}`}>
+                            <div className={`px-10 py-8 border-b border-slate-100 dark:border-slate-700 ${['liquid', 'default_glass'].includes(appearance.theme) ? 'bg-white/20 dark:bg-slate-900/20 backdrop-blur-md' : 'bg-white dark:bg-slate-800'}`}>
                                 <div className="flex justify-between items-start">
                                     <div>
                                         <div className="flex items-center gap-3 mb-1">
@@ -730,7 +730,7 @@ const Customers = () => {
                                 </div>
                             </div>
 
-                            <div className="p-10 overflow-y-auto custom-scrollbar bg-slate-50/50 dark:bg-slate-900/50">
+                            <div className="p-10 overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-slate-900/50">
                                 {getCustomerOrders(selectedCustomer._id).length === 0 ? (
                                     <div className="text-center py-24">
                                         <div className="w-24 h-24 bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-3xl flex items-center justify-center mx-auto mb-6 text-slate-200">
@@ -741,7 +741,7 @@ const Customers = () => {
                                 ) : (
                                     <div className="space-y-4">
                                         {getCustomerOrders(selectedCustomer._id).map(order => (
-                                            <div key={order._id} className="bg-white dark:bg-slate-800 rounded-[28px] border-2 border-slate-50 dark:border-slate-800 shadow-sm overflow-hidden transition-all hover:shadow-xl hover:border-accent group">
+                                            <div key={order._id} className="bg-white dark:bg-slate-800 rounded-[28px] border-2 border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden transition-all hover:shadow-xl hover:border-accent group">
                                                 <div
                                                     className="p-6 flex items-center justify-between cursor-pointer"
                                                     onClick={() => setExpandedOrderId(expandedOrderId === order._id ? null : order._id)}

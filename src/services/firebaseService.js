@@ -19,7 +19,7 @@ export const firebaseService = {
     /**
      * Set up a real-time listener for a collection
      */
-    subscribeToCollection: (collectionName, callback, sortField = "name", sortOrder = "asc") => {
+    subscribeToCollection: (collectionName, callback, sortField = "name", sortOrder = "asc", onError) => {
         try {
             if (!collectionName || typeof callback !== 'function') {
                 console.error('subscribeToCollection: invalid arguments', { collectionName, callback });
@@ -35,6 +35,8 @@ export const firebaseService = {
                 callback(data);
             }, (error) => {
                 console.error(`Error subscribing to ${collectionName}:`, error);
+                if (onError) onError(error);
+
                 // If orderBy fails, try without it
                 if (error.code === 'failed-precondition' || error.message.includes('index')) {
                     console.log(`Retrying ${collectionName} without orderBy...`);
@@ -42,6 +44,8 @@ export const firebaseService = {
                     return onSnapshot(simpleQuery, (snapshot) => {
                         const data = snapshot.docs.map(doc => ({ _id: doc.id, ...doc.data() }));
                         callback(data);
+                    }, (err) => {
+                        if (onError) onError(err);
                     });
                 }
             });

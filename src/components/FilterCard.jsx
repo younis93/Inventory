@@ -20,7 +20,7 @@ const FilterCard = ({ title, options, selectedValues, onChange, onClear, showPro
     ));
 
     return (
-        <div className={`bg-white dark:bg-slate-800 rounded-2xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.1)] border border-slate-100 dark:border-slate-700 overflow-hidden flex flex-col w-full min-w-[240px] transition-all ${['liquid', 'default_glass'].includes(appearance?.theme) ? 'glass-panel' : ''}`}>
+        <div className={`rounded-2xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.1)] border border-slate-100 dark:border-slate-700 overflow-hidden flex flex-col w-full min-w-[240px] transition-all ${['liquid', 'default_glass'].includes(appearance?.theme) ? 'glass-panel' : 'bg-white dark:bg-slate-800'}`}>
             {/* Show product count OR title header (clickable when collapsible) */}
             {/* Header section removed as per request */}
             {title && title.length > 0 && (
@@ -46,7 +46,7 @@ const FilterCard = ({ title, options, selectedValues, onChange, onClear, showPro
                             placeholder="Search..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full ps-9 pe-3 py-2 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg text-sm outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all dark:text-white"
+                            className={`w-full ps-9 pe-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all font-bold text-xs dark:text-white ${['liquid', 'default_glass'].includes(appearance?.theme) ? 'bg-white/40 dark:bg-slate-900/40 backdrop-blur-sm' : 'bg-slate-50 dark:bg-slate-900/50'}`}
                         />
                     </div>
                 </div>
@@ -61,7 +61,7 @@ const FilterCard = ({ title, options, selectedValues, onChange, onClear, showPro
                             onClick={() => handleToggle(option.value)}
                             className={`flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer transition-all group ${isSelected
                                 ? 'bg-accent/10'
-                                : 'hover:bg-slate-50 dark:hover:bg-slate-700/50'
+                                : (['liquid', 'default_glass'].includes(appearance?.theme) ? 'hover:bg-white/20 dark:hover:bg-slate-700/30' : 'hover:bg-slate-50 dark:hover:bg-slate-700/50')
                                 }`}
                         >
                             <div className="flex items-center gap-3">

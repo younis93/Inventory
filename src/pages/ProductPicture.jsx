@@ -4,6 +4,8 @@ import { useInventory } from '../context/InventoryContext';
 import { useTranslation } from 'react-i18next';
 import { Image as ImageIcon, Search } from 'lucide-react';
 import ProductImageModal from '../components/ProductImageModal';
+import ImageWithFallback from '../components/common/ImageWithFallback';
+import Skeleton from '../components/common/Skeleton';
 
 const ProductPicture = () => {
     const { t } = useTranslation();
@@ -94,8 +96,19 @@ const ProductPicture = () => {
             </div>
 
             {loading ? (
-                <div className="flex items-center justify-center h-64">
-                    <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin"></div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {Array.from({ length: 8 }).map((_, i) => (
+                        <div key={i} className="bg-white dark:bg-slate-800 rounded-3xl p-3 shadow-sm border border-slate-100 dark:border-slate-700">
+                            <Skeleton className="aspect-[4/5] w-full rounded-2xl mb-4" />
+                            <div className="px-1 space-y-2">
+                                <Skeleton className="h-5 w-3/4 rounded-lg" />
+                                <div className="flex justify-between">
+                                    <Skeleton className="h-4 w-16" />
+                                    <Skeleton className="h-4 w-12" />
+                                </div>
+                            </div>
+                        </div>
+                    ))}
                 </div>
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -112,10 +125,11 @@ const ProductPicture = () => {
                             >
                                 {/* Image Area */}
                                 <div className="aspect-[4/5] w-full rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-900 relative">
-                                    <img
+                                    <ImageWithFallback
                                         src={imageUrl}
                                         alt={product.name}
-                                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                        className="w-full h-full"
+                                        imageClassName="transition-transform duration-700 group-hover:scale-110"
                                     />
 
                                     {/* Badge Logic (Example) */}

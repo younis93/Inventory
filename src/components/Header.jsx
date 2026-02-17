@@ -1,106 +1,125 @@
 import React from 'react';
-import { Search, Bell, Sun, User, Menu } from 'lucide-react';
+import { Bell, Sun, Menu, Moon } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 import { useTranslation } from 'react-i18next';
 
 const Header = ({ title }) => {
     const { t } = useTranslation();
-    const { currentUser, toggleMobileMenu, theme, toggleTheme, brand, isModalOpen } = useInventory();
+    const { currentUser, toggleMobileMenu, theme, toggleTheme, brand, isModalOpen, language, appearance, setAppearance } = useInventory();
     const isHidden = brand.hideHeader;
+    const isRTL = language === 'ar';
+    const isGlassTheme = ['liquid', 'default_glass'].includes(appearance?.theme);
 
     // Determine if header should be hidden
-    // 1. If brand.hideHeader is true -> 'lg:hidden' (as per original logic, maybe intended for desktop?)
-    // 2. If isModalOpen is true -> 'hidden md:flex' (hide on mobile only)
-    const visibilityClass = isModalOpen ? 'hidden md:flex' : (isHidden ? 'lg:hidden' : 'flex');
+    const visibilityClass = isModalOpen ? 'hidden' : (isHidden ? 'flex lg:hidden' : 'flex');
+
+    // Handle theme toggle - cycles through light/dark based on current theme
+    const handleThemeToggle = () => {
+        if (theme === 'dark') {
+            toggleTheme('light');
+        } else {
+            toggleTheme('dark');
+        }
+    };
 
     return (
-        <header className={`${visibilityClass} h-24 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 items-center justify-between px-4 md:px-8 sticky top-0 z-20 transition-all duration-300`}>
-            <div className="flex items-center gap-4">
+        <header className={`${visibilityClass} h-14 sm:h-16 md:h-20 lg:h-24 ${isGlassTheme
+                ? 'bg-white/60 dark:bg-slate-900/60 backdrop-blur-2xl border-b border-white/20 dark:border-slate-700/30'
+                : 'bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800'
+            } items-center justify-between px-3 sm:px-4 md:px-6 lg:px-8 sticky top-0 z-20 transition-all duration-300 shadow-sm`}>
+
+            {/* Left Section: Menu + Title */}
+            <div className="flex items-center gap-2 sm:gap-3 md:gap-4 flex-1 min-w-0 overflow-hidden">
                 {/* Mobile Menu Toggle */}
                 <button
                     onClick={toggleMobileMenu}
-                    className="p-2 lg:hidden text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                    className={`lg:hidden p-1.5 sm:p-2 rounded-xl transition-all shrink-0 ${isGlassTheme
+                            ? 'text-slate-600 dark:text-slate-300 hover:bg-white/40 dark:hover:bg-slate-800/40 backdrop-blur-sm'
+                            : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
+                        }`}
+                    aria-label="Toggle menu"
                 >
-                    <Menu className="w-6 h-6" />
+                    <Menu className="w-5 h-5 sm:w-5.5 sm:h-5.5 md:w-6 md:h-6" />
                 </button>
 
-                <div>
-                    <h2 className="text-xl md:text-2xl font-black text-slate-800 dark:text-white tracking-tight truncate max-w-[150px] md:max-w-none">{title}</h2>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 font-medium hidden md:block">{t('header.welcome')} {currentUser?.displayName?.split(' ')[0] || t('header.admin')}</p>
+                {/* Title Section */}
+                <div className="flex flex-col min-w-0 flex-1 overflow-hidden">
+                    <h2 className="text-sm sm:text-base md:text-xl lg:text-2xl font-black text-slate-800 dark:text-white tracking-tight truncate">
+                        {title}
+                    </h2>
+                    <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium hidden md:block truncate">
+                        {t('header.welcome')} {currentUser?.displayName?.split(' ')[0] || t('header.admin')}
+                    </p>
                 </div>
             </div>
 
-            <div className="flex items-center gap-2 md:gap-6">
+            {/* Right Section: Actions + Brand */}
+            <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 lg:gap-4 shrink-0">
                 {/* Theme Toggle */}
                 <button
-                    onClick={() => toggleTheme(theme === 'dark' ? 'light' : 'dark')}
-                    className="p-2.5 text-slate-400 hover:text-[var(--brand-color)] hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all group"
-                    title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+                    onClick={handleThemeToggle}
+                    className={`p-1.5 sm:p-2 rounded-xl transition-all group ${isGlassTheme
+                            ? 'text-slate-600 dark:text-slate-300 hover:bg-white/40 dark:hover:bg-slate-800/40 backdrop-blur-sm'
+                            : 'text-slate-400 hover:text-[var(--brand-color)] hover:bg-slate-50 dark:hover:bg-slate-800'
+                        }`}
+                    aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
                 >
                     {theme === 'dark' ? (
-                        <Sun className="w-5 h-5 group-hover:rotate-45 transition-transform" />
+                        <Sun className="w-4 h-4 sm:w-4.5 sm:h-4.5 md:w-5 md:h-5 group-hover:rotate-45 transition-transform duration-300" />
                     ) : (
-                        <svg className="w-5 h-5 group-hover:-rotate-12 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                        </svg>
+                        <Moon className="w-4 h-4 sm:w-4.5 sm:h-4.5 md:w-5 md:h-5 group-hover:-rotate-12 transition-transform duration-300" />
                     )}
                 </button>
 
-                {/* Notifications Dropdown */}
-                <div className="relative group">
-                    <button className="p-2.5 text-slate-400 hover:text-accent hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all relative group">
-                        <Bell className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                        <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-900 animate-pulse"></span>
-                    </button>
+                {/* Notifications - Hidden on mobile, shown on tablet+ */}
+                <button
+                    className={`hidden md:flex p-1.5 sm:p-2 rounded-xl transition-all relative ${isGlassTheme
+                            ? 'text-slate-600 dark:text-slate-300 hover:bg-white/40 dark:hover:bg-slate-800/40 backdrop-blur-sm'
+                            : 'text-slate-400 hover:text-accent hover:bg-slate-50 dark:hover:bg-slate-800'
+                        }`}
+                    aria-label="Notifications"
+                >
+                    <Bell className="w-4 h-4 sm:w-4.5 sm:h-4.5 md:w-5 md:h-5" />
+                    <span className="absolute top-1 sm:top-1.5 right-1 sm:right-1.5 w-1.5 h-1.5 sm:w-2 sm:h-2 bg-red-500 rounded-full border border-white dark:border-slate-900 animate-pulse"></span>
+                </button>
 
-                    {/* Professional Dropdown */}
-                    <div className="absolute top-full right-0 mt-2 w-80 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-[100] overflow-hidden translate-y-2 group-hover:translate-y-0">
-                        <div className="px-5 py-4 border-b border-slate-50 dark:border-slate-700 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900/50">
-                            <h3 className="font-bold text-sm text-slate-800 dark:text-white uppercase tracking-wider">Activity Logs</h3>
-                            <span className="text-[10px] font-black bg-accent text-white px-2 py-0.5 rounded-full">New</span>
+                {/* Divider - Hidden on mobile */}
+                <div className="w-px h-5 sm:h-6 md:h-7 lg:h-8 bg-slate-200 dark:bg-slate-700/50 mx-0.5 sm:mx-1 hidden md:block"></div>
+
+                {/* Brand Icon */}
+                <div
+                    className={`relative w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 lg:w-11 lg:h-11 rounded-xl md:rounded-2xl flex items-center justify-center text-white font-bold overflow-hidden shrink-0 transition-all duration-300 hover:scale-105 cursor-pointer ${isGlassTheme
+                            ? 'shadow-lg border-2 border-white/30 dark:border-slate-700/30'
+                            : 'shadow-md border-2 border-white/50 dark:border-slate-800/50'
+                        }`}
+                    style={{
+                        backgroundColor: brand.color,
+                        boxShadow: isGlassTheme
+                            ? `0 8px 24px -8px ${brand.color}66, 0 0 0 1px ${brand.color}22`
+                            : `0 8px 16px -4px ${brand.color}44`
+                    }}
+                >
+                    {brand.logo ? (
+                        <img src={brand.logo} alt="Brand" className="w-full h-full object-cover" />
+                    ) : (
+                        <div className="text-[10px] sm:text-xs md:text-sm uppercase font-black tracking-wider">
+                            {brand.name?.charAt(0) || 'A'}
                         </div>
-                        <div className="max-h-80 overflow-y-auto custom-scrollbar">
-                            {[
-                                { title: 'New Customer', desc: 'Sami Ahmed joined the database', time: '2m ago', icon: '👤', color: 'bg-blue-50 text-blue-600' },
-                                { title: 'Order Completed', desc: 'Order #ORD-8829 was delivered', time: '15m ago', icon: '✅', color: 'bg-emerald-50 text-emerald-600' },
-                                { title: 'Low Stock Alert', desc: 'iPhone 15 Pro is below 5 units', time: '1h ago', icon: '⚠️', color: 'bg-amber-50 text-amber-600' }
-                            ].map((note, i) => (
-                                <div key={i} className="px-5 py-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer border-b last:border-0 border-slate-50 dark:border-slate-700/50">
-                                    <div className="flex gap-4">
-                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg ${note.color}`}>
-                                            {note.icon}
-                                        </div>
-                                        <div className="flex-1">
-                                            <div className="flex justify-between items-start mb-0.5">
-                                                <p className="font-bold text-xs text-slate-800 dark:text-white uppercase tracking-tighter">{note.title}</p>
-                                                <span className="text-[10px] text-slate-400 font-bold">{note.time}</span>
-                                            </div>
-                                            <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1">{note.desc}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                        <div className="px-5 py-3 border-t border-slate-50 dark:border-slate-700 text-center">
-                            <button className="text-[10px] font-black text-accent uppercase tracking-widest hover:brightness-110 transition-all">{t('header.viewAllActivity')}</button>
-                        </div>
-                    </div>
+                    )}
+
+                    {/* Online indicator - hidden on very small screens */}
+                    <div className="absolute -bottom-0.5 -right-0.5 sm:bottom-0 sm:right-0 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-900 shadow-sm hidden sm:block"></div>
                 </div>
 
-                <div className="w-px h-8 bg-slate-200 dark:bg-slate-700 mx-1 hidden min-[400px]:block"></div>
-
-                <button className="flex items-center gap-2 p-1 md:p-1.5 md:pr-3 rounded-full hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors border border-transparent hover:border-slate-200 dark:hover:border-slate-700">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm shadow-md overflow-hidden shrink-0">
-                        {currentUser?.photoURL ? (
-                            <img src={currentUser.photoURL} alt="User" className="w-full h-full object-cover" />
-                        ) : (
-                            currentUser?.displayName?.charAt(0) || 'A'
-                        )}
-                    </div>
-                    <span className="hidden sm:block text-sm font-bold text-slate-700 dark:text-slate-300 truncate max-w-[80px]">
+                {/* Desktop User Info */}
+                <div className="hidden lg:flex flex-col min-w-0 max-w-[120px]">
+                    <span className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-tight leading-none truncate">
                         {currentUser?.displayName?.split(' ')[0] || 'Admin'}
                     </span>
-                </button>
+                    <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 truncate">
+                        {currentUser?.role || 'Manager'}
+                    </span>
+                </div>
             </div>
         </header>
     );

@@ -8,7 +8,10 @@ import FilterDropdown from '../components/FilterDropdown';
 import SearchableSelect from '../components/SearchableSelect';
 import ProductImageModal from '../components/ProductImageModal';
 import RowLimitDropdown from '../components/RowLimitDropdown';
+
 import { exportProductsToCSV } from '../utils/CSVExportUtil';
+import ImageWithFallback from '../components/common/ImageWithFallback';
+import Skeleton from '../components/common/Skeleton';
 
 const getAutoStatus = (stock) => {
     const s = Number(stock);
@@ -516,12 +519,16 @@ const Products = () => {
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                             {loading ? (
-                                <tr><td colSpan="6" className="text-center py-12">
-                                    <div className="flex flex-col items-center gap-2">
-                                        <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-                                        <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t('products.loading')}</span>
-                                    </div>
-                                </td></tr>
+                                Array.from({ length: 5 }).map((_, i) => (
+                                    <tr key={i}>
+                                        <td className="px-6 py-4"><div className="flex items-center gap-4"><Skeleton className="w-12 h-12 rounded-xl" /><div className="space-y-2"><Skeleton className="w-24 h-4" /><Skeleton className="w-16 h-3" /></div></div></td>
+                                        <td className="px-6 py-4"><Skeleton className="w-20 h-6 rounded-lg" /></td>
+                                        <td className="px-6 py-4"><Skeleton className="w-12 h-5" /></td>
+                                        <td className="px-6 py-4"><Skeleton className="w-24 h-5" /></td>
+                                        <td className="px-6 py-4"><Skeleton className="w-20 h-6 rounded-full" /></td>
+                                        <td className="px-6 py-4"><Skeleton className="w-16 h-8 ms-auto rounded-lg" /></td>
+                                    </tr>
+                                ))
                             ) : filteredProducts.length === 0 ? (
                                 <tr><td colSpan="6" className="text-center py-12 text-slate-400">
                                     <ImageIcon className="w-12 h-12 mx-auto mb-2 opacity-20" />
@@ -538,7 +545,7 @@ const Products = () => {
                                                     setIsImageModalOpen(true);
                                                 }}
                                             >
-                                                <img
+                                                <ImageWithFallback
                                                     src={
                                                         product.images && product.images[0]
                                                             ? (typeof product.images[0] === 'string' ? product.images[0] : product.images[0].url)
@@ -585,9 +592,21 @@ const Products = () => {
                 {/* Mobile: stacked card list for small viewports */}
                 <div className="block sm:hidden p-4 space-y-3">
                     {loading ? (
-                        <div className="text-center py-12">
-                            <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto" />
-                        </div>
+                        Array.from({ length: 3 }).map((_, i) => (
+                            <div key={i} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4 flex gap-4">
+                                <Skeleton className="w-16 h-16 rounded-xl flex-shrink-0" />
+                                <div className="flex-1 space-y-3">
+                                    <div className="flex justify-between">
+                                        <div className="space-y-2"><Skeleton className="w-32 h-4" /><Skeleton className="w-20 h-3" /></div>
+                                        <div className="space-y-2"><Skeleton className="w-16 h-4" /><Skeleton className="w-12 h-3" /></div>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <Skeleton className="w-20 h-3" />
+                                        <Skeleton className="w-16 h-8 rounded-lg" />
+                                    </div>
+                                </div>
+                            </div>
+                        ))
                     ) : filteredProducts.length === 0 ? (
                         <div className="text-center py-12 text-slate-400">
                             <ImageIcon className="w-12 h-12 mx-auto mb-2 opacity-20" />
@@ -597,7 +616,7 @@ const Products = () => {
                         filteredProducts.map(product => (
                             <div key={product._id} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4 flex items-start gap-4">
                                 <div className="w-16 h-16 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex-shrink-0">
-                                    <img src={product.images && product.images[0] ? (typeof product.images[0] === 'string' ? product.images[0] : product.images[0].url) : (product.imageUrl || 'https://via.placeholder.com/150')} alt={product.name} className="w-full h-full object-cover" />
+                                    <ImageWithFallback src={product.images && product.images[0] ? (typeof product.images[0] === 'string' ? product.images[0] : product.images[0].url) : (product.imageUrl || 'https://via.placeholder.com/150')} alt={product.name} className="w-full h-full object-cover" />
                                 </div>
                                 <div className="flex-1">
                                     <div className="flex justify-between items-start">
@@ -903,7 +922,7 @@ const Products = () => {
                                 <div className="grid grid-cols-5 gap-2">
                                     {formData.images.map((img, index) => (
                                         <div key={index} className="relative group aspect-square rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 group">
-                                            <img src={img} alt="Product" className="w-full h-full object-cover" />
+                                            <ImageWithFallback src={img} alt="Product" className="w-full h-full" imageClassName="w-full h-full object-cover" />
                                             <button type="button" onClick={() => removeImage(index)} className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity transform hover:scale-110">
                                                 <X className="w-3 h-3" />
                                             </button>

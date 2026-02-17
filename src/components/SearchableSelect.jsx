@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { ChevronDown, Search, X } from 'lucide-react';
+import { useInventory } from '../context/InventoryContext';
 
 const SearchableSelect = ({
     title,
@@ -13,6 +14,7 @@ const SearchableSelect = ({
     disabled = false,
     direction = "down"
 }) => {
+    const { appearance } = useInventory();
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const containerRef = useRef(null);
@@ -60,8 +62,10 @@ const SearchableSelect = ({
                 className={`flex items-center justify-between w-full px-3 h-[44px] rounded-xl border-2 transition-all font-bold text-[11px] outline-none shadow-sm ${disabled
                     ? 'bg-slate-50 dark:bg-slate-900/50 border-slate-100 dark:border-slate-800 text-slate-400 cursor-not-allowed opacity-60'
                     : isOpen
-                        ? 'bg-accent/10 border-accent/40 text-accent'
-                        : 'bg-white dark:bg-slate-900 border-white dark:border-slate-800 text-slate-700 dark:text-white hover:border-slate-200 dark:hover:border-slate-700'
+                        ? 'bg-accent/10 border-accent/40 text-accent shadow-[0_0_15px_-3px_rgba(0,0,0,0.1)]'
+                        : (['liquid', 'default_glass'].includes(appearance?.theme)
+                            ? 'bg-white/40 dark:bg-slate-800/40 backdrop-blur-md border-white/20 dark:border-slate-700/50 text-slate-700 dark:text-white hover:bg-white/60 dark:hover:bg-slate-700/60'
+                            : 'bg-slate-50 dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-700 dark:text-white hover:border-slate-200 dark:hover:border-slate-700')
                     }`}
             >
                 <div className="flex items-center gap-1 truncate">
@@ -73,7 +77,7 @@ const SearchableSelect = ({
 
             {isOpen && (
                 <div className={`absolute start-0 z-[100] w-full animate-in fade-in zoom-in-95 duration-200 ${direction === 'up' ? 'bottom-full mb-2' : 'top-full mt-2'}`}>
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-700 overflow-hidden flex flex-col">
+                    <div className={`rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-700 overflow-hidden flex flex-col transition-all ${['liquid', 'default_glass'].includes(appearance?.theme) ? 'glass-panel' : 'bg-white dark:bg-slate-800'}`}>
 
                         {showSearch && (
                             <div className="p-3 border-b border-slate-100 dark:border-slate-700">
@@ -85,7 +89,7 @@ const SearchableSelect = ({
                                         placeholder={placeholder}
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
-                                        className="w-full ps-9 pe-4 py-2 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all font-bold text-xs dark:text-white"
+                                        className={`w-full ps-9 pe-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all font-bold text-xs dark:text-white ${['liquid', 'default_glass'].includes(appearance?.theme) ? 'bg-white/40 dark:bg-slate-900/40 backdrop-blur-sm' : 'bg-slate-50 dark:bg-slate-900/50'}`}
                                     />
                                 </div>
                             </div>

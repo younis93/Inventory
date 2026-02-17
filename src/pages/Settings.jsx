@@ -4,6 +4,7 @@ import { Moon, Sun, Monitor, User, Trash2, Plus, CheckCircle, Settings as Settin
 import { useInventory } from '../context/InventoryContext';
 import { useTranslation } from 'react-i18next';
 import ImageCropperModal from '../components/ImageCropperModal';
+import ImageWithFallback from '../components/common/ImageWithFallback';
 
 const Settings = () => {
     const { t } = useTranslation();
@@ -278,7 +279,7 @@ const Settings = () => {
                                                 style={{ backgroundColor: appearance.accentType === 'solid' ? appearance.accentColor : appearance.accentGradient?.start }}
                                             >
                                                 {brandForm.logo ? (
-                                                    <img src={brandForm.logo} alt="Logo" className="w-full h-full object-cover" />
+                                                    <ImageWithFallback src={brandForm.logo} alt="Logo" className="w-full h-full" imageClassName="w-full h-full object-cover" />
                                                 ) : (
                                                     <span className="text-white font-bold text-3xl">{(brandForm.name || '').charAt(0)}</span>
                                                 )}
@@ -289,7 +290,7 @@ const Settings = () => {
                                         <div className="flex flex-col items-center gap-2">
                                             <div className="w-16 h-16 rounded-xl flex items-center justify-center border border-slate-200 dark:border-slate-600 overflow-hidden bg-slate-100 dark:bg-slate-800 shadow-sm">
                                                 {brandForm.favicon ? (
-                                                    <img src={brandForm.favicon} alt="Favicon" className="w-full h-full object-cover" />
+                                                    <ImageWithFallback src={brandForm.favicon} alt="Favicon" className="w-full h-full" imageClassName="w-full h-full object-cover" />
                                                 ) : (
                                                     <div className="w-8 h-8 rounded bg-slate-200 dark:bg-slate-700 animate-pulse" />
                                                 )}
@@ -540,7 +541,7 @@ const Settings = () => {
                                 <div className="flex items-center gap-6 mb-8">
                                     <div className="w-24 h-24 bg-accent/20 rounded-full flex items-center justify-center text-3xl font-bold text-accent overflow-hidden border-4 border-white dark:border-slate-800 shadow-lg">
                                         {currentUser?.photoURL ? (
-                                            <img src={currentUser.photoURL} alt="Avatar" className="w-full h-full object-cover" />
+                                            <ImageWithFallback src={currentUser.photoURL} alt="Avatar" className="w-full h-full" imageClassName="w-full h-full object-cover" />
                                         ) : (
                                             currentUser?.displayName?.charAt(0) || 'U'
                                         )}
@@ -680,7 +681,7 @@ const Settings = () => {
                                                     <div className="flex items-center gap-3">
                                                         <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden flex-shrink-0 border-2 border-white dark:border-slate-700 shadow-sm">
                                                             {user.photoURL ? (
-                                                                <img src={user.photoURL} alt={user.displayName} className="w-full h-full object-cover" />
+                                                                <ImageWithFallback src={user.photoURL} alt={user.displayName} className="w-full h-full" imageClassName="w-full h-full object-cover" />
                                                             ) : (
                                                                 <div className="w-full h-full flex items-center justify-center bg-accent text-white font-bold">
                                                                     {user.displayName?.charAt(0) || user.username?.charAt(0) || 'U'}

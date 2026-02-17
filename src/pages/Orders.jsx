@@ -12,6 +12,8 @@ import { exportOrdersToCSV } from '../utils/CSVExportUtil';
 import SearchableSelect from '../components/SearchableSelect';
 import RowLimitDropdown from '../components/RowLimitDropdown';
 import { User, MapPin as MapPinIcon, Globe as GlobeIcon, Package } from 'lucide-react';
+import ImageWithFallback from '../components/common/ImageWithFallback';
+import Skeleton from '../components/common/Skeleton';
 
 // StatusCell component for inline status editing
 const StatusCell = ({ order, onUpdate }) => {
@@ -682,15 +684,16 @@ const Orders = () => {
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                             {loading ? (
-                                <tr>
-                                    <td colSpan="6" className="py-8">
-                                        <div className="flex flex-col gap-3">
-                                            <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded animate-pulse w-1/3" />
-                                            <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded animate-pulse w-1/2" />
-                                            <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded animate-pulse w-2/3" />
-                                        </div>
-                                    </td>
-                                </tr>
+                                Array.from({ length: 5 }).map((_, i) => (
+                                    <tr key={i}>
+                                        <td className="px-6 py-4"><Skeleton className="w-20 h-5" /></td>
+                                        <td className="px-6 py-4"><div className="space-y-2"><Skeleton className="w-32 h-5" /><Skeleton className="w-24 h-3" /></div></td>
+                                        <td className="px-6 py-4"><Skeleton className="w-24 h-4" /></td>
+                                        <td className="px-6 py-4"><Skeleton className="w-24 h-5" /></td>
+                                        <td className="px-6 py-4"><Skeleton className="w-24 h-6 rounded-full" /></td>
+                                        <td className="px-6 py-4"><Skeleton className="w-20 h-8 ms-auto rounded-lg" /></td>
+                                    </tr>
+                                ))
                             ) : (
                                 filteredAndSortedOrders.map((order) => (
                                     <tr key={order._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/50 transition-colors">
@@ -736,11 +739,16 @@ const Orders = () => {
                 <div className="block sm:hidden p-4 space-y-3">
                     {loading ? (
                         <div className="space-y-3">
-                            {[1, 2, 3].map(n => (
-                                <div key={n} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4">
-                                    <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-1/3 animate-pulse mb-2"></div>
-                                    <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-1/2 animate-pulse mb-2"></div>
-                                    <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded w-24 animate-pulse"></div>
+                            {Array.from({ length: 3 }).map((_, i) => (
+                                <div key={i} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4">
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div className="space-y-2"><Skeleton className="w-24 h-5" /><Skeleton className="w-32 h-4" /></div>
+                                        <Skeleton className="w-20 h-8 rounded-lg" />
+                                    </div>
+                                    <div className="flex justify-between items-end">
+                                        <Skeleton className="w-24 h-3" />
+                                        <Skeleton className="w-24 h-6" />
+                                    </div>
                                 </div>
                             ))}
                         </div>
@@ -839,7 +847,12 @@ const Orders = () => {
                                         <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900/30 rounded-2xl border border-slate-100 dark:border-slate-700/50 group hover:border-indigo-500/50 transition-all">
                                             <div className="flex items-center gap-4 flex-1">
                                                 <div className="w-12 h-12 rounded-lg overflow-hidden bg-white dark:bg-slate-800 border dark:border-slate-700 shrink-0">
-                                                    <img src={item.product.images && item.product.images[0] ? item.product.images[0] : 'https://via.placeholder.com/150'} alt={item.product.name || 'Product image'} className="w-full h-full object-cover" />
+                                                    <ImageWithFallback
+                                                        src={item.product.images && item.product.images[0] ? (typeof item.product.images[0] === 'string' ? item.product.images[0] : item.product.images[0].url) : ''}
+                                                        alt={item.product.name || 'Product image'}
+                                                        className="w-full h-full"
+                                                        imageClassName="w-full h-full object-cover"
+                                                    />
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <h4 className="text-sm font-black text-slate-800 dark:text-white truncate">{item.product.name}</h4>
@@ -1099,11 +1112,12 @@ const Orders = () => {
                                             <div key={idx} className="flex justify-between items-center border-b border-slate-100 dark:border-slate-700 pb-3 last:border-0 last:pb-0">
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-12 h-12 bg-slate-100 dark:bg-slate-700 rounded-lg overflow-hidden flex-shrink-0">
-                                                        {item.product.images && item.product.images[0] ? (
-                                                            <img src={item.product.images[0]} alt={item.product.name || 'Product image'} className="w-full h-full object-cover" />
-                                                        ) : (
-                                                            <div className="flex items-center justify-center w-full h-full text-slate-400 text-xs">No Img</div>
-                                                        )}
+                                                        <ImageWithFallback
+                                                            src={item.product.images && item.product.images[0] ? (typeof item.product.images[0] === 'string' ? item.product.images[0] : item.product.images[0].url) : ''}
+                                                            alt={item.product.name || 'Product image'}
+                                                            className="w-full h-full object-cover"
+                                                            fallback={<div className="flex items-center justify-center w-full h-full text-slate-400 text-xs">No Img</div>}
+                                                        />
                                                     </div>
                                                     <div>
                                                         <p className="font-medium text-slate-800 dark:text-white">{item.product.name}</p>

@@ -11,7 +11,7 @@ import { InventoryProvider } from './context/InventoryContext';
 function App() {
     return (
         <InventoryProvider>
-            <BrowserRouter>
+            <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
                 <Routes>
                     <Route path="/" element={<Dashboard />} />
                     <Route path="/products" element={<Products />} />
