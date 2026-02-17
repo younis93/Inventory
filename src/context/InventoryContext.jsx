@@ -15,13 +15,26 @@ export const InventoryProvider = ({ children }) => {
     });
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [appearance, setAppearance] = useState(() => {
-        const saved = localStorage.getItem('appearance');
-        return saved ? JSON.parse(saved) : {
-            theme: 'default',
-            accentType: 'solid',
-            accentColor: '#1e3a5f',
-            accentGradient: { start: '#8B5CF6', end: '#3B82F6' }
-        };
+        try {
+            const saved = localStorage.getItem('appearance');
+            const parsed = saved ? JSON.parse(saved) : null;
+
+            // Comprehensive fallback to ensure all required properties exist
+            return {
+                theme: parsed?.theme || 'default',
+                accentType: parsed?.accentType || 'solid',
+                accentColor: parsed?.accentColor || '#1e3a5f',
+                accentGradient: parsed?.accentGradient || { start: '#8B5CF6', end: '#3B82F6' }
+            };
+        } catch (e) {
+            console.error("Error loading appearance settings:", e);
+            return {
+                theme: 'default',
+                accentType: 'solid',
+                accentColor: '#1e3a5f',
+                accentGradient: { start: '#8B5CF6', end: '#3B82F6' }
+            };
+        }
     });
 
     // Sync appearance with CSS variables and theme classes
@@ -95,10 +108,34 @@ export const InventoryProvider = ({ children }) => {
         hideHeader: false
     });
 
+    // Keep document title and favicon in sync with branding
+    useEffect(() => {
+        try {
+            if (brand?.name) document.title = brand.name;
+
+            const setFavicon = (url) => {
+                if (!url) return;
+                let link = document.querySelector("link[rel~='icon']");
+                if (!link) {
+                    link = document.createElement('link');
+                    link.rel = 'icon';
+                    document.getElementsByTagName('head')[0].appendChild(link);
+                }
+                link.href = url;
+            };
+
+            if (brand?.favicon) setFavicon(brand.favicon);
+            else if (brand?.logo) setFavicon(brand.logo);
+        } catch (e) {
+            // ignore in non-browser env
+        }
+    }, [brand]);
+
     const updateBrand = async (newBrand) => {
-        const updated = { ...brand, ...newBrand };
-        setBrand(updated);
-        await firebaseService.set("settings", "branding", updated);
+        const { _id, ...brandData } = newBrand;
+        const targetId = _id || "branding";
+        await firebaseService.set("settings", targetId, brandData);
+        setBrand(prev => ({ ...prev, ...brandData }));
     };
 
     // --- Real-time Firestore Listeners (using Service) ---
@@ -408,6 +445,8 @@ export const InventoryProvider = ({ children }) => {
         const { _id, ...data } = updatedUser;
         await firebaseService.update("users", _id, data);
     }
+
+
 
     const updateUserProfile = async (updatedData) => {
         if (!currentUser) return;

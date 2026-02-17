@@ -7,6 +7,7 @@ import CategoryManagerModal from '../components/CategoryManagerModal';
 import FilterDropdown from '../components/FilterDropdown';
 import SearchableSelect from '../components/SearchableSelect';
 import ProductImageModal from '../components/ProductImageModal';
+import RowLimitDropdown from '../components/RowLimitDropdown';
 import { exportProductsToCSV } from '../utils/CSVExportUtil';
 
 const getAutoStatus = (stock) => {
@@ -21,6 +22,7 @@ const roundToNearest500 = (num) => Math.round(num / 500) * 500;
 const STATUS_OPTIONS = ['In Stock', 'Low Stock', 'Out of Stock'];
 
 const StatusBadge = ({ status }) => {
+    const { t } = useTranslation();
     const getStatusColor = (status) => {
         switch (status) {
             case 'In Stock': return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400';
@@ -30,9 +32,18 @@ const StatusBadge = ({ status }) => {
         }
     };
 
+    const getTranslatedStatus = (status) => {
+        switch (status) {
+            case 'In Stock': return t('products.stockStatus.instock');
+            case 'Low Stock': return t('products.stockStatus.lowstock');
+            case 'Out of Stock': return t('products.stockStatus.outofstock');
+            default: return status;
+        }
+    };
+
     return (
         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${getStatusColor(status)}`}>
-            {status}
+            {getTranslatedStatus(status)}
         </span>
     );
 };
@@ -45,6 +56,7 @@ const Products = () => {
     const [selectedStatuses, setSelectedStatuses] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState(false);
+    const [displayLimit, setDisplayLimit] = useState(100);
     const [editingProduct, setEditingProduct] = useState(null);
     const [isImageModalOpen, setIsImageModalOpen] = useState(false);
     const [editingProductForImage, setEditingProductForImage] = useState(null);
@@ -111,10 +123,10 @@ const Products = () => {
         });
         return STATUS_OPTIONS.map(s => ({
             value: s,
-            label: s,
+            label: t(`products.stockStatus.${s.replace(/\s/g, '').toLowerCase()}`), // Translate status options
             count: counts[s] || 0
         }));
-    }, [products]);
+    }, [products, t]);
 
     // Sorting Logic
     const sortedProducts = useMemo(() => {
@@ -136,13 +148,15 @@ const Products = () => {
         return sortableProducts;
     }, [products, sortConfig]);
 
-    const filteredProducts = sortedProducts.filter(product => {
+    const allFilteredProducts = sortedProducts.filter(product => {
         const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             product.sku.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(product.category);
         const matchesStatus = selectedStatuses.length === 0 || selectedStatuses.includes(product.status);
         return matchesSearch && matchesCategory && matchesStatus;
     });
+
+    const filteredProducts = allFilteredProducts.slice(0, displayLimit);
 
     const requestSort = (key) => {
         let direction = 'ascending';
@@ -250,7 +264,7 @@ const Products = () => {
     };
 
     const handleDelete = (id) => {
-        if (window.confirm("Are you sure you want to delete this product?")) {
+        if (window.confirm(t("products.confirmDelete"))) {
             deleteProduct(id);
         }
     };
@@ -322,7 +336,7 @@ const Products = () => {
 
         // Final validation for margin
         if (parseFloat(formData.marginPercent) >= 100) {
-            addToast('Margin percentage must be less than 100%', "error");
+            addToast(t('products.marginTooHigh'), "error");
             return;
         }
 
@@ -357,7 +371,7 @@ const Products = () => {
         return (
             <th
                 onClick={() => requestSort(column)}
-                className={`px-6 py-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors select-none ${border ? 'border-l dark:border-slate-700' : ''}`}
+                className={`px-6 py-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors select-none ${border ? 'border-s dark:border-slate-700' : ''}`}
             >
                 <div className="flex items-center gap-2">
                     {label}
@@ -421,6 +435,8 @@ const Products = () => {
                             </button>
                         )}
 
+                        <RowLimitDropdown limit={displayLimit} onChange={setDisplayLimit} />
+
                         {/* Inventory Count */}
                         <div className="flex items-center gap-3 px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
                             <ImageIcon className="w-4 h-4 text-slate-400" />
@@ -431,17 +447,17 @@ const Products = () => {
                     </div>
                 </div>
 
-                {/* Filters Row: Search + Category + Status */}
+                {/* Filters Row: Search + Category + Status + Row Limit */}
                 <div className="flex gap-3 w-full flex-wrap items-center">
                     {/* Search Input */}
                     <div className="relative min-w-[200px] flex-1 md:flex-none h-[44px]">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                        <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                         <input
                             type="text"
                             placeholder={t('products.searchPlaceholder')}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-10 pr-4 py-0 h-full w-full bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-2xl outline-none focus:border-accent/40 focus:ring-4 focus:ring-accent/10 transition-all font-bold text-sm text-slate-700 dark:text-white"
+                            className="ps-10 pe-4 py-0 h-full w-full bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-2xl outline-none focus:border-accent/40 focus:ring-4 focus:ring-accent/10 transition-all font-bold text-sm text-slate-700 dark:text-white"
                         />
                     </div>
 
@@ -476,18 +492,18 @@ const Products = () => {
                 />
             )}
 
-            {/* Products Table */}
+            {/* Products Table (desktop) and Card list (mobile) */}
             <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
-                <div className="overflow-x-auto">
+                <div className="hidden sm:block overflow-x-auto">
                     <table className="w-full text-left">
                         <thead>
                             <tr className="bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                                 <SortableHeader column="name" label={t('products.table.product')} />
                                 <SortableHeader column="category" label={t('products.table.category')} />
                                 <SortableHeader column="stock" label={t('products.table.stock')} border={true} />
-                                <SortableHeader column="price" label={t('products.table.price')} border={true} />
+                                <SortableHeader column="sellingPriceIQD" label={t('products.table.price')} border={true} />
                                 <SortableHeader column="status" label={t('products.table.status')} border={true} />
-                                <th className="px-6 py-4 text-right border-l dark:border-slate-700">{t('common.actions')}</th>
+                                <th className="px-6 py-4 text-end border-s dark:border-slate-700">{t('common.actions')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
@@ -533,21 +549,21 @@ const Products = () => {
                                     <td className="px-6 py-4">
                                         <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-xs font-bold">{product.category}</span>
                                     </td>
-                                    <td className="px-6 py-4 border-l dark:border-slate-700">
+                                    <td className="px-6 py-4 border-s dark:border-slate-700">
                                         <span className="text-sm font-bold text-slate-800 dark:text-white">{product.stock}</span>
                                     </td>
-                                    <td className="px-6 py-4 border-l dark:border-slate-700">
+                                    <td className="px-6 py-4 border-s dark:border-slate-700">
                                         <span className="text-sm font-black text-slate-800 dark:text-white">{formatCurrency(product.sellingPriceIQD || product.price || 0)}</span>
                                     </td>
-                                    <td className="px-6 py-4 border-l dark:border-slate-700">
+                                    <td className="px-6 py-4 border-s dark:border-slate-700">
                                         <StatusBadge status={getAutoStatus(product.stock)} />
                                     </td>
-                                    <td className="px-6 py-4 text-right border-l dark:border-slate-700">
+                                    <td className="px-6 py-4 text-end border-s dark:border-slate-700">
                                         <div className="flex items-center justify-end gap-1">
-                                            <button onClick={() => openEditModal(product)} className="p-2 text-slate-400 hover:text-[var(--brand-color)] hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all" title="Edit">
+                                            <button onClick={() => openEditModal(product)} className="p-2 text-slate-400 hover:text-[var(--brand-color)] hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all" title={t('common.edit')}>
                                                 <Edit className="w-4 h-4" />
                                             </button>
-                                            <button onClick={() => handleDelete(product._id)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all" title="Delete">
+                                            <button onClick={() => handleDelete(product._id)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all" title={t('common.delete')}>
                                                 <Trash2 className="w-4 h-4" />
                                             </button>
                                         </div>
@@ -557,21 +573,65 @@ const Products = () => {
                         </tbody>
                     </table>
                 </div>
+
+                {/* Mobile: stacked card list for small viewports */}
+                <div className="block sm:hidden p-4 space-y-3">
+                    {loading ? (
+                        <div className="text-center py-12">
+                            <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto" />
+                        </div>
+                    ) : filteredProducts.length === 0 ? (
+                        <div className="text-center py-12 text-slate-400">
+                            <ImageIcon className="w-12 h-12 mx-auto mb-2 opacity-20" />
+                            <p className="font-bold uppercase tracking-widest text-xs">{t('products.noProducts')}</p>
+                        </div>
+                    ) : (
+                        filteredProducts.map(product => (
+                            <div key={product._id} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4 flex items-start gap-4">
+                                <div className="w-16 h-16 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex-shrink-0">
+                                    <img src={product.images && product.images[0] ? (typeof product.images[0] === 'string' ? product.images[0] : product.images[0].url) : (product.imageUrl || 'https://via.placeholder.com/150')} alt={product.name} className="w-full h-full object-cover" />
+                                </div>
+                                <div className="flex-1">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <h4 className="text-sm font-bold text-slate-800 dark:text-white">{product.name}</h4>
+                                            <p className="text-xs text-slate-400">{product.sku} • <span className="px-2 py-0.5 rounded text-xs bg-slate-100 dark:bg-slate-700">{product.category}</span></p>
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="text-sm font-black text-slate-800 dark:text-white">{formatCurrency(product.sellingPriceIQD || product.price || 0)}</div>
+                                            <div className="text-[10px] text-slate-400">{getAutoStatus(product.stock)}</div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center justify-between mt-3">
+                                        <div className="text-[11px] text-slate-600">{t('products.table.stock')}: <span className="font-bold">{product.stock}</span></div>
+                                        <div className="flex items-center gap-2">
+                                            <button onClick={() => openEditModal(product)} className="p-2 text-slate-400 hover:text-[var(--brand-color)] hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-all" title={t('common.edit')}>
+                                                <Edit className="w-4 h-4" />
+                                            </button>
+                                            <button onClick={() => handleDelete(product._id)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all" title={t('common.delete')}>
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
             </div>
 
-            {/* Add/Edit Product Modal */}
             {isModalOpen && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-2xl my-auto animate-in fade-in zoom-in duration-200 flex flex-col max-h-[95vh]">
-                        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-white dark:bg-slate-800 sticky top-0 z-10 rounded-t-2xl">
+                <div className="fixed inset-0 z-[100] flex items-start justify-center bg-black/50 backdrop-blur-sm p-2 sm:p-4 overflow-y-auto">
+                    <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-2xl my-4 sm:my-8 animate-in fade-in zoom-in duration-200 flex flex-col relative max-h-[90vh]">
+                        <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-white dark:bg-slate-800 sticky top-0 z-20 rounded-t-3xl">
                             <div>
-                                <h3 className="text-lg font-bold text-slate-800 dark:text-white">
+                                <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">
                                     {editingProduct ? t('products.editProduct') : t('products.addProduct')}
                                 </h3>
-                                <p className="text-xs text-slate-500 font-medium">{editingProduct ? `SKU: ${formData.sku}` : t('products.fillInfo')}</p>
+                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">{editingProduct ? `${t('products.sku')}: ${formData.sku}` : t('products.fillInfo')}</p>
                             </div>
-                            <button onClick={() => setIsModalOpen(false)} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-all">
-                                <X className="w-5 h-5" />
+                            <button onClick={() => setIsModalOpen(false)} className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-all">
+                                <X className="w-6 h-6" />
                             </button>
                         </div>
 
@@ -583,11 +643,11 @@ const Products = () => {
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="col-span-2 md:col-span-1">
                                         <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">{t('products.form.productName')}</label>
-                                        <input required name="name" value={formData.name} onChange={handleInputChange} className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--brand-color)]/20 outline-none dark:text-white transition-all" placeholder="e.g. Wireless Headset" />
+                                        <input required name="name" value={formData.name} onChange={handleInputChange} className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--brand-color)]/20 outline-none dark:text-white transition-all" placeholder={t('products.form.productNamePlaceholder')} />
                                     </div>
                                     <div className="col-span-2 md:col-span-1">
                                         <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">{t('products.form.sku')}</label>
-                                        <input required name="sku" value={formData.sku} onChange={handleInputChange} className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--brand-color)]/20 outline-none dark:text-white transition-all" placeholder="e.g. WH-001" />
+                                        <input required name="sku" value={formData.sku} onChange={handleInputChange} className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--brand-color)]/20 outline-none dark:text-white transition-all" placeholder={t('products.form.skuPlaceholder')} />
                                     </div>
                                     <div className="col-span-2 md:col-span-1">
                                         <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">{t('products.form.category')}</label>
@@ -597,6 +657,7 @@ const Products = () => {
                                             selectedValue={formData.category}
                                             onChange={(val) => setFormData(prev => ({ ...prev, category: val }))}
                                             icon={Package}
+                                            showSearch={false}
                                             customAction={{
                                                 label: t('products.form.createCategory'),
                                                 icon: Plus,
@@ -608,7 +669,7 @@ const Products = () => {
                                         <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">{t('products.form.stock')}</label>
                                         <div className="relative">
                                             <input required type="number" name="stock" value={formData.stock} onChange={handleInputChange} className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--brand-color)]/20 outline-none dark:text-white transition-all shadow-sm" />
-                                            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                            <div className="absolute end-3 top-1/2 -translate-y-1/2">
                                                 <StatusBadge status={getAutoStatus(formData.stock)} />
                                             </div>
                                         </div>
@@ -639,12 +700,12 @@ const Products = () => {
                                     <div className="col-span-2">
                                         <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">{t('products.form.alibabaNote')}</label>
                                         <div className="relative">
-                                            <MessageSquare className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+                                            <MessageSquare className="absolute start-3 top-3 w-4 h-4 text-slate-400" />
                                             <textarea
                                                 name="alibabaNote"
                                                 value={formData.alibabaNote}
                                                 onChange={handleInputChange}
-                                                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none focus:ring-2 focus:ring-[var(--brand-color)]/20 transition-all font-medium min-h-[80px] resize-none"
+                                                className="w-full ps-10 pe-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none focus:ring-2 focus:ring-[var(--brand-color)]/20 transition-all font-medium min-h-[80px] resize-none"
                                                 placeholder={t('products.form.notePlaceholder')}
                                             />
                                         </div>
@@ -659,15 +720,15 @@ const Products = () => {
                                     <div>
                                         <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">{t('products.form.unitPrice')}</label>
                                         <div className="relative">
-                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
-                                            <input required type="number" step="0.01" name="unitPriceUSD" value={formData.unitPriceUSD} onChange={handleInputChange} className="w-full pl-7 p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--brand-color)]/20 outline-none font-bold" />
+                                            <span className="absolute start-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
+                                            <input required type="number" step="0.01" name="unitPriceUSD" value={formData.unitPriceUSD} onChange={handleInputChange} className="w-full ps-7 p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--brand-color)]/20 outline-none font-bold" />
                                         </div>
                                     </div>
                                     <div>
                                         <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">{t('products.form.alibabaFee')}</label>
                                         <div className="relative">
-                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
-                                            <input type="number" step="0.01" name="alibabaFeeUSD" value={formData.alibabaFeeUSD} onChange={handleInputChange} className="w-full pl-7 p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--brand-color)]/20 outline-none font-bold" />
+                                            <span className="absolute start-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
+                                            <input type="number" step="0.01" name="alibabaFeeUSD" value={formData.alibabaFeeUSD} onChange={handleInputChange} className="w-full ps-7 p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--brand-color)]/20 outline-none font-bold" />
                                         </div>
                                     </div>
                                     <div>
@@ -678,7 +739,7 @@ const Products = () => {
                                         <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">{t('products.form.margin')}</label>
                                         <div className="relative">
                                             <input required type="number" name="marginPercent" value={formData.marginPercent} onChange={handleInputChange} className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--brand-color)]/20 outline-none font-bold" />
-                                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">%</span>
+                                            <span className="absolute end-3 top-1/2 -translate-y-1/2 text-slate-400">%</span>
                                         </div>
                                     </div>
                                     <div>

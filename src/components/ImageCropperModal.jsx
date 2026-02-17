@@ -173,7 +173,7 @@ const ImageCropperModal = ({ image, onCrop, onClose, aspect = 1 }) => {
                     </div>
 
                     {/* Tools Panel */}
-                    <div className="w-full lg:w-80 bg-white dark:bg-slate-900 border-l border-slate-100 dark:border-slate-800 p-6 flex flex-col z-20 shadow-xl">
+                    <div className="w-full lg:w-80 bg-white dark:bg-slate-900 border-s border-slate-100 dark:border-slate-800 p-6 flex flex-col z-20 shadow-xl">
                         <div className="space-y-8 flex-1 overflow-y-auto custom-scrollbar">
 
                             {/* Zoom Control */}

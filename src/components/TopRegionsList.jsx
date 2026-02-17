@@ -18,14 +18,14 @@ const TopRegionsList = ({ regions, selectedRegion, onSelect }) => {
                 <MapPin className="w-5 h-5 text-accent" /> Top Regions
             </h3>
 
-            <div className="space-y-4 flex-1 overflow-y-auto custom-scrollbar pr-2">
+            <div className="space-y-4 flex-1 overflow-y-auto custom-scrollbar pe-2">
                 {topRegions.map((region, index) => {
                     const isSelected = selectedRegion === region.name || (Array.isArray(selectedRegion) && selectedRegion.includes(region.name));
                     return (
                         <div
                             key={region.name}
                             onClick={() => handleRegionClick(region.name)}
-                            className={`flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all hover:translate-x-1 ${isSelected
+                            className={`flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all ltr:hover:translate-x-1 rtl:hover:-translate-x-1 ${isSelected
                                 ? 'bg-accent text-white shadow-accent'
                                 : 'bg-slate-50 dark:bg-slate-700/30 border border-transparent hover:bg-slate-100 dark:hover:bg-slate-700'
                                 }`}
@@ -33,9 +33,9 @@ const TopRegionsList = ({ regions, selectedRegion, onSelect }) => {
                             <div className="flex items-center gap-4">
                                 <div
                                     className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-black transition-all ${index === 0 ? 'bg-amber-100 text-amber-600' :
-                                            index === 1 ? 'bg-slate-200 text-slate-600' :
-                                                index === 2 ? 'bg-orange-100 text-orange-600' :
-                                                    ''
+                                        index === 1 ? 'bg-slate-200 text-slate-600' :
+                                            index === 2 ? 'bg-orange-100 text-orange-600' :
+                                                ''
                                         }`}
                                     style={index > 2 ? {
                                         backgroundColor: `color-mix(in srgb, var(--accent-color), transparent 90%)`,

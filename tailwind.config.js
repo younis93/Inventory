@@ -13,6 +13,7 @@ export default {
                 dark: "#1e293b", // Slate 800
                 light: "#f8fafc", // Slate 50
                 card: "rgba(255, 255, 255, 0.9)",
+                accent: "var(--accent-color)",
             },
             fontFamily: {
                 sans: ['Inter', 'sans-serif'],

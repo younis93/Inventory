@@ -1,8 +1,9 @@
-require('dotenv').config();
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-const bodyParser = require('body-parser');
+import dotenv from 'dotenv';
+dotenv.config();
+import express from 'express';
+import mongoose from 'mongoose';
+import cors from 'cors';
+import bodyParser from 'body-parser';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -13,7 +14,7 @@ app.use(bodyParser.json());
 
 // MongoDB Connection
 // Replace with your actual MongoDB connection string
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/inventory_app';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/inventory_app';
 
 mongoose.connect(MONGODB_URI, {
     useNewUrlParser: true,
@@ -23,8 +24,8 @@ mongoose.connect(MONGODB_URI, {
     .catch(err => console.log(err));
 
 // Models
-const Product = require('./models/Product');
-const Order = require('./models/Order');
+import Product from './models/Product.js';
+import Order from './models/Order.js';
 
 // API Routes
 

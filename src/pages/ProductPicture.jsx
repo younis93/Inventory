@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import Layout from '../components/Layout';
 import { useInventory } from '../context/InventoryContext';
+import { useTranslation } from 'react-i18next';
 import { Image as ImageIcon, Search } from 'lucide-react';
 import ProductImageModal from '../components/ProductImageModal';
 
 const ProductPicture = () => {
+    const { t } = useTranslation();
     const { products, updateProduct, loading } = useInventory();
     const [selectedProduct, setSelectedProduct] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
@@ -66,15 +68,15 @@ const ProductPicture = () => {
     );
 
     return (
-        <Layout title="Product Picture Gallery">
+        <Layout title={t('productPicture.title')}>
             <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-8">
                 <div>
                     <h2 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
                         <ImageIcon className="w-6 h-6 text-accent" />
-                        Product Gallery
+                        {t('productPicture.subtitle')}
                     </h2>
                     <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-                        Manage your product visual assets.
+                        {t('productPicture.description')}
                     </p>
                 </div>
 
@@ -83,7 +85,7 @@ const ProductPicture = () => {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input
                         type="text"
-                        placeholder="Search products..."
+                        placeholder={t('products.searchPlaceholder')}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium focus:ring-2 focus:ring-accent outline-none transition-all"
@@ -119,7 +121,7 @@ const ProductPicture = () => {
                                     {/* Badge Logic (Example) */}
                                     {product.stock <= 5 && (
                                         <div className="absolute top-3 left-3 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-md">
-                                            LOW STOCK
+                                            {t('products.stockStatus.lowStock')}
                                         </div>
                                     )}
 
@@ -150,7 +152,7 @@ const ProductPicture = () => {
             {filteredProducts.length === 0 && !loading && (
                 <div className="text-center py-20 text-slate-400">
                     <ImageIcon className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                    <p>No products found matching your search.</p>
+                    <p>{t('productPicture.noProducts')}</p>
                 </div>
             )}
 

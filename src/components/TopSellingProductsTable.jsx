@@ -50,12 +50,12 @@ const TopSellingProductsTable = ({ products, orders, formatCurrency }) => {
             </h3>
 
             <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
+                <table className="w-full text-start border-collapse">
                     <thead>
                         <tr className="text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-700">
-                            <th className="py-3 pl-2">Product Name</th>
+                            <th className="py-3 ps-2">Product Name</th>
                             <th className="py-3 text-center">Sales</th>
-                            <th className="py-3 text-right pr-2">Total Revenue</th>
+                            <th className="py-3 text-end pe-2">Total Revenue</th>
                             <th className="py-3 w-10"></th>
                         </tr>
                     </thead>
@@ -66,7 +66,7 @@ const TopSellingProductsTable = ({ products, orders, formatCurrency }) => {
                                     onClick={() => toggleExpand(product._id)}
                                     className={`group cursor-pointer transition-colors border-b border-slate-50 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/50 ${expandedProductId === product._id ? 'bg-slate-50 dark:bg-slate-800' : ''}`}
                                 >
-                                    <td className="py-4 pl-2 font-bold text-slate-700 dark:text-slate-200 flex items-center gap-3">
+                                    <td className="py-4 ps-2 font-bold text-slate-700 dark:text-slate-200 flex items-center gap-3">
                                         <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-700 overflow-hidden shrink-0">
                                             <img src={product.images?.[0] || 'https://via.placeholder.com/40'} alt={product.name || 'Product image'} className="w-full h-full object-cover" />
                                         </div>
@@ -83,7 +83,7 @@ const TopSellingProductsTable = ({ products, orders, formatCurrency }) => {
                                             {product.orderCount} Orders
                                         </span>
                                     </td>
-                                    <td className="py-4 text-right pr-2 font-bold text-slate-800 dark:text-white">
+                                    <td className="py-4 text-end pe-2 font-bold text-slate-800 dark:text-white">
                                         {formatCurrency(product.totalSales)}
                                     </td>
                                     <td className="py-4 text-center text-slate-400 group-hover:text-accent">
@@ -107,11 +107,11 @@ const TopSellingProductsTable = ({ products, orders, formatCurrency }) => {
                                                                         <User className="w-3 h-3 text-slate-400" /> {orderDetail.customer}
                                                                     </span>
                                                                     <span className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
-                                                                        <Calendar className="w-3 h-3" /> {format(new Date(orderDetail.date), 'dd MMM yyyy')}
+                                                                        <Calendar className="w-3 h-3" /> {orderDetail.date && !isNaN(new Date(orderDetail.date).getTime()) ? format(new Date(orderDetail.date), 'dd MMM yyyy') : 'N/A'}
                                                                     </span>
                                                                 </div>
                                                             </div>
-                                                            <div className="text-right">
+                                                            <div className="text-end">
                                                                 <span className="block text-xs font-bold text-slate-800 dark:text-white">
                                                                     Qty: {orderDetail.quantity}
                                                                 </span>

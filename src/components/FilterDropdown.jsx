@@ -50,7 +50,7 @@ const FilterDropdown = ({ title, options, selectedValues, onChange, icon: Icon, 
             </button>
 
             {isOpen && (
-                <div className="absolute top-full left-0 mt-2 z-50 w-72 animate-in fade-in zoom-in-95 duration-200">
+                <div className="absolute top-full start-0 mt-2 z-50 w-72 animate-in fade-in zoom-in-95 duration-200">
                     <FilterCard
                         title=""
                         options={options}

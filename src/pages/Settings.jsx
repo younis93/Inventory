@@ -56,6 +56,7 @@ const Settings = () => {
         name: brand.name,
         color: brand.color,
         logo: brand.logo,
+        favicon: brand.favicon || null,
         hideHeader: brand.hideHeader || false
     });
 
@@ -64,6 +65,7 @@ const Settings = () => {
             name: brand.name,
             color: brand.color,
             logo: brand.logo,
+            favicon: brand.favicon || null,
             hideHeader: brand.hideHeader || false
         });
     }, [brand]);
@@ -85,6 +87,20 @@ const Settings = () => {
             reader.onloadend = () => {
                 setCroppingImage(reader.result);
                 setCropType('logo');
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleFaviconUpload = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            if (file.size > 512 * 1024) return addToast("Favicon too large. Max 512KB.", "error");
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                // Favicons are small square icons; no cropping modal used
+                setBrandForm(prev => ({ ...prev, favicon: reader.result }));
+                addToast("Favicon updated (preview). Save to persist.", "success");
             };
             reader.readAsDataURL(file);
         }
@@ -153,27 +169,43 @@ const Settings = () => {
                     <nav className="space-y-2">
                         <button
                             onClick={() => setActiveTab('general')}
-                            className={`flex items-center gap-3 w-full px-4 py-2 rounded-xl text-left font-medium transition-all ${activeTab === 'general' ? 'shadow-sm bg-accent text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}
+                            className={`w-full text-left px-4 py-3 rounded-xl font-medium transition-all flex items-center gap-3 ${activeTab === 'general'
+                                ? 'bg-gradient-to-r from-[var(--brand-color)] to-[var(--brand-color)]/80 text-white shadow-md shadow-[var(--brand-color)]/20'
+                                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                                }`}
                         >
-                            <SettingsIcon className="w-5 h-5 rtl:ml-3 ltr:mr-0" /> {t('settings.general')}
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('account')}
-                            className={`flex items-center gap-3 w-full px-4 py-2 rounded-xl text-left font-medium transition-all ${activeTab === 'account' ? 'shadow-sm bg-accent text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}
-                        >
-                            <User className="w-5 h-5 rtl:ml-3 ltr:mr-0" /> {t('settings.users')}
+                            <SettingsIcon className="w-5 h-5" />
+                            {t('settings.general')}
                         </button>
                         <button
                             onClick={() => setActiveTab('appearance')}
-                            className={`flex items-center gap-3 w-full px-4 py-2 rounded-xl text-left font-medium transition-all ${activeTab === 'appearance' ? 'shadow-sm bg-accent text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}
+                            className={`w-full text-left px-4 py-3 rounded-xl font-medium transition-all flex items-center gap-3 ${activeTab === 'appearance'
+                                ? 'bg-gradient-to-r from-[var(--brand-color)] to-[var(--brand-color)]/80 text-white shadow-md shadow-[var(--brand-color)]/20'
+                                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                                }`}
                         >
-                            <Sparkles className="w-5 h-5 rtl:ml-3 ltr:mr-0" /> {t('settings.appearance')}
+                            <Palette className="w-5 h-5" />
+                            {t('settings.appearance')}
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('branding')}
+                            className={`w-full text-left px-4 py-3 rounded-xl font-medium transition-all flex items-center gap-3 ${activeTab === 'branding'
+                                ? 'bg-gradient-to-r from-[var(--brand-color)] to-[var(--brand-color)]/80 text-white shadow-md shadow-[var(--brand-color)]/20'
+                                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                                }`}
+                        >
+                            <Sparkles className="w-5 h-5" />
+                            {t('settings.branding')}
                         </button>
                         <button
                             onClick={() => setActiveTab('users')}
-                            className={`flex items-center gap-3 w-full px-4 py-2 rounded-xl text-left font-medium transition-all ${activeTab === 'users' ? 'shadow-sm bg-accent text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}
+                            className={`w-full text-left px-4 py-3 rounded-xl font-medium transition-all flex items-center gap-3 ${activeTab === 'users'
+                                ? 'bg-gradient-to-r from-[var(--brand-color)] to-[var(--brand-color)]/80 text-white shadow-md shadow-[var(--brand-color)]/20'
+                                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                                }`}
                         >
-                            <Users className="w-5 h-5 rtl:ml-3 ltr:mr-0" /> {t('settings.users')}
+                            <Users className="w-5 h-5" />
+                            {t('settings.users')}
                         </button>
                     </nav>
                 </aside>
@@ -207,12 +239,100 @@ const Settings = () => {
                                     </div>
                                 </div>
 
-                                {/* Header Visibility toggle */}
-                                <div className="">
-                                    <div className="flex items-center justify-between">
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'branding' && (
+                        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                            <div className="flex justify-between items-center mb-6">
+                                <h2 className="text-xl font-bold text-slate-800 dark:text-white">{t('settings.branding')}</h2>
+                                <button
+                                    onClick={handleSaveBranding}
+                                    className="px-4 py-2 text-white text-sm font-bold rounded-xl shadow-lg transition-all active:scale-95 bg-accent"
+                                    style={{ boxShadow: `0 10px 15px -3px var(--accent-color)33` }}
+                                >
+                                    {t('settings.saveBranding')}
+                                </button>
+                            </div>
+
+                            <div className="space-y-8">
+                                {/* App Name */}
+                                <div className="max-w-md">
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('settings.appName')}</label>
+                                    <input
+                                        type="text"
+                                        value={brandForm.name}
+                                        onChange={(e) => setBrandForm({ ...brandForm, name: e.target.value })}
+                                        className="w-full p-3 border border-slate-200 dark:border-slate-600 rounded-xl bg-slate-50 dark:bg-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20"
+                                    />
+                                </div>
+
+                                {/* Logo + Favicon Upload */}
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-4">{t('settings.logoAndFavicon') || 'Logo & Favicon'}</label>
+                                    <div className="flex flex-wrap items-center gap-8">
+                                        <div className="flex flex-col items-center gap-2">
+                                            <div
+                                                className="w-24 h-24 rounded-2xl flex items-center justify-center border border-slate-200 dark:border-slate-600 overflow-hidden bg-slate-100 dark:bg-slate-800 shadow-sm"
+                                                style={{ backgroundColor: appearance.accentType === 'solid' ? appearance.accentColor : appearance.accentGradient?.start }}
+                                            >
+                                                {brandForm.logo ? (
+                                                    <img src={brandForm.logo} alt="Logo" className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <span className="text-white font-bold text-3xl">{(brandForm.name || '').charAt(0)}</span>
+                                                )}
+                                            </div>
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('settings.logo')}</span>
+                                        </div>
+
+                                        <div className="flex flex-col items-center gap-2">
+                                            <div className="w-16 h-16 rounded-xl flex items-center justify-center border border-slate-200 dark:border-slate-600 overflow-hidden bg-slate-100 dark:bg-slate-800 shadow-sm">
+                                                {brandForm.favicon ? (
+                                                    <img src={brandForm.favicon} alt="Favicon" className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <div className="w-8 h-8 rounded bg-slate-200 dark:bg-slate-700 animate-pulse" />
+                                                )}
+                                            </div>
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Favicon</span>
+                                        </div>
+
+                                        <div className="flex flex-col gap-3">
+                                            <div className="flex gap-3">
+                                                <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 bg-accent text-white rounded-xl transition-all shadow-lg shadow-accent/20 hover:brightness-110 font-bold text-sm">
+                                                    <Upload className="w-4 h-4" />
+                                                    <span>{t('settings.uploadLogo')}</span>
+                                                    <input type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} />
+                                                </label>
+                                                <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-xl transition-colors font-bold text-sm border border-slate-200 dark:border-slate-600">
+                                                    <ImageIcon className="w-4 h-4" />
+                                                    <span>{t('settings.uploadFavicon') || 'Upload Favicon'}</span>
+                                                    <input type="file" className="hidden" accept="image/*" onChange={handleFaviconUpload} />
+                                                </label>
+                                            </div>
+                                            <p className="text-xs text-slate-500 dark:text-slate-400">{t('settings.logoSize')}</p>
+                                            <div className="flex gap-4">
+                                                {brandForm.logo && (
+                                                    <button onClick={() => setBrandForm({ ...brandForm, logo: null })} className="text-[11px] text-red-500 hover:text-red-600 font-bold uppercase tracking-wider">
+                                                        {t('settings.removeLogo') || 'Remove Logo'}
+                                                    </button>
+                                                )}
+                                                {brandForm.favicon && (
+                                                    <button onClick={() => setBrandForm(prev => ({ ...prev, favicon: null }))} className="text-[11px] text-red-500 hover:text-red-600 font-bold uppercase tracking-wider">
+                                                        {t('settings.removeFavicon') || 'Remove Favicon'}
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* App Header Toggle */}
+                                <div className="pt-8 border-t border-slate-100 dark:border-slate-700">
+                                    <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800">
                                         <div>
-                                            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Application Header</h3>
-                                            <p className="text-xs text-slate-500">Show or hide the top navigation header</p>
+                                            <h3 className="text-sm font-bold text-slate-800 dark:text-white">{t('settings.appHeader')}</h3>
+                                            <p className="text-xs text-slate-500">{t('settings.appHeaderDesc')}</p>
                                         </div>
                                         <button
                                             onClick={async () => {
@@ -230,66 +350,6 @@ const Settings = () => {
                                     </div>
                                 </div>
                             </div>
-
-                            {/* Branding Settings */}
-                            <div className="mt-8 pt-8 border-t border-slate-100 dark:border-slate-700">
-                                <div className="flex justify-between items-center mb-6">
-                                    <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-200">Branding</h3>
-                                    <button
-                                        onClick={handleSaveBranding}
-                                        className="px-4 py-2 text-white text-sm font-bold rounded-xl shadow-lg transition-all active:scale-95 bg-accent"
-                                        style={{ boxShadow: `0 10px 15px -3px var(--accent-color)33` }}
-                                    >
-                                        Save Branding Settings
-                                    </button>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    {/* App Name */}
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Application Name</label>
-                                        <input
-                                            type="text"
-                                            value={brandForm.name}
-                                            onChange={(e) => setBrandForm({ ...brandForm, name: e.target.value })}
-                                            className="w-full p-3 border border-slate-200 dark:border-slate-600 rounded-xl bg-slate-50 dark:bg-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20"
-                                        />
-                                    </div>
-
-
-                                    {/* Logo Upload */}
-                                    <div className="md:col-span-2">
-                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Logo</label>
-                                        <div className="flex items-center gap-6">
-                                            <div
-                                                className="w-20 h-20 rounded-xl flex items-center justify-center border border-slate-200 dark:border-slate-600 overflow-hidden bg-slate-100 dark:bg-slate-800"
-                                                style={{ backgroundColor: appearance.accentType === 'solid' ? appearance.accentColor : appearance.accentGradient.start }}
-                                            >
-                                                {brandForm.logo ? (
-                                                    <img src={brandForm.logo} alt="Logo" className="w-full h-full object-cover" />
-                                                ) : (
-                                                    <span className="text-white font-bold text-2xl">{brandForm.name.charAt(0)}</span>
-                                                )}
-                                            </div>
-                                            <div className="flex-1">
-                                                <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-lg transition-colors font-medium text-sm">
-                                                    <Upload className="w-4 h-4" />
-                                                    <span>Upload Logo</span>
-                                                    <input type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} />
-                                                </label>
-                                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">Recommended size: 512x512px. Max 3MB.</p>
-                                                {brandForm.logo && (
-                                                    <button
-                                                        onClick={() => setBrandForm({ ...brandForm, logo: null })}
-                                                        className="mt-2 text-xs text-red-500 hover:text-red-600 font-medium"
-                                                    >
-                                                        Remove Logo
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     )}
 
@@ -297,10 +357,10 @@ const Settings = () => {
                         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
                             {/* Theme Selection */}
                             <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-8">
-                                <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2">
-                                    <Palette className="w-6 h-6 text-accent" />
-                                    Theme Options
-                                </h2>
+                                <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2">
+                                    <Palette className="w-5 h-5 text-[var(--brand-color)]" />
+                                    {t('settings.themeOptions')}
+                                </h3>
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                                     {[
@@ -334,20 +394,20 @@ const Settings = () => {
                                 <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-6 flex items-center justify-between">
                                     <div className="flex items-center gap-2">
                                         <div className="w-6 h-6 rounded-full bg-accent" />
-                                        Accent Customization
+                                        {t('settings.accentCustomization')}
                                     </div>
                                     <div className="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-xl">
                                         <button
                                             onClick={() => setAppearance({ accentType: 'solid' })}
                                             className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${appearance.accentType === 'solid' ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white' : 'text-slate-500'}`}
                                         >
-                                            Solid
+                                            {t('settings.solid')}
                                         </button>
                                         <button
                                             onClick={() => setAppearance({ accentType: 'gradient' })}
                                             className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${appearance.accentType === 'gradient' ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white' : 'text-slate-500'}`}
                                         >
-                                            Gradient
+                                            {t('settings.gradient')}
                                         </button>
                                     </div>
                                 </h2>
@@ -374,7 +434,7 @@ const Settings = () => {
                                                         onChange={(e) => setAppearance({ accentColor: e.target.value })}
                                                         className="w-10 h-10 rounded-full cursor-pointer border-0 p-0 overflow-hidden bg-transparent"
                                                     />
-                                                    <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap">Custom Color</div>
+                                                    <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap">{t('settings.customColor')}</div>
                                                 </div>
                                                 <span className="font-mono text-sm text-slate-500 uppercase">{appearance.accentColor}</span>
                                             </div>
@@ -401,7 +461,7 @@ const Settings = () => {
                                             </div>
 
                                             <div className="pt-6 border-t border-slate-100 dark:border-slate-700">
-                                                <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-4">Custom Dual Colors</p>
+                                                <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-4">{t('settings.customDualColors')}</p>
                                                 <div className="flex items-center gap-8">
                                                     <div className="flex items-center gap-3">
                                                         <input
@@ -411,7 +471,7 @@ const Settings = () => {
                                                             className="w-10 h-10 rounded-full cursor-pointer border-4 border-white dark:border-slate-800 shadow-lg p-0 overflow-hidden bg-transparent"
                                                         />
                                                         <div className="flex flex-col">
-                                                            <span className="text-[10px] uppercase text-slate-400 font-bold tracking-wider">Start</span>
+                                                            <span className="text-[10px] uppercase text-slate-400 font-bold tracking-wider">{t('settings.start')}</span>
                                                             <span className="font-mono text-xs text-slate-600 dark:text-slate-400">{appearance.accentGradient.start.toUpperCase()}</span>
                                                         </div>
                                                     </div>
@@ -424,7 +484,7 @@ const Settings = () => {
                                                             className="w-10 h-10 rounded-full cursor-pointer border-4 border-white dark:border-slate-800 shadow-lg p-0 overflow-hidden bg-transparent"
                                                         />
                                                         <div className="flex flex-col">
-                                                            <span className="text-[10px] uppercase text-slate-400 font-bold tracking-wider">End</span>
+                                                            <span className="text-[10px] uppercase text-slate-400 font-bold tracking-wider">{t('settings.end')}</span>
                                                             <span className="font-mono text-xs text-slate-600 dark:text-slate-400">{appearance.accentGradient.end.toUpperCase()}</span>
                                                         </div>
                                                     </div>
@@ -437,24 +497,31 @@ const Settings = () => {
 
                             {/* Live Preview Card */}
                             <div className="bg-slate-100 dark:bg-slate-900 rounded-2xl p-8 flex flex-col items-center justify-center min-h-[300px] border border-slate-200 dark:border-slate-800">
-                                <p className="text-sm font-bold text-slate-500 mb-8 tracking-widest uppercase">Live Preview</p>
+                                <p className="text-sm font-bold text-slate-500 mb-8 tracking-widest uppercase">{t('settings.livePreview')}</p>
                                 <div className={`w-full max-w-sm p-8 rounded-2xl transition-all glass-panel ${appearance.theme === 'liquid' ? '' : 'bg-white dark:bg-slate-800 shadow-xl'}`}>
-                                    <div className="flex items-center gap-3 mb-6">
-                                        <div className="w-10 h-10 rounded-full bg-accent animate-pulse" />
-                                        <div className="space-y-2 flex-1">
-                                            <div className="h-3 w-2/3 bg-slate-200 dark:bg-slate-700 rounded-full" />
-                                            <div className="h-2 w-1/3 bg-slate-100 dark:bg-slate-700/50 rounded-full" />
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h4 className="font-bold text-slate-800 dark:text-white">{t('settings.contentLayoutExample')}</h4>
+                                        <div className="flex gap-2">
+                                            <div className="w-3 h-3 rounded-full bg-red-400"></div>
+                                            <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
+                                            <div className="w-3 h-3 rounded-full bg-green-400"></div>
                                         </div>
                                     </div>
                                     <div className="space-y-4">
-                                        <div className="h-20 w-full bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-700 flex items-center justify-center">
-                                            <span className="text-xs text-slate-400 italic">Content Layout Example</span>
+                                        <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-700">
+                                            <div className="h-2 w-3/4 bg-slate-200 dark:bg-slate-700 rounded mb-2"></div>
+                                            <div className="h-2 w-1/2 bg-slate-200 dark:bg-slate-700 rounded"></div>
                                         </div>
-                                        <button className="w-full py-3 rounded-xl text-white font-bold bg-accent shadow-accent transition-transform active:scale-[0.98]">
-                                            Primary Button
-                                        </button>
+                                        <div className="flex gap-3">
+                                            <button className="px-4 py-2 bg-[var(--brand-color)] text-white rounded-lg text-sm font-medium shadow-lg shadow-[var(--brand-color)]/20">
+                                                {t('settings.primaryButton')}
+                                            </button>
+                                            <button className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-lg text-sm font-medium">
+                                                {t('common.cancel')}
+                                            </button>
+                                        </div>
                                         <div className="flex items-center justify-between">
-                                            <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Toggle Switch</span>
+                                            <span className="text-sm font-medium text-slate-600 dark:text-slate-400">{t('settings.toggleSwitch')}</span>
                                             <div className="w-10 h-5 bg-accent rounded-full relative">
                                                 <div className="absolute right-1 top-1 w-3 h-3 bg-white rounded-full" />
                                             </div>
@@ -467,7 +534,7 @@ const Settings = () => {
 
                     {activeTab === 'account' && (
                         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                            <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-6">Account Settings</h2>
+                            <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-6">{t('settings.accountSettings')}</h2>
 
                             <div className="max-w-xl space-y-6">
                                 <div className="flex items-center gap-6 mb-8">
@@ -483,15 +550,15 @@ const Settings = () => {
                                             className="cursor-pointer px-4 py-2 text-white text-sm font-bold rounded-xl shadow-lg transition-all inline-block hover:scale-[1.02] bg-accent"
                                             style={{ boxShadow: `0 10px 15px -3px var(--accent-color)33` }}
                                         >
-                                            Change Avatar
+                                            {t('settings.changeAvatar')}
                                             <input type="file" className="hidden" accept="image/*" onChange={handleAvatarUpload} />
                                         </label>
-                                        <p className="text-xs text-slate-500 mt-2">JPG, GIF or PNG. Max size of 3MB</p>
+                                        <p className="text-xs text-slate-500 mt-2">{t('settings.avatarRecommendedSize')}</p>
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label htmlFor="displayName" className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Display Name</label>
+                                    <label htmlFor="displayName" className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">{t('settings.displayName')}</label>
                                     <input
                                         type="text"
                                         id="displayName"
@@ -502,7 +569,7 @@ const Settings = () => {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Username</label>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">{t('settings.username')}</label>
                                     <input
                                         type="text"
                                         value={currentUser?.username || ''}
@@ -511,7 +578,7 @@ const Settings = () => {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">Email Address</label>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">{t('settings.emailAddress')}</label>
                                     <input
                                         type="email"
                                         value={currentUser?.email || ''}
@@ -527,7 +594,7 @@ const Settings = () => {
                                             className="px-6 py-3 text-white font-bold rounded-xl transition-all shadow-lg bg-accent"
                                             style={{ boxShadow: `0 10px 15px -3px var(--accent-color)33` }}
                                         >
-                                            Edit Profile
+                                            {t('settings.editProfile')}
                                         </button>
                                     ) : (
                                         <div className="flex gap-3">
@@ -538,14 +605,14 @@ const Settings = () => {
                                                 }}
                                                 className="px-6 py-3 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl transition-colors"
                                             >
-                                                Cancel
+                                                {t('common.cancel')}
                                             </button>
                                             <button
                                                 onClick={handleSaveProfile}
                                                 className="px-6 py-3 text-white font-bold rounded-xl transition-all shadow-lg bg-accent"
                                                 style={{ boxShadow: `0 10px 15px -3px var(--accent-color)33` }}
                                             >
-                                                Save Changes
+                                                {t('settings.saveChanges')}
                                             </button>
                                         </div>
                                     )}
@@ -554,18 +621,18 @@ const Settings = () => {
                                 <div className="mt-12 pt-8 border-t border-slate-100 dark:border-slate-700">
                                     <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2">
                                         <Lock className="w-5 h-5 text-accent" />
-                                        Security Settings
+                                        {t('settings.securitySettings')}
                                     </h3>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                         <div className="p-6 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
-                                            <h4 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">Password</h4>
-                                            <p className="text-xs text-slate-500 mb-4 leading-relaxed">Change your password to keep your account safe.</p>
+                                            <h4 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">{t('settings.password')}</h4>
+                                            <p className="text-xs text-slate-500 mb-4 leading-relaxed">{t('settings.passwordDescription')}</p>
                                             <button
                                                 onClick={() => setIsChangePasswordOpen(true)}
                                                 className="w-full py-2.5 bg-accent text-white text-sm font-bold rounded-xl shadow-lg hover:brightness-110 transition-all"
                                                 style={{ boxShadow: `0 4px 10px -2px var(--accent-color)44` }}
                                             >
-                                                Change Password
+                                                {t('settings.changePassword')}
                                             </button>
                                         </div>
                                         <div className="p-6 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
@@ -574,7 +641,7 @@ const Settings = () => {
                                             <button
                                                 className="w-full py-2.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm font-bold rounded-xl hover:bg-slate-300 dark:hover:bg-slate-600 transition-all"
                                             >
-                                                Enable 2FA
+                                                {t('settings.enable2fa')}
                                             </button>
                                         </div>
                                     </div>
@@ -586,13 +653,13 @@ const Settings = () => {
                     {activeTab === 'users' && (
                         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
                             <div className="flex justify-between items-center mb-6">
-                                <h2 className="text-xl font-bold text-slate-800 dark:text-white">User Management</h2>
+                                <h2 className="text-xl font-bold text-slate-800 dark:text-white">{t('settings.users')}</h2>
                                 <button
                                     onClick={handleOpenAddUser}
                                     className="flex items-center gap-2 px-4 py-2 text-white font-medium rounded-xl transition-colors shadow-lg bg-accent"
                                     style={{ boxShadow: `0 10px 15px -3px var(--accent-color)33` }}
                                 >
-                                    <Plus className="w-5 h-5" /> Add User
+                                    <Plus className="w-5 h-5" /> {t('settings.addUser')}
                                 </button>
                             </div>
 
@@ -600,10 +667,10 @@ const Settings = () => {
                                 <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
                                     <thead>
                                         <tr>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">User</th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Email</th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Role</th>
-                                            <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">{t('settings.table.user')}</th>
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">{t('settings.table.email')}</th>
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">{t('settings.table.role')}</th>
+                                            <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">{t('common.actions')}</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
@@ -666,26 +733,26 @@ const Settings = () => {
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in zoom-in duration-200">
                         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6">
                             <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-4">
-                                {editingUser ? 'Edit User' : 'Add New User'}
+                                {editingUser ? t('settings.editUser') : t('settings.addNewUser')}
                             </h3>
                             <form onSubmit={handleUserSubmit} className="space-y-4">
-                                <input required placeholder="Display Name" value={userForm.displayName} onChange={e => setUserForm({ ...userForm, displayName: e.target.value })} className="w-full p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700 dark:text-white outline-none" />
-                                <input required placeholder="Username" value={userForm.username} onChange={e => setUserForm({ ...userForm, username: e.target.value })} className="w-full p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700 dark:text-white outline-none" />
-                                <input required placeholder="Email" type="email" value={userForm.email} onChange={e => setUserForm({ ...userForm, email: e.target.value })} className="w-full p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700 dark:text-white outline-none" />
+                                <input required placeholder={t('settings.placeholders.displayName')} value={userForm.displayName} onChange={e => setUserForm({ ...userForm, displayName: e.target.value })} className="w-full p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700 dark:text-white outline-none" />
+                                <input required placeholder={t('settings.placeholders.username')} value={userForm.username} onChange={e => setUserForm({ ...userForm, username: e.target.value })} className="w-full p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700 dark:text-white outline-none" />
+                                <input required placeholder={t('settings.placeholders.email')} type="email" value={userForm.email} onChange={e => setUserForm({ ...userForm, email: e.target.value })} className="w-full p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700 dark:text-white outline-none" />
                                 <select value={userForm.role} onChange={e => setUserForm({ ...userForm, role: e.target.value })} className="w-full p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700 dark:text-white outline-none">
                                     <option value="Manager">Manager</option>
                                     <option value="Staff">Staff</option>
                                     <option value="Admin">Admin</option>
                                 </select>
-                                <input placeholder={editingUser ? "Password (leave blank to keep)" : "Password"} type="password" value={userForm.password} onChange={e => setUserForm({ ...userForm, password: e.target.value })} className="w-full p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700 dark:text-white outline-none" required={!editingUser} />
+                                <input placeholder={editingUser ? t('settings.placeholders.passwordKeep') : t('settings.placeholders.password')} type="password" value={userForm.password} onChange={e => setUserForm({ ...userForm, password: e.target.value })} className="w-full p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700 dark:text-white outline-none" required={!editingUser} />
 
                                 <div className="flex gap-3 mt-6">
-                                    <button type="button" onClick={() => setIsAddUserModalOpen(false)} className="flex-1 py-3 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition-colors">Cancel</button>
+                                    <button type="button" onClick={() => setIsAddUserModalOpen(false)} className="flex-1 py-3 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition-colors">{t('common.cancel')}</button>
                                     <button type="submit"
                                         className="flex-1 py-3 text-white font-bold rounded-xl transition-colors shadow-lg bg-accent"
                                         style={{ boxShadow: `0 10px 15px -3px var(--accent-color)33` }}
                                     >
-                                        {editingUser ? 'Update User' : 'Create User'}
+                                        {editingUser ? t('settings.updateUser') : t('settings.createUser')}
                                     </button>
                                 </div>
                             </form>
@@ -699,18 +766,18 @@ const Settings = () => {
                 isChangePasswordOpen && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in zoom-in duration-200">
                         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6">
-                            <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-4">Change Password</h3>
-                            <form onSubmit={(e) => { e.preventDefault(); addToast("Password changed successfully!", "success"); setIsChangePasswordOpen(false); }} className="space-y-4">
-                                <input required placeholder="Current Password" type="password" className="w-full p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700 dark:text-white outline-none" />
-                                <input required placeholder="New Password" type="password" className="w-full p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700 dark:text-white outline-none" />
-                                <input required placeholder="Confirm New Password" type="password" className="w-full p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700 dark:text-white outline-none" />
+                            <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-4">{t('settings.changePassword')}</h3>
+                            <form onSubmit={(e) => { e.preventDefault(); addToast(t('settings.toasts.passwordChanged'), "success"); setIsChangePasswordOpen(false); }} className="space-y-4">
+                                <input required placeholder={t('settings.placeholders.currentPassword')} type="password" className="w-full p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700 dark:text-white outline-none" />
+                                <input required placeholder={t('settings.placeholders.newPassword')} type="password" className="w-full p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700 dark:text-white outline-none" />
+                                <input required placeholder={t('settings.placeholders.confirmPassword')} type="password" className="w-full p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700 dark:text-white outline-none" />
 
                                 <div className="flex gap-3 mt-6">
-                                    <button type="button" onClick={() => setIsChangePasswordOpen(false)} className="flex-1 py-3 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition-colors">Cancel</button>
+                                    <button type="button" onClick={() => setIsChangePasswordOpen(false)} className="flex-1 py-3 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition-colors">{t('common.cancel')}</button>
                                     <button type="submit"
                                         className="flex-1 py-3 text-white font-bold rounded-xl transition-colors shadow-lg bg-accent"
                                         style={{ boxShadow: `0 10px 15px -3px var(--accent-color)33` }}
-                                    >Change Password</button>
+                                    >{t('settings.changePassword')}</button>
                                 </div>
                             </form>
                         </div>

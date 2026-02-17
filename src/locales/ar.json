@@ -1,5 +1,6 @@
 {
     "menu": {
+        "mainMenu": "القائمة الرئيسية",
         "dashboard": "لوحة التحكم",
         "inventory": "المخزون",
         "productPicture": "صور المنتجات",
@@ -7,6 +8,18 @@
         "customers": "العملاء",
         "settings": "الإعدادات",
         "logout": "تسجيل الخروج"
+    },
+    "header": {
+        "welcome": "مرحباً بك،",
+        "admin": "المسؤول",
+        "switchMode": "التبديل إلى وضع {{mode}}",
+        "activityLogs": "سجلات النشاط",
+        "new": "جديد",
+        "viewAllActivity": "عرض كل النشاط"
+    },
+    "user": {
+        "defaultName": "مستخدم",
+        "defaultRole": "موظف"
     },
     "common": {
         "loading": "جاري التحميل...",
@@ -45,16 +58,36 @@
         "nameAZ": "الاسم (أ-ي)",
         "male": "ذكر",
         "female": "أنثى",
-        "select": "اختر..."
+        "showRows": "عرض الصفوف",
+        "custom": "مخصص",
+        "select": "اختر...",
+        "cashOnDelivery": "الدفع عند الاستلام",
+        "perUnit": "لكل وحدة"
     },
     "dashboard": {
         "title": "لوحة التحكم",
+        "live": "لوحة التحكم الحية",
         "totalRevenue": "إجمالي الإيرادات",
+        "revenueTrend": "اتجاه الإيرادات",
         "totalOrders": "إجمالي الطلبات",
+        "ordersPlaced": "الطلبات المقدمة",
         "totalCustomers": "إجمالي العملاء",
+        "activeCustomers": "العملاء النشطين",
+        "uniqueBuyers": "مشترين فريدين",
+        "topRegion": "أفضل منطقة",
+        "interactiveMap": "الخريطة التفاعلية",
         "totalProducts": "إجمالي المنتجات",
         "lowStock": "منتجات منخفضة المخزون",
-        "recentActivity": "النشاط الأخير"
+        "recentActivity": "النشاط الأخير",
+        "filteredOrders": "الطلبات المصفاة",
+        "liveDashboard": "لوحة التحكم الحية",
+        "revenueComparison": "+12.5% مقابل الفترة الماضية",
+        "ordersCount": "{{count}} طلب",
+        "revenue": "الإيرادات",
+        "governorate": "المحافظة",
+        "socialMedia": "وسائل التواصل",
+        "categories": "الفئات",
+        "status": "الحالة"
     },
     "products": {
         "title": "المخزون",
@@ -77,7 +110,10 @@
         "stockStatus": {
             "inStock": "متوفر",
             "lowStock": "مخزون منخفض",
-            "outOfStock": "نفذ المخزون"
+            "outOfStock": "نفذ المخزون",
+            "instock": "متوفر",
+            "lowstock": "مخزون منخفض",
+            "outofstock": "نفذ المخزون"
         },
         "form": {
             "generalInfo": "معلومات عامة",
@@ -87,9 +123,55 @@
             "addImage": "إضافة صورة",
             "category": "الفئة",
             "status": "الحالة",
-            "productName": "اسم المنتج"
+            "productName": "اسم المنتج",
+            "productNamePlaceholder": "مثال: سماعة لاسلكية",
+            "sku": "رمز المنتج (SKU)",
+            "skuPlaceholder": "مثال: WH-001",
+            "stock": "المخزون",
+            "unitPrice": "سعر الوحدة",
+            "alibabaSourcing": "استيراد علي بابا",
+            "productLink": "رابط المنتج",
+            "messageLink": "رابط الرسائل",
+            "orderLink": "رابط الطلب",
+            "alibabaOrderNo": "رقم طلب علي بابا",
+            "alibabaNote": "ملاحظات علي بابا",
+            "notePlaceholder": "أدخل التفاصيل...",
+            "costAndPricing": "التكلفة والتسعير",
+            "alibabaFee": "رسوم علي بابا",
+            "exchangeRate": "سعر الصرف",
+            "margin": "هامش الربح",
+            "shippingIQD": "الشحن (د.ع)",
+            "otherFeesIQD": "رسوم أخرى (د.ع)",
+            "costTotal": "إجمالي التكلفة",
+            "costPerUnit": "التكلفة للوحدة",
+            "recommendedPrice": "السعر المقترح",
+            "finalPrice": "السعر النهائي",
+            "manualOverride": "تعديل يدوي مفعل",
+            "autoCalculated": "حساب تلقائي",
+            "profitAnalysis": "تحليل الربح",
+            "iqdAnalysis": "تحليل الدينار العراقي",
+            "usdAnalysis": "تحليل الدولار الأمريكي",
+            "profitPerUnit": "الربح / وحدة",
+            "totalProfit": "إجمالي الربح",
+            "qtyCalculation": "حساب الكمية",
+            "unitsExpected": "الوحدات المتوقع بيعها",
+            "selectCategory": "اختر الفئة",
+            "createCategory": "إنشاء فئة جديدة"
         },
-        "searchPlaceholder": "بحث عن منتجات..."
+        "searchPlaceholder": "بحث عن منتجات...",
+        "confirmDelete": "هل أنت متأكد من حذف هذا المنتج؟",
+        "marginTooHigh": "نسبة الهامش يجب أن تكون أقل من 100%",
+        "fillInfo": "املأ التفاصيل أدناه لإضافة منتج جديد.",
+        "editProduct": "تعديل المنتج",
+        "manageCategories": "إدارة الفئات",
+        "categories": "الفئات",
+        "table": {
+            "product": "المنتج",
+            "category": "الفئة",
+            "stock": "المخزون",
+            "price": "السعر",
+            "status": "الحالة"
+        }
     },
     "orders": {
         "title": "الطلبات",
@@ -168,6 +250,23 @@
             "status": "الحالة"
         }
     },
+    "productPicture": {
+        "title": "معرض صور المنتجات",
+        "subtitle": "معرض المنتجات",
+        "description": "إدارة الأصول المرئية لمنتجاتك.",
+        "noProducts": "لم يتم العثور على منتجات مطابقة لبحثك.",
+        "modal": {
+            "images": "صور المنتج",
+            "addPhoto": "إضافة صورة",
+            "details": "تفاصيل المنتج",
+            "productTitle": "عنوان المنتج",
+            "enterTitle": "أدخل عنوان المنتج",
+            "description": "الوصف",
+            "enterDescription": "أدخل وصف المنتج...",
+            "sellingPrice": "سعر البيع",
+            "confirmDeleteImage": "هل أنت متأكد من حذف هذه الصورة؟"
+        }
+    },
     "customers": {
         "title": "العملاء",
         "addCustomer": "إضافة عميل",
@@ -179,23 +278,135 @@
         "social": "وسائل التواصل",
         "totalSpent": "إجمالي المشتريات",
         "lastOrder": "آخر طلب",
-        "joinDate": "تاريخ الانضمام"
+        "joinDate": "تاريخ الانضمام",
+        "orders": "الطلبات",
+        "location": "الموقع",
+        "createdOn": "تاريخ الإنشاء",
+        "actions": "إجراءات",
+        "noData": "لا يوجد عملاء",
+        "noMatch": "لا توجد نتائج مطابقة",
+        "searchPlaceholder": "بحث بالاسم أو الهاتف...",
+        "viewTable": "عرض جدول",
+        "viewCard": "عرض بطاقات",
+        "form": {
+            "new": "عميل جديد",
+            "edit": "تعديل الملف",
+            "sub": "قاعدة بيانات العملاء",
+            "fullName": "الاسم الكامل",
+            "phone": "رقم الهاتف",
+            "email": "البريد الإلكتروني (اختياري)",
+            "governorate": "المحافظة",
+            "channel": "القناة",
+            "shippingAddress": "عنوان الشحن",
+            "save": "حفظ الملف",
+            "register": "تسجيل العميل"
+        },
+        "history": {
+            "title": "سجل المعاملات",
+            "customer": "العميل",
+            "noRecords": "لا توجد سجلات نشطة",
+            "paymentMethod": "طريقة الدفع",
+            "itemsCount": "عدد العناصر",
+            "printThermal": "طباعة وصل حراري"
+        },
+        "receipt": {
+            "title": "وصل طلب",
+            "order": "الطلب",
+            "customer": "العميل",
+            "date": "التاريخ",
+            "status": "الحالة",
+            "item": "المادة",
+            "qty": "العدد",
+            "price": "السعر",
+            "total": "الإجمالي"
+        }
     },
     "settings": {
         "title": "الإعدادات",
         "general": "عام",
+        "account": "الحساب",
         "appearance": "المظهر",
-        "branding": "العلامة التجارية",
         "users": "إدارة المستخدمين",
         "language": "اللغة",
-        "selectLanguage": "اختر اللغة",
-        "theme": "السمة",
-        "light": "فاتح",
-        "dark": "داكن",
-        "system": "النظام",
-        "companyName": "اسم الشركة",
-        "logo": "رابط الشعار",
-        "primaryColor": "اللون الأساسي",
-        "saveChanges": "حفظ التغييرات"
+        "saveChanges": "حفظ التغييرات",
+        "branding": "العلامة التجارية",
+        "appHeader": "رأس التطبيق",
+        "appHeaderDesc": "إظهار أو إخفاء شريط التنقل العلوي",
+        "saveBranding": "حفظ إعدادات العلامة التجارية",
+        "appName": "اسم التطبيق",
+        "logo": "الشعار",
+        "logoAndFavicon": "الشعار والأيقونة",
+        "uploadLogo": "تحميل الشعار",
+        "uploadFavicon": "تحميل الأيقونة",
+        "logoSize": "الحجم الموصى به: 512x512 بكسل. الحد الأقصى 3 ميجابايت.",
+        "removeLogo": "إزالة الشعار",
+        "removeFavicon": "إزالة الأيقونة",
+        "themeOptions": "خيارات السمة",
+        "themes": {
+            "liquid": "زجاج سائل",
+            "liquidDesc": "نمط أبل ماك",
+            "light": "فاتح احترافي",
+            "lightDesc": "نظيف ومبسط",
+            "dark": "داكن احترافي",
+            "darkDesc": "عميق وأنيق"
+        },
+        "accentCustomization": "تخصيص اللون المميز",
+        "solid": "لون واحد",
+        "gradient": "تدرج لوني",
+        "customColor": "لون مخصص",
+        "gradients": {
+            "royal": "ملكي",
+            "sunset": "غروب",
+            "aurora": "شفق",
+            "vibrant": "حيوي"
+        },
+        "customDualColors": "ألوان مزدوجة مخصصة",
+        "start": "البداية",
+        "end": "النهاية",
+        "livePreview": "معاينة حية",
+        "contentLayoutExample": "مثال لتخطيط المحتوى",
+        "primaryButton": "زر أساسي",
+        "toggleSwitch": "مفتاح تبديل",
+        "accountSettings": "إعدادات الحساب",
+        "changeAvatar": "تغيير الصورة الرمزية",
+        "avatarFormat": "JPG، GIF أو PNG. الحد الأقصى 3 ميجابايت",
+        "emailAddress": "البريد الإلكتروني",
+        "avatarRecommendedSize": "JPG، GIF أو PNG. الحد الأقصى 3 ميجابايت",
+        "displayName": "الاسم المعروض",
+        "username": "اسم المستخدم",
+        "securitySettings": "إعدادات الأمان",
+        "password": "كلمة المرور",
+        "passwordDescription": "غير كلمة المرور للحفاظ على أمان حسابك.",
+        "changePassword": "تغيير كلمة المرور",
+        "addUser": "إضافة مستخدم",
+        "editUser": "تعديل المستخدم",
+        "addNewUser": "إضافة مستخدم جديد",
+        "updateUser": "تحديث المستخدم",
+        "createUser": "إنشاء مستخدم",
+        "confirmDeleteUser": "هل أنت متأكد من حذف هذا المستخدم؟",
+        "table": {
+            "user": "المستخدم",
+            "email": "البريد الإلكتروني",
+            "role": "الدور"
+        },
+        "placeholders": {
+            "displayName": "الاسم المعروض",
+            "username": "اسم المستخدم",
+            "email": "البريد الإلكتروني",
+            "password": "كلمة المرور",
+            "passwordKeep": "كلمة المرور (اتركها فارغة للاحتفاظ بالقديمة)",
+            "currentPassword": "كلمة المرور الحالية",
+            "newPassword": "كلمة المرور الجديدة",
+            "confirmPassword": "تأكيد كلمة المرور الجديدة"
+        },
+        "toasts": {
+            "profileUpdated": "تم تحديث الملف الشخصي بنجاح!",
+            "avatarTooLarge": "الصورة كبيرة جداً. الحد الأقصى 3 ميجابايت.",
+            "brandingSaved": "تم حفظ إعدادات العلامة التجارية بنجاح!",
+            "fileTooLarge": "الملف كبير جداً. الحد الأقصى 3 ميجابايت.",
+            "userUpdated": "تم تحديث المستخدم بنجاح!",
+            "userCreated": "تم إنشاء المستخدم بنجاح!",
+            "passwordChanged": "تم تغيير كلمة المرور بنجاح!"
+        }
     }
 }

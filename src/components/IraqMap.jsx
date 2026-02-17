@@ -146,7 +146,7 @@ const IraqMap = ({ data, selectedGovernorates = [], onSelect }) => {
             </ComposableMap>
 
             {/* Legend / Overlay */}
-            <div className="absolute bottom-4 right-4 bg-white/90 dark:bg-slate-800/90 backdrop-blur p-3 rounded-xl shadow-lg border border-slate-100 dark:border-slate-700 text-xs text-slate-500 dark:text-slate-400 z-20 pointer-events-none">
+            <div className="absolute bottom-4 end-4 bg-white/90 dark:bg-slate-800/90 backdrop-blur p-3 rounded-xl shadow-lg border border-slate-100 dark:border-slate-700 text-xs text-slate-500 dark:text-slate-400 z-20 pointer-events-none">
                 <div className="flex items-center gap-2 mb-1">
                     <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: brand.color }}></span> High Order Volume
                 </div>

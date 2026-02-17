@@ -1,8 +1,10 @@
 import React from 'react';
 import { Search, Bell, Sun, User, Menu } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
+import { useTranslation } from 'react-i18next';
 
 const Header = ({ title }) => {
+    const { t } = useTranslation();
     const { currentUser, toggleMobileMenu, theme, toggleTheme, brand } = useInventory();
     const isHidden = brand.hideHeader;
 
@@ -19,7 +21,7 @@ const Header = ({ title }) => {
 
                 <div>
                     <h2 className="text-xl md:text-2xl font-black text-slate-800 dark:text-white tracking-tight truncate max-w-[150px] md:max-w-none">{title}</h2>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 font-medium hidden md:block">Welcome back, {currentUser?.displayName?.split(' ')[0] || 'Admin'}</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 font-medium hidden md:block">{t('header.welcome')} {currentUser?.displayName?.split(' ')[0] || t('header.admin')}</p>
                 </div>
             </div>
 
@@ -75,7 +77,7 @@ const Header = ({ title }) => {
                             ))}
                         </div>
                         <div className="px-5 py-3 border-t border-slate-50 dark:border-slate-700 text-center">
-                            <button className="text-[10px] font-black text-accent uppercase tracking-widest hover:brightness-110 transition-all">View All Activity</button>
+                            <button className="text-[10px] font-black text-accent uppercase tracking-widest hover:brightness-110 transition-all">{t('header.viewAllActivity')}</button>
                         </div>
                     </div>
                 </div>

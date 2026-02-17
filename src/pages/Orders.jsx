@@ -10,6 +10,7 @@ import SortDropdown from '../components/SortDropdown';
 import { isWithinInterval, parseISO, startOfMonth, endOfMonth, subDays } from 'date-fns';
 import { exportOrdersToCSV } from '../utils/CSVExportUtil';
 import SearchableSelect from '../components/SearchableSelect';
+import RowLimitDropdown from '../components/RowLimitDropdown';
 import { User, MapPin as MapPinIcon, Globe as GlobeIcon, Package } from 'lucide-react';
 
 // StatusCell component for inline status editing
@@ -61,15 +62,15 @@ const StatusCell = ({ order, onUpdate }) => {
                 className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold transition-all hover:brightness-95 active:scale-95 ${getStatusColor(order.status)}`}
             >
                 {getStatusLabel(order.status)}
-                <div className={`w-0 h-0 border-l-[3px] border-l-transparent border-t-[4px] border-t-current border-r-[3px] border-r-transparent opacity-50 ${document.dir === 'rtl' ? 'mr-1' : 'ml-1'}`} />
+                <div className={`w-0 h-0 border-s-[3px] border-s-transparent border-t-[4px] border-t-current border-e-[3px] border-e-transparent opacity-50 ${document.dir === 'rtl' ? 'me-1' : 'ms-1'}`} />
             </button>
             {isOpen && (
-                <div className={`absolute top-full mt-1 w-32 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-100 dark:border-slate-700 py-1 z-50 animate-in fade-in zoom-in-95 duration-100 ${document.dir === 'rtl' ? 'right-0' : 'left-0'}`}>
+                <div className={`absolute top-full mt-1 w-32 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-100 dark:border-slate-700 py-1 z-50 animate-in fade-in zoom-in-95 duration-100 ${document.dir === 'rtl' ? 'end-0' : 'start-0'}`}>
                     {['Processing', 'Completed', 'Cancelled', 'Pending'].map((status) => (
                         <button
                             key={status}
                             onClick={() => handleSelect(status)}
-                            className={`w-full text-left px-3 py-2 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${order.status === status
+                            className={`w-full text-start px-3 py-2 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${order.status === status
                                 ? 'text-accent bg-slate-50 dark:bg-slate-700/30'
                                 : 'text-slate-600 dark:text-slate-300'
                                 }`}
@@ -92,6 +93,7 @@ const Orders = () => {
     const [viewingOrder, setViewingOrder] = useState(null);
     const [editingOrderId, setEditingOrderId] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [displayLimit, setDisplayLimit] = useState(100);
     const minDate = useMemo(() => {
         if (orders.length === 0) return subDays(new Date(), 30);
         return orders.reduce((min, o) => {
@@ -201,9 +203,8 @@ const Orders = () => {
         });
 
         // Apply sorting - use columnSort primarily
-        return result.sort((a, b) => {
+        const allSorted = result.sort((a, b) => {
             let compareResult = 0;
-
             if (columnSort.column === 'orderId') {
                 compareResult = a.orderId.localeCompare(b.orderId);
             } else if (columnSort.column === 'customer') {
@@ -215,10 +216,11 @@ const Orders = () => {
             } else if (columnSort.column === 'status') {
                 compareResult = a.status.localeCompare(b.status);
             }
-
             return columnSort.direction === 'asc' ? compareResult : -compareResult;
         });
-    }, [orders, searchTerm, filterGovernorates, filterSocials, filterStatuses, sortBy, dateRange, columnSort]);
+
+        return allSorted.slice(0, displayLimit);
+    }, [orders, searchTerm, filterGovernorates, filterSocials, filterStatuses, sortBy, dateRange, columnSort, displayLimit]);
 
     const handleSortChange = (val) => {
         setSortBy(val);
@@ -510,12 +512,12 @@ const Orders = () => {
     };
 
     // Helper to render column header with sort indicator
-    const SortableHeader = ({ column, label }) => {
+    const SortableHeader = ({ column, label, border = false }) => {
         const isActive = columnSort.column === column;
         return (
             <th
                 onClick={() => handleColumnSort(column)}
-                className="px-6 py-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors select-none"
+                className={`px-6 py-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors select-none ${border ? 'border-s dark:border-slate-700' : ''}`}
             >
                 <div className="flex items-center gap-2">
                     {label}
@@ -575,6 +577,8 @@ const Orders = () => {
                                 </button>
                             )}
 
+                        <RowLimitDropdown limit={displayLimit} onChange={setDisplayLimit} />
+
                         {/* Orders Count */}
                         <div className="flex items-center gap-3 px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
                             <ShoppingBag className="w-4 h-4 text-slate-400" />
@@ -589,13 +593,13 @@ const Orders = () => {
                 <div className="flex gap-3 w-full flex-wrap items-center">
                     {/* Search Input with fixed height */}
                     <div className="relative min-w-[200px] flex-1 md:flex-none h-[44px]">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                        <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                         <input
                             type="text"
                             placeholder={t('orders.searchPlaceholder')}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-10 pr-4 py-0 h-full w-full bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-2xl outline-none focus:border-accent/40 focus:ring-4 focus:ring-accent/10 transition-all font-bold text-sm text-slate-700 dark:text-white"
+                            className="ps-10 pe-4 py-0 h-full w-full bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-2xl outline-none focus:border-accent/40 focus:ring-4 focus:ring-accent/10 transition-all font-bold text-sm text-slate-700 dark:text-white"
                         />
                     </div>
 
@@ -655,74 +659,130 @@ const Orders = () => {
             </div>
 
 
-            {/* Orders List */}
+            {/* Orders List (desktop) + mobile cards */}
             <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
-                <div className="overflow-x-auto">
+                <div className="hidden sm:block overflow-x-auto">
                     <table className="w-full text-left">
                         <thead>
                             <tr className="bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-500 uppercase">
                                 <SortableHeader column="orderId" label={t('orders.table.orderId')} />
                                 <SortableHeader column="customer" label={t('orders.table.customer')} />
-                                <SortableHeader column="date" label={t('orders.table.date')} />
-                                <SortableHeader column="total" label={t('orders.table.total')} />
-                                <SortableHeader column="status" label={t('orders.table.status')} />
-                                <th className="px-6 py-4 text-right">{t('common.actions')}</th>
+                                <SortableHeader column="date" label={t('orders.table.date')} border={true} />
+                                <SortableHeader column="total" label={t('orders.table.total')} border={true} />
+                                <SortableHeader column="status" label={t('orders.table.status')} border={true} />
+                                <th className="ps-6 pe-6 py-4 text-end border-s dark:border-slate-700">{t('common.actions')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                            {filteredAndSortedOrders.map((order) => (
-                                <tr key={order._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/50 transition-colors">
-                                    <td className="px-6 py-4 text-sm font-semibold text-[var(--brand-color)]">{order.orderId}</td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex flex-col">
-                                            <span className="text-sm font-medium text-slate-800 dark:text-white">{order.customer.name}</span>
-                                            <span className="text-xs text-slate-500 flex gap-1 items-center">
-                                                {order.customer.governorate && <span className="bg-slate-100 dark:bg-slate-700 px-1 rounded">{order.customer.governorate}</span>}
-                                                {order.customer.phone}
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">{order.date}</td>
-                                    <td className="px-6 py-4 text-sm font-bold text-slate-800 dark:text-white">{formatCurrency(order.total)}</td>
-                                    <td className="px-6 py-4">
-                                        <StatusCell order={order} onUpdate={updateOrder} />
-                                    </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <div className="flex items-center justify-end gap-2">
-                                            <button onClick={() => handleViewOrder(order)} className="p-2 text-slate-400 hover:text-[var(--brand-color)] hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg" title="View Details">
-                                                <Eye className="w-4 h-4" />
-                                            </button>
-                                            <button onClick={() => handleEditOrder(order)} className="p-2 text-slate-400 hover:text-[var(--brand-color)] hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg" title="Edit Order">
-                                                <Edit className="w-4 h-4" />
-                                            </button>
-                                            <button onClick={() => printReceipt(order)} className="p-2 text-slate-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg" title="Print Receipt">
-                                                <Printer className="w-4 h-4" />
-                                            </button>
-                                            <button onClick={() => { if (window.confirm(t('orders.deleteConfirm'))) deleteOrder(order._id) }} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg" title="Delete Order">
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
+                            {loading ? (
+                                <tr>
+                                    <td colSpan="6" className="py-8">
+                                        <div className="flex flex-col gap-3">
+                                            <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded animate-pulse w-1/3" />
+                                            <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded animate-pulse w-1/2" />
+                                            <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded animate-pulse w-2/3" />
                                         </div>
                                     </td>
                                 </tr>
-                            ))}
+                            ) : (
+                                filteredAndSortedOrders.map((order) => (
+                                    <tr key={order._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/50 transition-colors">
+                                        <td className="px-6 py-4 text-sm font-semibold text-[var(--brand-color)]">{order.orderId}</td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex flex-col">
+                                                <span className="text-sm font-medium text-slate-800 dark:text-white">{order.customer.name}</span>
+                                                <span className="text-xs text-slate-500 flex gap-1 items-center">
+                                                    {order.customer.governorate && <span className="bg-slate-100 dark:bg-slate-700 px-1 rounded">{order.customer.governorate}</span>}
+                                                    {order.customer.phone}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400 border-s dark:border-slate-700">{order.date}</td>
+                                        <td className="px-6 py-4 text-sm font-bold text-slate-800 dark:text-white border-s dark:border-slate-700">{formatCurrency(order.total)}</td>
+                                        <td className="px-6 py-4 border-s dark:border-slate-700">
+                                            <StatusCell order={order} onUpdate={updateOrder} />
+                                        </td>
+                                        <td className="px-6 py-4 text-end border-s dark:border-slate-700">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <button onClick={() => handleViewOrder(order)} className="p-2 text-slate-400 hover:text-[var(--brand-color)] hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg" title="View Details">
+                                                    <Eye className="w-4 h-4" />
+                                                </button>
+                                                <button onClick={() => handleEditOrder(order)} className="p-2 text-slate-400 hover:text-[var(--brand-color)] hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg" title="Edit Order">
+                                                    <Edit className="w-4 h-4" />
+                                                </button>
+                                                <button onClick={() => printReceipt(order)} className="p-2 text-slate-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg" title="Print Receipt">
+                                                    <Printer className="w-4 h-4" />
+                                                </button>
+                                                <button onClick={() => { if (window.confirm(t('orders.deleteConfirm'))) deleteOrder(order._id) }} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg" title="Delete Order">
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
                         </tbody>
                     </table>
                 </div>
+
+                {/* Mobile: stacked card list for orders */}
+                <div className="block sm:hidden p-4 space-y-3">
+                    {loading ? (
+                        <div className="space-y-3">
+                            {[1, 2, 3].map(n => (
+                                <div key={n} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4">
+                                    <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-1/3 animate-pulse mb-2"></div>
+                                    <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-1/2 animate-pulse mb-2"></div>
+                                    <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded w-24 animate-pulse"></div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : filteredAndSortedOrders.length === 0 ? (
+                        <div className="text-center py-12 text-slate-400">
+                            <ShoppingBag className="w-12 h-12 mx-auto mb-2 opacity-20" />
+                            <p className="font-bold uppercase tracking-widest text-xs">{t('orders.noOrders') || t('orders.title')}</p>
+                        </div>
+                    ) : (
+                        filteredAndSortedOrders.map(order => (
+
+                            <div key={order._id} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4 flex items-start justify-between">
+                                <div>
+                                    <div className="text-sm font-black text-[var(--brand-color)]">{order.orderId}</div>
+                                    <div className="text-sm font-bold text-slate-800 dark:text-white">{order.customer.name}</div>
+                                    <div className="text-xs text-slate-400">{order.date}</div>
+                                </div>
+                                <div className="text-right flex flex-col items-end gap-2">
+                                    <div className="font-black text-lg">{formatCurrency(order.total)}</div>
+                                    <div>
+                                        <StatusCell order={order} onUpdate={updateOrder} />
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <button onClick={() => handleViewOrder(order)} className="p-2 text-slate-400 hover:text-[var(--brand-color)] hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-all">
+                                            <Eye className="w-4 h-4" />
+                                        </button>
+                                        <button onClick={() => handleEditOrder(order)} className="p-2 text-slate-400 hover:text-[var(--brand-color)] hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-all">
+                                            <Edit className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
             </div>
 
-            {/* Create Order Modal */}
             {isCreateModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-2 md:p-4 overflow-y-auto">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-5xl my-auto min-h-0 flex flex-col md:flex-row overflow-hidden animate-in fade-in zoom-in duration-200 max-h-[95vh] md:max-h-[90vh]">
+                <div className="fixed inset-0 z-[100] flex items-start justify-center bg-slate-900/60 backdrop-blur-md p-2 md:p-4 overflow-y-auto">
+                    <div className="bg-white dark:bg-slate-800 rounded-[32px] shadow-2xl w-full max-w-5xl my-4 sm:my-8 min-h-0 flex flex-col md:flex-row overflow-hidden animate-in fade-in zoom-in duration-300 relative max-h-[90vh]">
 
                         {/* Left: Product Selection & Cart */}
-                        <div className="flex-1 p-4 md:p-6 border-b md:border-b-0 md:border-r border-slate-100 dark:border-slate-700 flex flex-col min-h-0 overflow-y-auto lg:overflow-visible relative z-20">
+                        <div className="flex-1 p-4 md:p-6 border-b md:border-b-0 md:border-e border-slate-100 dark:border-slate-700 flex flex-col min-h-0 overflow-y-auto lg:overflow-visible relative z-20">
                             <div className="sticky top-0 bg-white dark:bg-slate-800 pb-4 z-10 lg:static">
                                 <h3 className="text-lg font-bold mb-4 text-slate-800 dark:text-white">Add Items</h3>
                                 <div className="space-y-4">
                                     <div className="flex flex-col sm:flex-row gap-4 items-end">
                                         <div className="flex-1 w-full min-w-0">
-                                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">{t('orders.searchProduct')}</label>
+                                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ms-1">{t('orders.searchProduct')}</label>
                                             <SearchableSelect
                                                 title={t('orders.chooseProduct')}
                                                 options={products.filter(p => p.stock > 0).map(p => ({
@@ -736,7 +796,7 @@ const Orders = () => {
                                             />
                                         </div>
                                         <div className="w-24">
-                                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">{t('orders.qty')}</label>
+                                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ms-1">{t('orders.qty')}</label>
                                             <input
                                                 type="number"
                                                 min="1"
@@ -1080,7 +1140,8 @@ const Orders = () => {
                         </div>
                     </div>
                 )
-            }        </Layout >
+            }
+        </Layout>
     );
 };
 

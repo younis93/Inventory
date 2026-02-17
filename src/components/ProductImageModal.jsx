@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { X, Upload, Download, Save, ZoomIn, ChevronLeft, ChevronRight, Image as ImageIcon, Trash2, Tag } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
+import { useTranslation } from 'react-i18next';
 import ImageSlider from './ImageSlider';
 
 const ProductImageModal = ({ product, onClose, onSave, onUpload }) => {
+    const { t } = useTranslation();
     const { formatCurrency } = useInventory();
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [editedTitle, setEditedTitle] = useState(product.name || '');
@@ -49,7 +51,7 @@ const ProductImageModal = ({ product, onClose, onSave, onUpload }) => {
     };
 
     const handleDeleteImage = async (index) => {
-        if (window.confirm('Are you sure you want to delete this image?')) {
+        if (window.confirm(t('productPicture.modal.confirmDeleteImage'))) {
             const newImages = images.filter((_, i) => i !== index);
             setImages(newImages);
 
@@ -116,11 +118,11 @@ const ProductImageModal = ({ product, onClose, onSave, onUpload }) => {
                     {/* Quick Upload Action */}
                     <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center">
                         <div className="text-xs font-bold text-slate-500 uppercase tracking-widest">
-                            {images.length} Product Images
+                            {images.length} {t('productPicture.modal.images')}
                         </div>
                         <label className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200 hover:text-accent hover:border-accent cursor-pointer transition-all shadow-sm active:scale-95">
                             <Upload className="w-4 h-4" />
-                            <span>Add Photo</span>
+                            <span>{t('productPicture.modal.addPhoto')}</span>
                             <input type="file" multiple accept="image/*" className="hidden" onChange={handleFileChange} />
                         </label>
                     </div>
@@ -130,34 +132,34 @@ const ProductImageModal = ({ product, onClose, onSave, onUpload }) => {
                 <div className="w-full md:w-1/3 p-6 flex flex-col h-full bg-white dark:bg-slate-800 border-l border-slate-100 dark:border-slate-700 overflow-y-auto">
                     <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2">
                         <ImageIcon className="w-5 h-5 text-accent" />
-                        Product Details
+                        {t('productPicture.modal.details')}
                     </h3>
 
                     <div className="space-y-6 flex-1">
                         <div>
-                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Product Title</label>
+                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">{t('productPicture.modal.productTitle')}</label>
                             <input
                                 type="text"
                                 value={editedTitle}
                                 onChange={(e) => setEditedTitle(e.target.value)}
                                 className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-slate-800 dark:text-white focus:ring-2 focus:ring-accent outline-none transition-all"
-                                placeholder="Enter product title"
+                                placeholder={t('productPicture.modal.enterTitle')}
                             />
                         </div>
 
                         <div>
-                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Description</label>
+                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">{t('productPicture.modal.description')}</label>
                             <textarea
                                 value={editedDescription}
                                 onChange={(e) => setEditedDescription(e.target.value)}
                                 className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 focus:ring-2 focus:ring-accent outline-none transition-all resize-none h-32"
-                                placeholder="Enter product description..."
+                                placeholder={t('productPicture.modal.enterDescription')}
                             />
                         </div>
 
                         <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800 flex items-center justify-between">
                             <div>
-                                <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Selling Price</span>
+                                <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{t('productPicture.modal.sellingPrice')}</span>
                                 <span className="text-xl font-black text-slate-800 dark:text-white">
                                     {formatCurrency(product.sellingPriceIQD || product.price || 0)}
                                 </span>
@@ -177,12 +179,12 @@ const ProductImageModal = ({ product, onClose, onSave, onUpload }) => {
                             {isSaving ? (
                                 <>
                                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                    Saving...
+                                    {t('common.saving')}
                                 </>
                             ) : (
                                 <>
                                     <Save className="w-5 h-5" />
-                                    Save Changes
+                                    {t('settings.saveChanges')}
                                 </>
                             )}
                         </button>

@@ -43,7 +43,7 @@ const SortDropdown = ({ title, options, selectedValue, onChange, icon: Icon }) =
             </button>
 
             {isOpen && (
-                <div className="absolute top-full left-0 mt-2 z-50 w-72 animate-in fade-in zoom-in-95 duration-200">
+                <div className="absolute top-full start-0 mt-2 z-50 w-72 animate-in fade-in zoom-in-95 duration-200">
                     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.1)] border border-slate-100 dark:border-slate-700 overflow-hidden flex flex-col w-full min-w-[240px]">
                         <div className="px-4 py-3 pb-2 flex items-center justify-between">
                             <div className="flex items-center gap-3">

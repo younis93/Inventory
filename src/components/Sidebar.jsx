@@ -29,16 +29,11 @@ const Sidebar = () => {
         { icon: Settings, label: t('menu.settings'), path: '/settings' },
     ];
 
-    const sidebarClasses = `
-        fixed lg:static inset-y-0 ${isRTL ? 'right-0 border-l' : 'left-0 border-r'} z-40
-        ${isSidebarCollapsed ? 'w-20' : 'w-56'}
-        bg-white dark:bg-slate-900 
-        border-slate-200 dark:border-slate-800 
-        flex flex-col h-screen 
-        transition-all duration-300 ease-in-out
-        ${isMobileMenuOpen ? 'translate-x-0 shadow-2xl' : (isRTL ? 'translate-x-full' : '-translate-x-full') + ' lg:translate-x-0'}
-        glass-panel
-    `;
+    // Use explicit left/right classes and transforms to avoid centering issues
+    const positionClass = isRTL ? 'right-0 left-auto' : 'left-0 right-auto';
+    const widthClass = isSidebarCollapsed ? 'w-20' : 'w-56';
+    const mobileHiddenTransform = isRTL ? 'translate-x-full' : '-translate-x-full';
+    const sidebarClasses = `fixed lg:static top-0 bottom-0 ${positionClass} border-e z-40 ${widthClass} bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 flex flex-col h-screen transition-all duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0 shadow-2xl' : mobileHiddenTransform + ' lg:translate-x-0'} glass-panel`;
 
     return (
         <aside className={sidebarClasses}>
@@ -46,7 +41,7 @@ const Sidebar = () => {
             <div className={`h-24 flex items-center ${isSidebarCollapsed ? 'justify-center' : 'px-8'} relative`}>
                 <div className="flex items-center gap-3">
                     <div
-                        className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg text-white overflow-hidden shrink-0"
+                        className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg text-white overflow-hidden shrink-0"
                         style={{ backgroundColor: brand.color, boxShadow: `0 10px 15px -3px ${brand.color}33` }}
                     >
                         {brand.logo ? (
@@ -70,7 +65,7 @@ const Sidebar = () => {
                 {/* Mobile Close Button */}
                 <button
                     onClick={closeMobileMenu}
-                    className="lg:hidden absolute top-6 right-4 p-2 text-slate-400 hover:text-red-500 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    className={`lg:hidden absolute top-6 ${isRTL ? 'left-4' : 'right-4'} p-2 text-slate-400 hover:text-red-500 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors`}
                 >
                     <X className="w-5 h-5" />
                 </button>
@@ -80,7 +75,7 @@ const Sidebar = () => {
             <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-2 custom-scrollbar">
                 {!isSidebarCollapsed && (
                     <div className="mb-4 px-4">
-                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Main Menu</p>
+                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">{t('menu.mainMenu')}</p>
                     </div>
                 )}
 
@@ -100,7 +95,7 @@ const Sidebar = () => {
                         >
                             <item.icon className={`w-5 h-5 relative z-10 transition-transform duration-200 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
                             {!isSidebarCollapsed && (
-                                <span className="font-medium relative z-10 animate-in fade-in slide-in-from-left-2 duration-300">
+                                <span className="font-medium relative z-10 animate-in fade-in slide-in-from-start-2 duration-300">
                                     {item.label}
                                 </span>
                             )}
@@ -123,12 +118,12 @@ const Sidebar = () => {
                                 currentUser?.displayName?.charAt(0) || 'U'
                             )}
                         </div>
-                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white dark:border-slate-800 rounded-full"></div>
+                        <div className="absolute bottom-0 end-0 w-3 h-3 bg-emerald-500 border-2 border-white dark:border-slate-800 rounded-full"></div>
                     </div>
                     {!isSidebarCollapsed && (
                         <div className="overflow-hidden animate-in fade-in duration-300">
-                            <p className="text-sm font-bold text-slate-800 dark:text-white truncate">{currentUser?.displayName || 'User'}</p>
-                            <p className="text-xs text-slate-500 truncate">{currentUser?.role || 'Staff'}</p>
+                            <p className="text-sm font-bold text-slate-800 dark:text-white truncate">{currentUser?.displayName?.split(' ')[0] || t('user.defaultName')}</p>
+                            <p className="text-xs text-slate-500 truncate">{currentUser?.role || t('user.defaultRole')}</p>
                         </div>
                     )}
                 </div>
@@ -140,7 +135,7 @@ const Sidebar = () => {
                 className={`hidden lg:flex absolute bottom-24 ${isRTL ? '-left-3' : '-right-3'} w-6 h-6 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full items-center justify-center text-slate-400 shadow-sm z-50 transition-all hover:scale-110`}
                 style={{ color: brand.color }}
             >
-                {isSidebarCollapsed ? (isRTL ? <ChevronLeft className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />) : (isRTL ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />)}
+                {isSidebarCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
             </button>
         </aside>
     );

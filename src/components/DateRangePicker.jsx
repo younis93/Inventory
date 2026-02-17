@@ -222,26 +222,26 @@ const DateRangePicker = ({ onChange, initialRange, range: controlledRange, onRan
                     }
                 }}
             >
-                <div className={`w-full h-[44px] flex items-center pl-4 pr-10 bg-white dark:bg-slate-800 border-2 rounded-2xl cursor-pointer transition-all shadow-sm font-bold
+                <div className={`w-full h-[44px] flex items-center ps-4 pe-10 bg-white dark:bg-slate-800 border-2 rounded-2xl cursor-pointer transition-all shadow-sm font-bold
             ${isOpen ? 'border-accent/30 ring-4 ring-accent/10 bg-accent/5' : 'border-slate-100 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-600'}`}>
                     <span className={`text-[11px] font-bold ${range.from ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-slate-400'}`}>
                         {range.from ? formatDateRange() : 'Select date range'}
                     </span>
                 </div>
-                <CalendarIcon className={`absolute right-3 w-4 h-4 pointer-events-none transition-colors ${isOpen ? 'text-accent' : 'text-slate-400'}`} />
+                <CalendarIcon className={`absolute end-3 w-4 h-4 pointer-events-none transition-colors ${isOpen ? 'text-accent' : 'text-slate-400'}`} />
             </div>
 
             {/* Popover */}
             {isOpen && (
                 <div
-                    className="absolute top-full left-0 mt-4 z-50 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-gray-100 dark:border-slate-700 p-0 overflow-hidden w-[680px] animate-in fade-in zoom-in-95 duration-200"
+                    className="absolute top-full start-0 mt-4 z-50 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-gray-100 dark:border-slate-700 p-0 overflow-hidden w-[680px] animate-in fade-in zoom-in-95 duration-200"
                     role="dialog"
                     aria-modal="true"
                     aria-label="Calendar date range picker"
                 >
 
                     {/* Calendars Container */}
-                    <div className="flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-gray-100 dark:divide-slate-700">
+                    <div className="flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x dark:md:divide-slate-700 md:divide-gray-100">
 
                         {/* Left Calendar */}
                         <div className="p-6 flex-1 min-w-[320px]">

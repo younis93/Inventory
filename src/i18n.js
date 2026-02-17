@@ -14,7 +14,7 @@ i18n
             ar: { translation: ar },
         },
         fallbackLng: 'en',
-        debug: false,
+        debug: true,
         interpolation: {
             escapeValue: false, // React already escapes by default
         },
@@ -22,6 +22,17 @@ i18n
             order: ['localStorage', 'navigator'],
             caches: ['localStorage'],
         },
+    })
+    .then(() => {
+        const dir = i18n.language === 'ar' ? 'rtl' : 'ltr';
+        document.dir = dir;
+        document.documentElement.lang = i18n.language;
     });
+
+i18n.on('languageChanged', (lng) => {
+    const dir = lng === 'ar' ? 'rtl' : 'ltr';
+    document.dir = dir;
+    document.documentElement.lang = lng;
+});
 
 export default i18n;
