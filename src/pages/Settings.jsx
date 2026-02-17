@@ -8,7 +8,11 @@ import ImageWithFallback from '../components/common/ImageWithFallback';
 
 const Settings = () => {
     const { t } = useTranslation();
-    const { theme, toggleTheme, appearance, setAppearance, users, addUser, updateUser, deleteUser, currentUser, updateUserProfile, brand, updateBrand, addToast, seedData, language, changeLanguage } = useInventory();
+    const {
+        theme, toggleTheme, appearance, setAppearance, users, addUser, updateUser, deleteUser, currentUser, updateUserProfile,
+        brand, updateBrand, addToast, language, changeLanguage, isDesktop, isOnline, pendingSyncCount, syncNow,
+        desktopOfflineModeEnabled, setDesktopOfflineModeEnabled, conflicts
+    } = useInventory();
     const [activeTab, setActiveTab] = useState('general');
     const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
     const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
@@ -239,6 +243,46 @@ const Settings = () => {
                                         </button>
                                     </div>
                                 </div>
+
+                                {isDesktop && (
+                                    <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 space-y-4">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">Desktop Offline Mode</h3>
+                                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                                                    {isOnline ? 'Online' : 'Offline'} • {pendingSyncCount} queued
+                                                </p>
+                                            </div>
+                                            <button
+                                                onClick={() => setDesktopOfflineModeEnabled(!desktopOfflineModeEnabled)}
+                                                className={`px-3 py-1.5 rounded-lg text-xs font-bold border ${desktopOfflineModeEnabled
+                                                    ? 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-800/50 dark:text-emerald-300'
+                                                    : 'bg-slate-100 border-slate-200 text-slate-600 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300'}`}
+                                            >
+                                                {desktopOfflineModeEnabled ? 'Enabled' : 'Disabled'}
+                                            </button>
+                                        </div>
+                                        <button
+                                            onClick={syncNow}
+                                            className="px-4 py-2 text-sm font-bold rounded-xl bg-accent text-white shadow-lg shadow-accent/20"
+                                        >
+                                            Sync Now
+                                        </button>
+                                        <div>
+                                            <h4 className="text-xs font-bold text-slate-600 dark:text-slate-300 mb-2">Conflicts ({conflicts.length})</h4>
+                                            <div className="max-h-36 overflow-y-auto space-y-2">
+                                                {conflicts.length === 0 && (
+                                                    <p className="text-xs text-slate-500 dark:text-slate-400">No conflicts logged.</p>
+                                                )}
+                                                {conflicts.slice(0, 10).map((conflict) => (
+                                                    <div key={conflict.id} className="text-xs p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                                                        <span className="font-bold">{conflict.entity}</span> #{conflict.docId}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
 
                             </div>
                         </div>

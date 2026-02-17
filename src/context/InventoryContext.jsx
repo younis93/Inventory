@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { db, auth } from '../firebase';
-import { firebaseService } from '../services/firebaseService';
+import { dataClient } from '../data/dataClient';
 import { useTranslation } from 'react-i18next';
 
 const InventoryContext = createContext();
@@ -94,6 +93,11 @@ export const InventoryProvider = ({ children }) => {
     const [categories, setCategories] = useState(['Electronics', 'Clothing', 'Home', 'Beauty', 'Sports']);
     const [loading, setLoading] = useState(true);
     const [toasts, setToasts] = useState([]);
+    const isDesktop = dataClient.isDesktop();
+    const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
+    const [pendingSyncCount, setPendingSyncCount] = useState(0);
+    const [desktopOfflineModeEnabled, setDesktopOfflineModeEnabledState] = useState(true);
+    const [conflicts, setConflicts] = useState([]);
 
     const addToast = (message, type = 'info') => {
         const id = Math.random().toString(36).substr(2, 9);
@@ -101,6 +105,61 @@ export const InventoryProvider = ({ children }) => {
         setTimeout(() => {
             setToasts(prev => prev.filter(t => t.id !== id));
         }, 3000);
+    };
+
+    useEffect(() => {
+        if (!isDesktop) return;
+
+        const handleOnline = () => {
+            setIsOnline(true);
+            dataClient.setOnlineStatus(true);
+        };
+        const handleOffline = () => {
+            setIsOnline(false);
+            dataClient.setOnlineStatus(false);
+        };
+
+        const init = async () => {
+            setIsOnline(navigator.onLine);
+            await dataClient.setOnlineStatus(navigator.onLine);
+            const status = await dataClient.getSyncStatus();
+            setPendingSyncCount(status.pendingCount || 0);
+            setDesktopOfflineModeEnabledState(Boolean(status.offlineModeEnabled));
+            setConflicts(await dataClient.getConflicts());
+        };
+
+        init().catch((error) => console.error('Desktop sync init failed:', error));
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+
+        const unsubSync = dataClient.onSyncState((state) => {
+            setPendingSyncCount(state.pendingCount || 0);
+            setDesktopOfflineModeEnabledState(Boolean(state.offlineModeEnabled));
+        });
+        const unsubConflict = dataClient.onConflict((conflict) => {
+            addToast(`Conflict detected on ${conflict.entity} #${conflict.docId} - resolved automatically`, 'warning');
+            dataClient.getConflicts().then(setConflicts).catch(() => {});
+        });
+
+        return () => {
+            window.removeEventListener('online', handleOnline);
+            window.removeEventListener('offline', handleOffline);
+            unsubSync?.();
+            unsubConflict?.();
+        };
+    }, [isDesktop]);
+
+    const syncNow = async () => {
+        if (!isDesktop) return;
+        await dataClient.syncOnce();
+        setPendingSyncCount(await dataClient.getPendingSyncCount());
+        setConflicts(await dataClient.getConflicts());
+    };
+
+    const setDesktopOfflineModeEnabled = async (enabled) => {
+        if (!isDesktop) return;
+        await dataClient.setOfflineModeEnabled(enabled);
+        setDesktopOfflineModeEnabledState(enabled);
     };
 
     // Header Visibility State (for mobile modals)
@@ -142,7 +201,7 @@ export const InventoryProvider = ({ children }) => {
     const updateBrand = async (newBrand) => {
         const { _id, ...brandData } = newBrand;
         const targetId = _id || "branding";
-        await firebaseService.set("settings", targetId, brandData);
+        await dataClient.set("settings", targetId, brandData);
         setBrand(prev => ({ ...prev, ...brandData }));
     };
 
@@ -173,13 +232,13 @@ export const InventoryProvider = ({ children }) => {
             checkLoaded();
         };
 
-        const unsubProducts = firebaseService.subscribeToCollection("products", (data) => {
+        const unsubProducts = dataClient.subscribeToCollection("products", (data) => {
             setProducts(data);
             loaded.products = true;
             checkLoaded();
         }, "name", "asc", (err) => handleError('products', err));
 
-        const unsubCategories = firebaseService.subscribeToCollection("categories", (data) => {
+        const unsubCategories = dataClient.subscribeToCollection("categories", (data) => {
             if (data.length > 0) {
                 const sortedCats = data.map(d => d.name).sort();
                 setCategories(sortedCats);
@@ -192,25 +251,25 @@ export const InventoryProvider = ({ children }) => {
             checkLoaded();
         }, "name", "asc", (err) => handleError('categories', err));
 
-        const unsubOrders = firebaseService.subscribeToCollection("orders", (data) => {
+        const unsubOrders = dataClient.subscribeToCollection("orders", (data) => {
             setOrders(data);
             loaded.orders = true;
             checkLoaded();
         }, "date", "desc", (err) => handleError('orders', err));
 
-        const unsubCustomers = firebaseService.subscribeToCollection("customers", (data) => {
+        const unsubCustomers = dataClient.subscribeToCollection("customers", (data) => {
             setCustomers(data);
             loaded.customers = true;
             checkLoaded();
         }, "name", "asc", (err) => handleError('customers', err));
 
-        const unsubUsers = firebaseService.subscribeToCollection("users", (data) => {
+        const unsubUsers = dataClient.subscribeToCollection("users", (data) => {
             setUsers(data);
             loaded.users = true;
             checkLoaded();
         }, "username", "asc", (err) => handleError('users', err));
 
-        const unsubBranding = firebaseService.subscribeToCollection("settings", (data) => {
+        const unsubBranding = dataClient.subscribeToCollection("settings", (data) => {
             const branding = data.find(d => d._id === "branding");
             if (branding) {
                 const { _id, ...brandData } = branding;
@@ -256,7 +315,7 @@ export const InventoryProvider = ({ children }) => {
     const addCategory = async (name) => {
         // Check if exists
         if (categories.includes(name)) return;
-        await firebaseService.add("categories", { name });
+        await dataClient.add("categories", { name });
         addToast(`Category "${name}" added!`, "success");
     };
 
@@ -264,14 +323,14 @@ export const InventoryProvider = ({ children }) => {
         // Find ID
         const catObj = categoryObjects.find(c => c.name === oldName);
         if (catObj) {
-            await firebaseService.update("categories", catObj._id, { name: newName });
+            await dataClient.update("categories", catObj._id, { name: newName });
             addToast(`Category updated to "${newName}"`, "success");
             // Also need to update all products with this category?
             // "Update inventory product category dropdowns/lists immediately" -> This is auto via subscription.
             // "Update products?" -> Usually yes.
             const productsToUpdate = products.filter(p => p.category === oldName);
             for (const p of productsToUpdate) {
-                await firebaseService.update("products", p._id, { category: newName });
+                await dataClient.update("products", p._id, { category: newName });
             }
         }
     };
@@ -279,7 +338,7 @@ export const InventoryProvider = ({ children }) => {
     const deleteCategory = async (name) => {
         const catObj = categoryObjects.find(c => c.name === name);
         if (catObj) {
-            await firebaseService.delete("categories", catObj._id);
+            await dataClient.delete("categories", catObj._id);
             addToast(`Category "${name}" deleted!`, "success");
         }
     };
@@ -370,7 +429,7 @@ export const InventoryProvider = ({ children }) => {
     // --- Actions (using Service) ---
     const addProduct = async (newProduct) => {
         try {
-            const result = await firebaseService.add("products", newProduct);
+            const result = await dataClient.add("products", newProduct);
             addToast('Product added successfully', 'success');
             return result;
         } catch (error) {
@@ -383,7 +442,7 @@ export const InventoryProvider = ({ children }) => {
     const updateProduct = async (updatedProduct) => {
         const { _id, ...data } = updatedProduct;
         try {
-            await firebaseService.update("products", _id, data);
+            await dataClient.update("products", _id, data);
             addToast('Product updated successfully', 'success');
         } catch (error) {
             addToast('Error updating product', 'error');
@@ -393,7 +452,7 @@ export const InventoryProvider = ({ children }) => {
 
     const deleteProduct = async (id) => {
         try {
-            await firebaseService.delete("products", id);
+            await dataClient.delete("products", id);
             addToast('Product deleted successfully', 'success');
         } catch (error) {
             addToast('Error deleting product', 'error');
@@ -408,14 +467,14 @@ export const InventoryProvider = ({ children }) => {
             ...newCustomer,
             createdOn: new Date().toISOString()
         };
-        const result = await firebaseService.add("customers", customerWithDate);
+        const result = await dataClient.add("customers", customerWithDate);
         addToast('Customer added successfully', 'success');
         return result;
     };
 
     const updateCustomer = async (updatedCustomer) => {
         const { _id, ...data } = updatedCustomer;
-        await firebaseService.update("customers", _id, data);
+        await dataClient.update("customers", _id, data);
     };
 
     const addOrder = async (newOrder) => {
@@ -428,14 +487,14 @@ export const InventoryProvider = ({ children }) => {
             };
 
             // Add the order
-            const addedOrder = await firebaseService.add("orders", orderWithDetails);
+            const addedOrder = await dataClient.add("orders", orderWithDetails);
 
             // Decrement Stock
             for (const item of newOrder.items) {
                 const product = products.find(p => p._id === item.product._id);
                 if (product) {
                     const newStock = Math.max(0, product.stock - item.quantity);
-                    await firebaseService.update("products", product._id, {
+                    await dataClient.update("products", product._id, {
                         stock: newStock,
                         status: newStock === 0 ? 'Out of Stock' : (newStock <= 10 ? 'Low Stock' : 'In Stock')
                     });
@@ -459,14 +518,14 @@ export const InventoryProvider = ({ children }) => {
                 const product = products.find(p => p._id === item.product._id);
                 if (product) {
                     const newStock = product.stock + item.quantity;
-                    await firebaseService.update("products", product._id, {
+                    await dataClient.update("products", product._id, {
                         stock: newStock,
                         status: newStock === 0 ? 'Out of Stock' : (newStock <= 10 ? 'Low Stock' : 'In Stock')
                     });
                 }
             }
         }
-        await firebaseService.delete("orders", id);
+        await dataClient.delete("orders", id);
         addToast('Order deleted and stock restored', 'info');
     };
 
@@ -479,7 +538,7 @@ export const InventoryProvider = ({ children }) => {
             for (const item of oldOrder.items) {
                 const product = products.find(p => p._id === item.product._id);
                 if (product) {
-                    await firebaseService.update("products", product._id, {
+                    await dataClient.update("products", product._id, {
                         stock: product.stock + item.quantity
                     });
                 }
@@ -498,7 +557,7 @@ export const InventoryProvider = ({ children }) => {
                     const oldQty = oldItem ? oldItem.quantity : 0;
                     const newStock = Math.max(0, product.stock + oldQty - item.quantity);
 
-                    await firebaseService.update("products", product._id, {
+                    await dataClient.update("products", product._id, {
                         stock: newStock,
                         status: newStock === 0 ? 'Out of Stock' : (newStock <= 10 ? 'Low Stock' : 'In Stock')
                     });
@@ -506,29 +565,29 @@ export const InventoryProvider = ({ children }) => {
             }
         }
 
-        await firebaseService.update("orders", _id, data);
+        await dataClient.update("orders", _id, data);
         addToast('Order updated successfully', 'success');
     };
 
     const addUser = async (user) => {
-        await firebaseService.add("users", { ...user, displayName: user.username });
+        await dataClient.add("users", { ...user, displayName: user.username });
     };
 
     const updateUser = async (updatedUser) => {
         const { _id, ...data } = updatedUser;
-        await firebaseService.update("users", _id, data);
+        await dataClient.update("users", _id, data);
     }
 
 
 
     const updateUserProfile = async (updatedData) => {
         if (!currentUser) return;
-        await firebaseService.update("users", currentUser._id, updatedData);
+        await dataClient.update("users", currentUser._id, updatedData);
         setCurrentUser(prev => ({ ...prev, ...updatedData }));
     }
 
     const deleteUser = async (userId) => {
-        await firebaseService.delete("users", userId);
+        await dataClient.delete("users", userId);
     };
 
     return (
@@ -555,7 +614,13 @@ export const InventoryProvider = ({ children }) => {
             isSidebarCollapsed, toggleSidebar,
             isMobileMenuOpen, toggleMobileMenu, closeMobileMenu,
             toasts, addToast,
-            isModalOpen, setIsModalOpen
+            isModalOpen, setIsModalOpen,
+            isDesktop, isOnline,
+            pendingSyncCount,
+            syncNow,
+            desktopOfflineModeEnabled,
+            setDesktopOfflineModeEnabled,
+            conflicts
         }}>
             {children}
         </InventoryContext.Provider>

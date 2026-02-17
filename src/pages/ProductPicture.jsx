@@ -9,7 +9,7 @@ import Skeleton from '../components/common/Skeleton';
 
 const ProductPicture = () => {
     const { t } = useTranslation();
-    const { products, updateProduct, loading } = useInventory();
+    const { products, updateProduct, loading, isDesktop, isOnline, addToast } = useInventory();
     const [selectedProduct, setSelectedProduct] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
 
@@ -27,6 +27,11 @@ const ProductPicture = () => {
     };
 
     const handleUploadImages = async (files) => {
+        if (isDesktop && !isOnline) {
+            addToast('Image upload is disabled while offline. Reconnect and try again.', 'warning');
+            return [];
+        }
+
         // In a real app, you would upload these to Firebase Storage here and get URLs back.
         // For this demo, we'll simulate by creating object URLs.
         // INTEGRATION NOTE: The user's system stores URLs. We need a real upload function 

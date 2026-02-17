@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 
 const Header = ({ title }) => {
     const { t } = useTranslation();
-    const { currentUser, toggleMobileMenu, theme, toggleTheme, brand, isModalOpen, language, appearance, setAppearance } = useInventory();
+    const { currentUser, toggleMobileMenu, theme, toggleTheme, brand, isModalOpen, language, appearance, isOnline, pendingSyncCount, isDesktop } = useInventory();
     const isHidden = brand.hideHeader;
     const isRTL = language === 'ar';
     const isGlassTheme = ['liquid', 'default_glass'].includes(appearance?.theme);
@@ -86,6 +86,17 @@ const Header = ({ title }) => {
                 {/* Divider - Hidden on mobile */}
                 <div className="w-px h-5 sm:h-6 md:h-7 lg:h-8 bg-slate-200 dark:bg-slate-700/50 mx-0.5 sm:mx-1 hidden md:block"></div>
 
+                {isDesktop && (
+                    <div className={`hidden md:flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs font-bold border ${isOnline
+                            ? 'text-emerald-700 bg-emerald-50 border-emerald-200 dark:text-emerald-300 dark:bg-emerald-900/20 dark:border-emerald-800/50'
+                            : 'text-amber-700 bg-amber-50 border-amber-200 dark:text-amber-300 dark:bg-amber-900/20 dark:border-amber-800/50'
+                        }`}>
+                        <span>{isOnline ? 'Online' : 'Offline'}</span>
+                        <span className="text-slate-400">|</span>
+                        <span>{pendingSyncCount} pending</span>
+                    </div>
+                )}
+
                 {/* Brand Icon */}
                 <div
                     className={`relative w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 lg:w-11 lg:h-11 rounded-xl md:rounded-2xl flex items-center justify-center text-white font-bold overflow-hidden shrink-0 transition-all duration-300 hover:scale-105 cursor-pointer ${isGlassTheme
@@ -107,8 +118,7 @@ const Header = ({ title }) => {
                         </div>
                     )}
 
-                    {/* Online indicator - hidden on very small screens */}
-                    <div className="absolute -bottom-0.5 -right-0.5 sm:bottom-0 sm:right-0 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-900 shadow-sm hidden sm:block"></div>
+                    <div className={`absolute -bottom-0.5 -right-0.5 sm:bottom-0 sm:right-0 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full border-2 border-white dark:border-slate-900 shadow-sm hidden sm:block ${isOnline ? 'bg-emerald-500' : 'bg-amber-500'}`}></div>
                 </div>
 
                 {/* Desktop User Info */}

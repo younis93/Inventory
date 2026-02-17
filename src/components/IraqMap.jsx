@@ -1,36 +1,63 @@
-import React, { useMemo, useState, useEffect } from 'react';
-import { ComposableMap, Geographies, Geography, ZoomableGroup, Marker } from 'react-simple-maps';
+import React, { useMemo } from 'react';
+import { ComposableMap, Geographies, Geography, Marker } from 'react-simple-maps';
 import { scaleLinear } from 'd3-scale';
-import { geoCentroid } from 'd3-geo';
+import { geoCentroid, geoMercator, geoPath } from 'd3-geo';
 import { useInventory } from '../context/InventoryContext';
+import iraqGeoRaw from '../data/geoBoundaries-IRQ-ADM1.geojson?raw';
 
 import Skeleton from './common/Skeleton';
 
+const normalizeRingOrientation = (feature) => {
+    const geometry = feature?.geometry;
+    if (!geometry) return feature;
 
-const GEO_URL = "https://raw.githubusercontent.com/wmgeolab/geoBoundaries/rel/releaseData/gbOpen/IRQ/ADM1/geoBoundaries-IRQ-ADM1.geojson";
+    if (geometry.type === "Polygon") {
+        return {
+            ...feature,
+            geometry: {
+                ...geometry,
+                coordinates: geometry.coordinates.map((ring, index) => (index === 0 ? [...ring].reverse() : ring)),
+            },
+        };
+    }
+
+    if (geometry.type === "MultiPolygon") {
+        return {
+            ...feature,
+            geometry: {
+                ...geometry,
+                coordinates: geometry.coordinates.map((polygon) =>
+                    polygon.map((ring, index) => (index === 0 ? [...ring].reverse() : ring))
+                ),
+            },
+        };
+    }
+
+    return feature;
+};
 
 const IraqMap = ({ data, selectedGovernorates = [], onSelect }) => {
     const { theme, brand } = useInventory();
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(false);
-    const [geoData, setGeoData] = useState(null);
-
-    useEffect(() => {
-        fetch(GEO_URL)
-            .then(res => {
-                if (!res.ok) throw new Error('Failed to fetch map data');
-                return res.json();
-            })
-            .then(data => {
-                setGeoData(data);
-                setLoading(false);
-            })
-            .catch(err => {
-                console.error("Map Load Error:", err);
-                setError(true);
-                setLoading(false);
-            });
+    const geoData = useMemo(() => {
+        const parsed = JSON.parse(iraqGeoRaw);
+        return {
+            ...parsed,
+            features: (parsed.features || []).map(normalizeRingOrientation),
+        };
     }, []);
+    const projection = useMemo(() => {
+        const width = 800;
+        const height = 600;
+        const proj = geoMercator().fitExtent([[35, 15], [765, 585]], geoData);
+        proj.scale(proj.scale() * 1.05);
+        const [[x0, y0], [x1, y1]] = geoPath(proj).bounds(geoData);
+        const [tx, ty] = proj.translate();
+        proj.translate([
+            tx + (width / 2 - (x0 + x1) / 2),
+            ty + (height / 2 - (y0 + y1) / 2),
+        ]);
+        return proj;
+    }, [geoData]);
 
     // Compute numeric counts from `data` which may be an object mapping name->count
     const { maxValue, minPositive } = useMemo(() => {
@@ -50,33 +77,15 @@ const IraqMap = ({ data, selectedGovernorates = [], onSelect }) => {
 
     return (
         <div className="w-full h-full bg-slate-50 dark:bg-slate-900/50 rounded-2xl overflow-hidden relative flex items-center justify-center border border-slate-100 dark:border-slate-800">
-            {loading && !error && (
-                <div className="absolute inset-0 z-10 bg-white dark:bg-slate-900 overflow-hidden">
-                    <Skeleton className="w-full h-full rounded-none" />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="bg-white/50 dark:bg-slate-900/50 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-slate-500 uppercase tracking-widest">Loading Map...</span>
-                    </div>
-                </div>
-            )}
-
-            {error && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 bg-slate-50 dark:bg-slate-900 z-10 p-4 text-center">
-                    <p className="font-bold">Map data unavailable</p>
-                    <p className="text-xs mt-2">Check internet connection or data source.</p>
-                </div>
-            )}
-
-            {!loading && !error && geoData && (
+            {geoData ? (
                 <ComposableMap
-                    projection="geoMercator"
-                    projectionConfig={{ scale: 3500, center: [44, 33] }} // Adjusted zoom/center
+                    projection={projection}
                     className="w-full h-full"
                 >
-                    <ZoomableGroup zoom={1} maxZoom={3}>
-                        <Geographies geography={geoData}>
-                            {({ geographies }) =>
-                                <>
-                                    {geographies.map((geo) => {
+                    <Geographies geography={geoData}>
+                        {({ geographies }) =>
+                            <>
+                                {geographies.map((geo) => {
                                         // Robust Property Access: Check 'name', 'shapeName', or 'ADM1_EN' (common in geoBoundaries)
                                         const p = geo.properties || {};
                                         const governName = p.name || p.shapeName || p.ADM1_EN || "Unknown";
@@ -96,30 +105,30 @@ const IraqMap = ({ data, selectedGovernorates = [], onSelect }) => {
 
                                         // Choose fill: selected > positive gradient > zero color
                                         let fillColor = zeroColor;
-                                        if (isSelected) fillColor = "#F59E0B";
+                                        if (isSelected) fillColor = "#94a3b8";
                                         else if (value > 0) fillColor = colorScale(value);
 
-                                        return (
-                                            <Geography
-                                                key={geo.rsmKey}
-                                                geography={geo}
-                                                fill={fillColor}
-                                                stroke={isSelected ? "#ffffff" : (theme === 'dark' ? "#334155" : "#cbd5e1")}
-                                                strokeWidth={isSelected ? 2 : 0.5}
-                                                onClick={() => {
-                                                    if (onSelect) onSelect(effectiveName);
-                                                }}
-                                                style={{
-                                                    default: { outline: "none", transition: "all 250ms" },
-                                                    hover: { fill: "#F59E0B", outline: "none", stroke: "#fff", strokeWidth: 2, cursor: "pointer", opacity: 0.8 },
-                                                    pressed: { outline: "none" },
-                                                }}
-                                                title={`${effectiveName}: ${value} Orders`}
-                                            />
-                                        );
-                                    })}
-                                    {/* Render Labels on top */}
-                                    {geographies.map((geo) => {
+                                    return (
+                                        <Geography
+                                            key={geo.rsmKey}
+                                            geography={geo}
+                                            fill={fillColor}
+                                            stroke={isSelected ? "#ffffff" : (theme === 'dark' ? "#334155" : "#cbd5e1")}
+                                            strokeWidth={isSelected ? 2 : 0.5}
+                                            onClick={() => {
+                                                if (onSelect) onSelect(effectiveName);
+                                            }}
+                                            style={{
+                                                default: { outline: "none", transition: "all 250ms" },
+                                                hover: { fill: "#94a3b8", outline: "none", stroke: "#fff", strokeWidth: 2, cursor: "pointer", opacity: 0.8 },
+                                                pressed: { outline: "none" },
+                                            }}
+                                            title={`${effectiveName}: ${value} Orders`}
+                                        />
+                                    );
+                                })}
+                                {/* Render Labels on top */}
+                                {geographies.map((geo) => {
                                         const centroid = geoCentroid(geo);
                                         // Check centroid validity
                                         if (!centroid || isNaN(centroid[0]) || isNaN(centroid[1])) return null;
@@ -137,58 +146,51 @@ const IraqMap = ({ data, selectedGovernorates = [], onSelect }) => {
                                         const effectiveName = matchingKey || governName;
                                         const value = (matchingKey && data[matchingKey]) || 0;
 
-                                        return (
-                                            <Marker key={`${geo.rsmKey}-label`} coordinates={centroid}>
-                                                <g className="pointer-events-none" style={{ transform: 'translateY(-6px)' }}>
-                                                    <text
-                                                        y="-6"
-                                                        textAnchor="middle"
-                                                        style={{
-                                                            fontSize: 8,
-                                                            fill: theme === 'dark' ? "#fff" : "#1e293b",
-                                                            fontWeight: "bold",
-                                                            pointerEvents: 'none',
-                                                            textShadow: "0px 0px 2px rgba(255,255,255,0.8)"
-                                                        }}
-                                                    >
-                                                        {effectiveName}
-                                                    </text>
-                                                    <text
-                                                        y="8"
-                                                        textAnchor="middle"
-                                                        style={{
-                                                            fontSize: 10,
-                                                            fill: theme === 'dark' ? "#e6f0ff" : "#0f172a",
-                                                            fontWeight: "800",
-                                                            pointerEvents: 'none',
-                                                            textShadow: "0px 0px 2px rgba(255,255,255,0.8)"
-                                                        }}
-                                                    >
-                                                        {value > 0 ? value : ''}
-                                                    </text>
-                                                </g>
-                                            </Marker>
-                                        );
-                                    })}
-                                </>
-                            }
-                        </Geographies>
-                    </ZoomableGroup>
+                                    return (
+                                        <Marker key={`${geo.rsmKey}-label`} coordinates={centroid}>
+                                            <g className="pointer-events-none" style={{ transform: 'translateY(-6px)' }}>
+                                                <text
+                                                    y="-6"
+                                                    textAnchor="middle"
+                                                    style={{
+                                                        fontSize: 10,
+                                                        fill: theme === 'dark' ? "#fff" : "#1e293b",
+                                                        fontWeight: "bold",
+                                                        pointerEvents: 'none',
+                                                        textShadow: "0px 0px 2px rgba(255,255,255,0.8)"
+                                                    }}
+                                                >
+                                                    {effectiveName}
+                                                </text>
+                                                <text
+                                                    y="8"
+                                                    textAnchor="middle"
+                                                    style={{
+                                                        fontSize: 12,
+                                                        fill: theme === 'dark' ? "#e6f0ff" : "#0f172a",
+                                                        fontWeight: "800",
+                                                        pointerEvents: 'none',
+                                                        textShadow: "0px 0px 2px rgba(255,255,255,0.8)"
+                                                    }}
+                                                >
+                                                    {value > 0 ? value : ''}
+                                                </text>
+                                            </g>
+                                        </Marker>
+                                    );
+                                })}
+                            </>
+                        }
+                    </Geographies>
                 </ComposableMap>
+            ) : (
+                <div className="absolute inset-0 z-10 bg-white dark:bg-slate-900 overflow-hidden">
+                    <Skeleton className="w-full h-full rounded-none" />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="bg-white/50 dark:bg-slate-900/50 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-slate-500 uppercase tracking-widest">Loading Map...</span>
+                    </div>
+                </div>
             )}
-
-            {/* Legend / Overlay */}
-            <div className="absolute bottom-4 end-4 bg-white/90 dark:bg-slate-800/90 backdrop-blur p-3 rounded-xl shadow-lg border border-slate-100 dark:border-slate-700 text-xs text-slate-500 dark:text-slate-400 z-20 pointer-events-none">
-                <div className="flex items-center gap-2 mb-1">
-                    <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: brand.color }}></span> High Order Volume
-                </div>
-                <div className="flex items-center gap-2 mb-1">
-                    <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: theme === 'dark' ? "#1E293B" : "#E0E7FF" }}></span> Low Order Volume
-                </div>
-                <div className="flex items-center gap-2">
-                    <span className="w-3 h-3 bg-[#F59E0B] rounded-sm"></span> Selected
-                </div>
-            </div>
         </div>
     );
 };

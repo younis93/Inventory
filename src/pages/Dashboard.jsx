@@ -77,8 +77,48 @@ const Dashboard = () => {
         });
     }, [orders, dateRange, selectedStatuses, selectedGovernorates, selectedSocials, selectedCategories]);
 
+    const previousPeriodRevenue = useMemo(() => {
+        if (!dateRange?.from || !dateRange?.to) return 0;
+        const start = dateRange.from;
+        const end = dateRange.to;
+        const periodMs = end.getTime() - start.getTime();
+        if (periodMs < 0) return 0;
+
+        const previousEnd = new Date(start.getTime() - 1);
+        const previousStart = new Date(previousEnd.getTime() - periodMs);
+
+        return orders.reduce((sum, order) => {
+            let orderDate;
+            try {
+                orderDate = order.date ? parseISO(order.date) : null;
+            } catch (e) {
+                return sum;
+            }
+            if (!orderDate || isNaN(orderDate.getTime())) return sum;
+
+            const matchesDate = isWithinInterval(orderDate, { start: previousStart, end: previousEnd });
+            const matchesStatus = selectedStatuses.length === 0 || selectedStatuses.includes(order.status);
+            const matchesGov = selectedGovernorates.length === 0 || (order.customer?.governorate && selectedGovernorates.includes(order.customer.governorate));
+            const matchesSocial = selectedSocials.length === 0 || (order.customer?.social && selectedSocials.includes(order.customer.social));
+            const matchesCategory = selectedCategories.length === 0 || (order.items && order.items.some(item => item.product?.category && selectedCategories.includes(item.product.category)));
+
+            if (!matchesDate || !matchesStatus || !matchesGov || !matchesSocial || !matchesCategory) return sum;
+            return sum + (Number(order.total) || 0);
+        }, 0);
+    }, [orders, dateRange, selectedStatuses, selectedGovernorates, selectedSocials, selectedCategories]);
+
     // KPI Calculations
     const totalRevenue = useMemo(() => filteredOrders.reduce((sum, order) => sum + order.total, 0), [filteredOrders]);
+    const totalRevenueDisplay = useMemo(() => formatCurrency(totalRevenue).replace(/\u00A0/g, ' '), [formatCurrency, totalRevenue]);
+    const revenueChangePercent = useMemo(() => {
+        if (previousPeriodRevenue <= 0) return totalRevenue > 0 ? 100 : 0;
+        return ((totalRevenue - previousPeriodRevenue) / previousPeriodRevenue) * 100;
+    }, [totalRevenue, previousPeriodRevenue]);
+    const revenueTrendPrefix = revenueChangePercent >= 0 ? '+' : '-';
+    const revenueTrendText = useMemo(
+        () => `${revenueTrendPrefix}${Math.abs(revenueChangePercent).toFixed(1)}% vs last period`,
+        [revenueTrendPrefix, revenueChangePercent, dateRange, selectedStatuses, selectedGovernorates, selectedSocials, selectedCategories]
+    );
     const totalOrders = filteredOrders.length;
     const activeCustomers = useMemo(() => new Set(filteredOrders.map(o => o.customer?.phone || o.customer?.id || o.customer).filter(Boolean)).size, [filteredOrders]);
 
@@ -221,45 +261,7 @@ const Dashboard = () => {
         <Layout title={t('dashboard.title')}>
             {/* Unified Actions Bar - Based on Orders template */}
             <div className="flex flex-col gap-4 mb-8 bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
-                {/* Top Row: General Actions | Clear Filters + Dashboard Count/Summary */}
-                <div className="flex gap-3 w-full items-center justify-between flex-wrap">
-                    <div className="flex gap-3 items-center flex-wrap">
-                        <div className="flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-xl font-bold text-sm border border-indigo-100 dark:border-indigo-900/50">
-                            <TrendingUp className="w-4 h-4" />
-                            <span>{t('dashboard.liveDashboard')}</span>
-                        </div>
-                    </div>
-
-                    <div className="flex gap-3 items-center flex-wrap">
-                        {/* Clear Filters Button */}
-                        {(selectedStatuses.length > 0 || selectedGovernorates.length > 0 || selectedSocials.length > 0 || selectedCategories.length > 0 ||
-                            dateRange.from?.getTime() !== defaultRange.from?.getTime() ||
-                            dateRange.to?.getTime() !== defaultRange.to?.getTime()) && (
-                                <button
-                                    onClick={() => {
-                                        setSelectedStatuses([]);
-                                        setSelectedGovernorates([]);
-                                        setSelectedSocials([]);
-                                        setSelectedCategories([]);
-                                        setDateRange(defaultRange);
-                                    }}
-                                    className="px-4 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-xl font-bold text-sm transition-all border border-slate-200 dark:border-slate-700"
-                                >
-                                    {t('common.clearFilters')}
-                                </button>
-                            )}
-
-                        {/* Order Count for Context */}
-                        <div className="flex items-center gap-3 px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
-                            <Package className="w-4 h-4 text-slate-400" />
-                            <span className="text-sm font-bold text-slate-500">
-                                <span className="text-slate-900 dark:text-white">{filteredOrders.length}</span> {t('dashboard.filteredOrders')}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Filters Row: Date + Governorate + Social + Categories + Status */}
+                {/* Filters Row: Date + Governorate + Social + Categories + Status + Actions */}
                 <div className="flex gap-3 w-full flex-wrap items-center">
                     {/* Date Picker */}
                     <div className="h-[44px] flex-shrink-0">
@@ -305,6 +307,32 @@ const Dashboard = () => {
                         icon={ShoppingBag}
                         showSearch={false}
                     />
+
+                    <div className="ms-auto flex items-center gap-3 flex-wrap">
+                        {(selectedStatuses.length > 0 || selectedGovernorates.length > 0 || selectedSocials.length > 0 || selectedCategories.length > 0 ||
+                            dateRange.from?.getTime() !== defaultRange.from?.getTime() ||
+                            dateRange.to?.getTime() !== defaultRange.to?.getTime()) && (
+                                <button
+                                    onClick={() => {
+                                        setSelectedStatuses([]);
+                                        setSelectedGovernorates([]);
+                                        setSelectedSocials([]);
+                                        setSelectedCategories([]);
+                                        setDateRange(defaultRange);
+                                    }}
+                                    className="px-4 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-xl font-bold text-sm transition-all border border-slate-200 dark:border-slate-700"
+                                >
+                                    {t('common.clearFilters')}
+                                </button>
+                            )}
+
+                        <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
+                            <Package className="w-4 h-4 text-slate-400" />
+                            <span className="text-sm font-bold text-slate-500">
+                                <span className="text-slate-900 dark:text-white">{filteredOrders.length}</span> {t('dashboard.filteredOrders')}
+                            </span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -329,10 +357,10 @@ const Dashboard = () => {
                                     <span className="font-bold text-xs uppercase tracking-widest">{t('dashboard.totalRevenue')}</span>
                                     <DollarSign className="w-5 h-5" />
                                 </div>
-                                <h3 className="text-3xl font-black mb-1">{formatCurrency(totalRevenue)}</h3>
+                                <h3 className="text-[clamp(0.95rem,2.6vw,1.85rem)] font-black mb-1 leading-tight whitespace-nowrap tracking-tight">{totalRevenueDisplay}</h3>
                                 <div className="flex items-center gap-1 text-xs font-medium opacity-80">
                                     <TrendingUp className="w-3 h-3" />
-                                    <span>{t('dashboard.revenueComparison')}</span>
+                                    <span>{revenueTrendText}</span>
                                 </div>
                             </div>
 
@@ -436,7 +464,13 @@ const Dashboard = () => {
                             }}
                         />
                         <div className="absolute top-4 start-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-slate-500 shadow-sm border border-slate-100">
-                            {t('dashboard.interactiveMap')}
+                            <span className="inline-flex items-center gap-1.5">
+                                <MapPin
+                                    className="w-3.5 h-3.5"
+                                    style={{ color: appearance.accentType === 'solid' ? appearance.accentColor : appearance.accentGradient.start }}
+                                />
+                                <span>Map</span>
+                            </span>
                         </div>
                     </div>
                 </div>
