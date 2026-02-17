@@ -16,10 +16,21 @@ import { Package } from 'lucide-react';
 
 const Customers = () => {
     const { t } = useTranslation();
-    const { customers, orders, addCustomer, updateCustomer, formatCurrency, brand, addToast, loading } = useInventory();
+    const { customers, orders, addCustomer, updateCustomer, formatCurrency, brand, addToast, loading, appearance, setIsModalOpen: setGlobalModalOpen } = useInventory();
     const [searchTerm, setSearchTerm] = useState('');
     const [filterGovernorates, setFilterGovernorates] = useState([]);
     const [filterSocials, setFilterSocials] = useState([]);
+
+    // Local modal states
+    const [isModalOpen, setIsModalOpen] = useState(false); // This is local!
+    const [isOrderHistoryOpen, setIsOrderHistoryOpen] = useState(false);
+
+    // Sync to global modal state (for header hiding)
+    useEffect(() => {
+        setGlobalModalOpen(isModalOpen || isOrderHistoryOpen);
+        return () => setGlobalModalOpen(false);
+    }, [isModalOpen, isOrderHistoryOpen, setGlobalModalOpen]);
+
     const [sortBy, setSortBy] = useState('orders-high');
     const minDate = useMemo(() => {
         if (customers.length === 0) return subDays(new Date(), 90);
@@ -49,8 +60,7 @@ const Customers = () => {
         }
     }, [customers.length, hasInitializedDate, minDate]);
 
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isOrderHistoryOpen, setIsOrderHistoryOpen] = useState(false);
+    // Previously declared above
     const [selectedCustomer, setSelectedCustomer] = useState(null);
     const [editingCustomer, setEditingCustomer] = useState(null);
     const [expandedOrderId, setExpandedOrderId] = useState(null);
@@ -301,7 +311,7 @@ const Customers = () => {
     return (
         <Layout title={t('customers.title')}>
             {/* Unified Header Bar */}
-            <div className="flex flex-col gap-4 mb-8 bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
+            <div className={`flex flex-col gap-4 mb-8 bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 transition-all ${['liquid', 'default_glass'].includes(appearance.theme) ? 'glass-panel' : ''}`}>
                 {/* Top Row: Add Button + Export | Clear Button + Customer Count */}
                 <div className="flex gap-3 w-full items-center justify-between flex-wrap">
                     <div className="flex gap-3 items-center flex-wrap">
@@ -431,7 +441,7 @@ const Customers = () => {
 
             {viewMode === 'table' ? (
                 /* Customers Table */
-                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
+                <div className={`bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden transition-all ${['liquid', 'default_glass'].includes(appearance.theme) ? 'glass-panel' : ''}`}>
                     <div className="overflow-x-auto">
                         <table className="w-full text-start">
                             <thead>
@@ -551,7 +561,7 @@ const Customers = () => {
                         const custOrders = getCustomerOrders(customer._id);
                         const totalSpent = custOrders.reduce((sum, o) => sum + o.total, 0);
                         return (
-                            <div key={customer._id} className="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 hover:shadow-xl transition-all duration-300 group overflow-hidden flex flex-col h-full">
+                            <div key={customer._id} className={`bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 hover:shadow-xl transition-all duration-300 group overflow-hidden flex flex-col h-full ${['liquid', 'default_glass'].includes(appearance.theme) ? 'glass-panel' : ''}`}>
                                 <div className="p-6 flex-1">
                                     <div className="flex justify-between items-start mb-6">
                                         <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-[var(--brand-color)] font-black text-xl border border-slate-100 dark:border-slate-800 group-hover:bg-indigo-50 dark:group-hover:bg-indigo-900 transition-colors">
@@ -616,7 +626,7 @@ const Customers = () => {
 
             {isModalOpen && (
                 <div className="fixed inset-0 z-[100] flex items-start justify-center bg-slate-900/80 backdrop-blur-md p-2 sm:p-4 overflow-y-auto">
-                    <div className="bg-white dark:bg-slate-800 rounded-[32px] shadow-2xl w-full max-w-md my-4 sm:my-8 flex flex-col overflow-hidden animate-in fade-in zoom-in duration-300 relative">
+                    <div className={`bg-white dark:bg-slate-800 rounded-[32px] shadow-2xl w-full max-w-md my-4 sm:my-8 flex flex-col overflow-hidden animate-in fade-in zoom-in duration-300 relative ${['liquid', 'default_glass'].includes(appearance.theme) ? 'glass-panel' : ''}`}>
                         <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-white dark:bg-slate-800 sticky top-0 z-10">
                             <div>
                                 <h3 className="text-xl font-black text-slate-900 dark:text-white">{editingCustomer ? t('customers.form.edit') : t('customers.form.new')}</h3>
@@ -696,7 +706,7 @@ const Customers = () => {
             {
                 isOrderHistoryOpen && selectedCustomer && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/90 backdrop-blur-md p-4">
-                        <div className="bg-white dark:bg-slate-800 rounded-[32px] shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in slide-in-from-bottom-8 duration-500">
+                        <div className={`bg-white dark:bg-slate-800 rounded-[32px] shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in slide-in-from-bottom-8 duration-500 ${['liquid', 'default_glass'].includes(appearance.theme) ? 'glass-panel' : ''}`}>
                             <div className="px-10 py-8 border-b border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800">
                                 <div className="flex justify-between items-start">
                                     <div>

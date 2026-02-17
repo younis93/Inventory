@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Layout from '../components/Layout';
 import { Search, Plus, Printer, Trash2, X, Tag, Filter, Eye, Edit, ShoppingBag, Download, MapPin, Globe } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
@@ -86,13 +86,20 @@ const StatusCell = ({ order, onUpdate }) => {
 
 const Orders = () => {
     const { t } = useTranslation();
-    const { orders, products, customers, addOrder, updateOrder, deleteOrder, addCustomer, formatCurrency, brand, loading } = useInventory();
+    const { orders, products, customers, addOrder, updateOrder, deleteOrder, addCustomer, formatCurrency, brand, loading, appearance, addToast, setIsModalOpen } = useInventory();
     const [searchTerm, setSearchTerm] = useState('');
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     const [viewingOrder, setViewingOrder] = useState(null);
     const [editingOrderId, setEditingOrderId] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Sync modal state with global layout
+    useEffect(() => {
+        setIsModalOpen(isCreateModalOpen || isViewModalOpen);
+        return () => setIsModalOpen(false);
+    }, [isCreateModalOpen, isViewModalOpen, setIsModalOpen]);
+
     const [displayLimit, setDisplayLimit] = useState(100);
     const minDate = useMemo(() => {
         if (orders.length === 0) return subDays(new Date(), 30);
@@ -534,7 +541,7 @@ const Orders = () => {
     return (
         <Layout title={t('orders.title')}>
             {/* Actions Bar */}
-            <div className="flex flex-col gap-4 mb-8 bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
+            <div className={`flex flex-col gap-4 mb-8 bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 transition-all ${['liquid', 'default_glass'].includes(appearance.theme) ? 'glass-panel' : ''}`}>
                 {/* Top Row: Add Button + Export | Clear Filters Button + Order Count */}
                 <div className="flex gap-3 w-full items-center justify-between flex-wrap">
                     <div className="flex gap-3 items-center flex-wrap">
@@ -660,7 +667,7 @@ const Orders = () => {
 
 
             {/* Orders List (desktop) + mobile cards */}
-            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
+            <div className={`bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden transition-all ${['liquid', 'default_glass'].includes(appearance.theme) ? 'glass-panel' : ''}`}>
                 <div className="hidden sm:block overflow-x-auto">
                     <table className="w-full text-left">
                         <thead>

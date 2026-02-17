@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { X, Check, Search, ChevronDown, ChevronUp } from 'lucide-react';
+import { useInventory } from '../context/InventoryContext';
 
 const FilterCard = ({ title, options, selectedValues, onChange, onClear, showProductCount = false, productCount = 0, showSearch = true, collapsible = false }) => {
+    const { appearance } = useInventory();
     const [searchTerm, setSearchTerm] = useState('');
     const [isOpen, setIsOpen] = useState(!collapsible);
 
@@ -18,7 +20,7 @@ const FilterCard = ({ title, options, selectedValues, onChange, onClear, showPro
     ));
 
     return (
-        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.1)] border border-slate-100 dark:border-slate-700 overflow-hidden flex flex-col w-full min-w-[240px]">
+        <div className={`bg-white dark:bg-slate-800 rounded-2xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.1)] border border-slate-100 dark:border-slate-700 overflow-hidden flex flex-col w-full min-w-[240px] transition-all ${['liquid', 'default_glass'].includes(appearance?.theme) ? 'glass-panel' : ''}`}>
             {/* Show product count OR title header (clickable when collapsible) */}
             {/* Header section removed as per request */}
             {title && title.length > 0 && (

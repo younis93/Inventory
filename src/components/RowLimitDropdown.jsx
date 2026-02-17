@@ -1,9 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown, List } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useInventory } from '../context/InventoryContext';
 
 const RowLimitDropdown = ({ limit, onChange }) => {
     const { t } = useTranslation();
+    const { appearance } = useInventory();
     const [isOpen, setIsOpen] = useState(false);
     const [isCustom, setIsCustom] = useState(![50, 100, 500, 1000].includes(limit));
     const containerRef = useRef(null);
@@ -57,7 +59,7 @@ const RowLimitDropdown = ({ limit, onChange }) => {
 
             {isOpen && (
                 <div className="absolute top-full end-0 mt-2 z-50 w-48 animate-in fade-in zoom-in-95 duration-200">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 overflow-hidden py-2">
+                    <div className={`bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 overflow-hidden py-2 ${['liquid', 'default_glass'].includes(appearance?.theme) ? 'glass-panel' : ''}`}>
                         {options.map((opt) => (
                             <button
                                 key={opt}

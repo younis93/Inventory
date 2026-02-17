@@ -50,15 +50,23 @@ const StatusBadge = ({ status }) => {
 
 const Products = () => {
     const { t, i18n } = useTranslation();
-    const { products, addProduct, updateProduct, deleteProduct, categories, addCategory, updateCategory, deleteCategory, formatCurrency, loading, brand, addToast } = useInventory();
+    const { products, addProduct, updateProduct, deleteProduct, categories, addCategory, updateCategory, deleteCategory, formatCurrency, loading, brand, addToast, appearance, setIsModalOpen: setGlobalModalOpen } = useInventory();
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategories, setSelectedCategories] = useState([]);
     const [selectedStatuses, setSelectedStatuses] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState(false);
+    const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+
+    // Sync to global modal state
+    useEffect(() => {
+        setGlobalModalOpen(isModalOpen || isCategoryManagerOpen || isImageModalOpen);
+        return () => setGlobalModalOpen(false);
+    }, [isModalOpen, isCategoryManagerOpen, isImageModalOpen, setGlobalModalOpen]);
+
     const [displayLimit, setDisplayLimit] = useState(100);
     const [editingProduct, setEditingProduct] = useState(null);
-    const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+    // isImageModalOpen was already declared above in replacement, removing duplications if any
     const [editingProductForImage, setEditingProductForImage] = useState(null);
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'ascending' });
     const fileInputRef = useRef(null);

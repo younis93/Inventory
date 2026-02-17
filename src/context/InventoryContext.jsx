@@ -100,6 +100,9 @@ export const InventoryProvider = ({ children }) => {
         }, 3000);
     };
 
+    // Header Visibility State (for mobile modals)
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
     // Branding State
     const [brand, setBrand] = useState({
         name: 'Gem Toys',
@@ -481,7 +484,8 @@ export const InventoryProvider = ({ children }) => {
             formatCurrency,
             isSidebarCollapsed, toggleSidebar,
             isMobileMenuOpen, toggleMobileMenu, closeMobileMenu,
-            toasts, addToast
+            toasts, addToast,
+            isModalOpen, setIsModalOpen
         }}>
             {children}
         </InventoryContext.Provider>
