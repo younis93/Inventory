@@ -5,6 +5,7 @@ import { useInventory } from '../context/InventoryContext';
 import { useTranslation } from 'react-i18next';
 import ImageCropperModal from '../components/ImageCropperModal';
 import ImageWithFallback from '../components/common/ImageWithFallback';
+import DeleteConfirmModal from '../components/common/DeleteConfirmModal';
 
 const Settings = () => {
     const { t } = useTranslation();
@@ -17,6 +18,10 @@ const Settings = () => {
     const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
     const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
+
+    // New delete confirmation state
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [userToDelete, setUserToDelete] = useState(null);
 
     // Image Cropping State
     const [croppingImage, setCroppingImage] = useState(null);
@@ -156,12 +161,20 @@ const Settings = () => {
     };
 
     const handleDeleteUser = async (id) => {
-        if (window.confirm("Are you sure you want to delete this user?")) {
+        setUserToDelete(id);
+        setIsDeleteModalOpen(true);
+    };
+
+    const confirmDeleteUser = async () => {
+        if (userToDelete) {
             try {
-                await deleteUser(id);
+                await deleteUser(userToDelete);
                 addToast("User deleted successfully.", "success");
             } catch (error) {
                 addToast("Failed to delete user.", "error");
+            } finally {
+                setIsDeleteModalOpen(false);
+                setUserToDelete(null);
             }
         }
     };
@@ -837,6 +850,17 @@ const Settings = () => {
                     aspect={1}
                 />
             )}
+
+            <DeleteConfirmModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => {
+                    setIsDeleteModalOpen(false);
+                    setUserToDelete(null);
+                }}
+                onConfirm={confirmDeleteUser}
+                title="Delete User"
+                message="Are you sure you want to delete this user?"
+            />
         </Layout >
     );
 };

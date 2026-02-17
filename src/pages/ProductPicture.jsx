@@ -21,9 +21,11 @@ const ProductPicture = () => {
         setSelectedProduct(null);
     };
 
-    const handleSaveProduct = async (updatedProduct) => {
+    const handleSaveProduct = async (updatedProduct, stayOpen = false) => {
         await updateProduct(updatedProduct);
-        setSelectedProduct(null);
+        if (!stayOpen) {
+            setSelectedProduct(null);
+        }
     };
 
     const handleUploadImages = async (files) => {
@@ -32,38 +34,28 @@ const ProductPicture = () => {
             return [];
         }
 
-        // In a real app, you would upload these to Firebase Storage here and get URLs back.
-        // For this demo, we'll simulate by creating object URLs.
-        // INTEGRATION NOTE: The user's system stores URLs. We need a real upload function 
-        // usually provided by the service. Since we don't have a direct 'uploadFile' via context yet,
-        // we might mock this or use a placeholder if the 'upload' service isn't exposed.
-        // However, the prompt asks for "Upload + storage behavior". 
-        // We will assume `files` are converted to data inputs.
+        // Convert images to Base64 for persistence in this environment and avoid File object serialization errors
+        const base64Promises = files.map(file => {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve({
+                    url: reader.result,
+                    name: file.name
+                });
+                reader.readAsDataURL(file);
+            });
+        });
 
-        // Mocking upload for visual feedback immediately (optimistic UI)
-        const newImages = files.map(file => ({
-            url: URL.createObjectURL(file),
-            file: file, // Keep file for potential real upload
-            name: file.name
-        }));
+        const newImages = await Promise.all(base64Promises);
 
-        // NOTE: Without a real backend upload trigger here, this data won't persist across refreshes 
-        // unless we modify `updateProduct` to handle file uploads.
-        // For now, we return these new image objects to the modal to display.
-        // The modal then calls 'onSave' which passes the product back with these images?
-        // Actually, the modal separates upload from save.
-        // Let's assume we just return them for the modal state, and real persistence happens on Save?
-        // Or we should persist immediately.
-
-        // Let's update the product immediately with new images to simulate "Upload adds them".
         if (selectedProduct) {
             const updatedImages = [...(selectedProduct.images || []), ...newImages];
             const updatedProduct = { ...selectedProduct, images: updatedImages };
 
             // Optimistically update
             setSelectedProduct(updatedProduct);
-            // Persist (Warning: ObjectURLs are temporary, need real storage)
-            await updateProduct(updatedProduct); // This will save the changes to the DB record
+            // Persist
+            await updateProduct(updatedProduct);
         }
 
         return newImages;
@@ -82,9 +74,6 @@ const ProductPicture = () => {
                         <ImageIcon className="w-6 h-6 text-accent" />
                         {t('productPicture.subtitle')}
                     </h2>
-                    <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-                        {t('productPicture.description')}
-                    </p>
                 </div>
 
                 {/* Search */}
@@ -124,7 +113,7 @@ const ProductPicture = () => {
 
                         return (
                             <div
-                                key={product.id || product._id}
+                                key={product._id || product.id}
                                 onClick={() => handleProductClick(product)}
                                 className="group bg-white dark:bg-slate-800 rounded-3xl p-3 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer border border-transparent hover:border-accent"
                             >

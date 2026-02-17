@@ -2,7 +2,90 @@ import React, { useState, useEffect } from 'react';
 import { X, Upload, Download, Save, ZoomIn, ChevronLeft, ChevronRight, Image as ImageIcon, Trash2, Tag } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 import { useTranslation } from 'react-i18next';
-import ImageSlider from './ImageSlider';
+import DeleteConfirmModal from './common/DeleteConfirmModal';
+
+const ImageSlider = ({ images, currentIndex, onChange, onDelete, onDownload }) => {
+    const { t } = useTranslation();
+    if (!images || images.length === 0) {
+        return (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900/50 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800">
+                <ImageIcon className="w-12 h-12 text-slate-300 mb-4" />
+                <p className="text-sm font-bold text-slate-400">{t('productPicture.modal.noImages')}</p>
+            </div>
+        );
+    }
+
+    const currentImage = images[currentIndex];
+    const imageUrl = typeof currentImage === 'string' ? currentImage : currentImage?.url;
+
+    return (
+        <div className="relative w-full h-full flex flex-col group">
+            {/* Main Preview */}
+            <div className="flex-1 relative rounded-2xl overflow-hidden bg-black flex items-center justify-center shadow-lg">
+                <img
+                    src={imageUrl}
+                    alt="Product"
+                    className="max-w-full max-h-full object-contain"
+                />
+
+                {/* Overlay Controls */}
+                <div className="absolute top-4 left-4 flex gap-2">
+                    <button
+                        onClick={onDownload}
+                        className="p-2 bg-white/80 dark:bg-black/40 hover:bg-white dark:hover:bg-black text-slate-800 dark:text-white rounded-lg backdrop-blur transition-all"
+                        title={t('common.download')}
+                    >
+                        <Download className="w-4 h-4" />
+                    </button>
+                    <button
+                        onClick={() => onDelete(currentIndex)}
+                        className="p-2 bg-red-500/80 hover:bg-red-600 text-white rounded-lg backdrop-blur transition-all"
+                        title={t('common.delete')}
+                    >
+                        <Trash2 className="w-4 h-4" />
+                    </button>
+                </div>
+
+                {/* Slider Nav */}
+                {images.length > 1 && (
+                    <>
+                        <button
+                            onClick={() => onChange((currentIndex - 1 + images.length) % images.length)}
+                            className="absolute left-4 top-1/2 -translate-y-1/2 p-3 bg-white/20 hover:bg-white/40 text-white rounded-full backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all"
+                        >
+                            <ChevronLeft className="w-6 h-6" />
+                        </button>
+                        <button
+                            onClick={() => onChange((currentIndex + 1) % images.length)}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 p-3 bg-white/20 hover:bg-white/40 text-white rounded-full backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all"
+                        >
+                            <ChevronRight className="w-6 h-6" />
+                        </button>
+                    </>
+                )}
+            </div>
+
+            {/* Thumbnails */}
+            {images.length > 1 && (
+                <div className="flex gap-2 mt-4 px-2 overflow-x-auto pb-2 custom-scrollbar no-scrollbar">
+                    {images.map((img, idx) => (
+                        <button
+                            key={idx}
+                            onClick={() => onChange(idx)}
+                            className={`w-16 h-16 rounded-xl border-2 transition-all flex-shrink-0 overflow-hidden ${idx === currentIndex ? 'border-accent ring-2 ring-accent/20' : 'border-transparent opacity-60 hover:opacity-100'}`}
+                        >
+                            <img
+                                src={typeof img === 'string' ? img : img?.url}
+                                alt={`Thumb ${idx}`}
+                                className="w-full h-full object-cover"
+                            />
+                        </button>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
 
 const ProductImageModal = ({ product, onClose, onSave, onUpload }) => {
     const { t } = useTranslation();
@@ -12,6 +95,7 @@ const ProductImageModal = ({ product, onClose, onSave, onUpload }) => {
     const [editedDescription, setEditedDescription] = useState(product.description || '');
     const [images, setImages] = useState(product.images || []);
     const [isSaving, setIsSaving] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
     useEffect(() => {
         // Esc key to close
@@ -23,57 +107,60 @@ const ProductImageModal = ({ product, onClose, onSave, onUpload }) => {
     }, [onClose]);
 
     useEffect(() => {
-        // Sync state if product changes
+        // Sync state if product changes (e.g. switching between products)
+        // We use product._id to avoid re-syncing when local edits update the parent list
         setEditedTitle(product.name || '');
         setEditedDescription(product.description || '');
         setImages(product.images || []);
         setCurrentImageIndex(0);
-    }, [product]);
+    }, [product._id]);
 
     const handleSave = async () => {
+        if (!editedTitle.trim()) return;
+
         setIsSaving(true);
-        await onSave({
-            ...product,
-            name: editedTitle,
-            description: editedDescription,
-            images: images
-        });
-        setIsSaving(false);
-    };
-
-    const handleFileChange = async (e) => {
-        if (e.target.files && e.target.files.length > 0) {
-            const newImages = await onUpload(Array.from(e.target.files));
-            if (newImages) {
-                setImages([...images, ...newImages]);
-            }
-        }
-    };
-
-    const handleDeleteImage = async (index) => {
-        if (window.confirm(t('productPicture.modal.confirmDeleteImage'))) {
-            const newImages = images.filter((_, i) => i !== index);
-            setImages(newImages);
-
-            // Adjust current index if needed
-            if (currentImageIndex >= newImages.length && newImages.length > 0) {
-                setCurrentImageIndex(newImages.length - 1);
-            } else if (newImages.length === 0) {
-                setCurrentImageIndex(0);
-            }
-
-            // Save the change immediately
-            setIsSaving(true);
+        try {
             await onSave({
                 ...product,
-                images: newImages,
                 name: editedTitle,
-                description: editedDescription
+                description: editedDescription,
+                images: images
             });
+        } catch (error) {
+            console.error("Failed to save product:", error);
+        } finally {
             setIsSaving(false);
         }
     };
 
+    const handleFileChange = async (e) => {
+        if (e.target.files && e.target.files.length > 0) {
+            const uploadedImages = await onUpload(Array.from(e.target.files));
+            if (uploadedImages) {
+                setImages([...images, ...uploadedImages]);
+            }
+        }
+    };
+
+    const confirmDeleteImage = () => {
+        setIsDeleteModalOpen(true);
+    };
+
+    const handleDeleteImage = () => {
+        const index = currentImageIndex;
+        const newImages = images.filter((_, i) => i !== index);
+        setImages(newImages);
+
+        // Adjust current index if needed
+        if (currentImageIndex >= newImages.length && newImages.length > 0) {
+            setCurrentImageIndex(newImages.length - 1);
+        } else if (newImages.length === 0) {
+            setCurrentImageIndex(0);
+        }
+
+        setIsDeleteModalOpen(false);
+        // Note: We no longer auto-save here, per user request.
+    };
 
     const currentImage = images.length > 0 ? images[currentImageIndex] : (product.images?.[0] || product.image);
     // Fallback for image object vs string
@@ -109,8 +196,11 @@ const ProductImageModal = ({ product, onClose, onSave, onUpload }) => {
                         <ImageSlider
                             images={images}
                             currentIndex={currentImageIndex}
-                            onChange={setCurrentImageIndex}
-                            onDelete={handleDeleteImage}
+                            onChange={(idx) => setCurrentImageIndex(idx)}
+                            onDelete={(idx) => {
+                                setCurrentImageIndex(idx);
+                                confirmDeleteImage();
+                            }}
                             onDownload={downloadImage}
                         />
                     </div>
@@ -192,6 +282,14 @@ const ProductImageModal = ({ product, onClose, onSave, onUpload }) => {
                 </div>
 
             </div>
+
+            <DeleteConfirmModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                onConfirm={handleDeleteImage}
+                title={t('common.delete')}
+                message={t('productPicture.modal.confirmDeleteImage')}
+            />
         </div>
     );
 };

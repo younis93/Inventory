@@ -11,7 +11,8 @@ const Header = ({ title }) => {
     const isGlassTheme = ['liquid', 'default_glass'].includes(appearance?.theme);
 
     // Determine if header should be hidden
-    const visibilityClass = isModalOpen ? 'hidden' : (isHidden ? 'flex lg:hidden' : 'flex');
+    // Only hide on smaller screens when a modal is open to maximize screen space
+    const visibilityClass = isModalOpen ? 'hidden md:flex' : (isHidden ? 'flex lg:hidden' : 'flex');
 
     // Handle theme toggle - cycles through light/dark based on current theme
     const handleThemeToggle = () => {
@@ -24,8 +25,8 @@ const Header = ({ title }) => {
 
     return (
         <header className={`${visibilityClass} h-14 sm:h-16 md:h-20 lg:h-24 ${isGlassTheme
-                ? 'bg-white/60 dark:bg-slate-900/60 backdrop-blur-2xl border-b border-white/20 dark:border-slate-700/30'
-                : 'bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800'
+            ? 'bg-white/60 dark:bg-slate-900/60 backdrop-blur-2xl border-b border-white/20 dark:border-slate-700/30'
+            : 'bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800'
             } items-center justify-between px-3 sm:px-4 md:px-6 lg:px-8 sticky top-0 z-20 transition-all duration-300 shadow-sm`}>
 
             {/* Left Section: Menu + Title */}
@@ -34,8 +35,8 @@ const Header = ({ title }) => {
                 <button
                     onClick={toggleMobileMenu}
                     className={`lg:hidden p-1.5 sm:p-2 rounded-xl transition-all shrink-0 ${isGlassTheme
-                            ? 'text-slate-600 dark:text-slate-300 hover:bg-white/40 dark:hover:bg-slate-800/40 backdrop-blur-sm'
-                            : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
+                        ? 'text-slate-600 dark:text-slate-300 hover:bg-white/40 dark:hover:bg-slate-800/40 backdrop-blur-sm'
+                        : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
                         }`}
                     aria-label="Toggle menu"
                 >
@@ -59,8 +60,8 @@ const Header = ({ title }) => {
                 <button
                     onClick={handleThemeToggle}
                     className={`p-1.5 sm:p-2 rounded-xl transition-all group ${isGlassTheme
-                            ? 'text-slate-600 dark:text-slate-300 hover:bg-white/40 dark:hover:bg-slate-800/40 backdrop-blur-sm'
-                            : 'text-slate-400 hover:text-[var(--brand-color)] hover:bg-slate-50 dark:hover:bg-slate-800'
+                        ? 'text-slate-600 dark:text-slate-300 hover:bg-white/40 dark:hover:bg-slate-800/40 backdrop-blur-sm'
+                        : 'text-slate-400 hover:text-[var(--brand-color)] hover:bg-slate-50 dark:hover:bg-slate-800'
                         }`}
                     aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
                 >
@@ -74,8 +75,8 @@ const Header = ({ title }) => {
                 {/* Notifications - Hidden on mobile, shown on tablet+ */}
                 <button
                     className={`hidden md:flex p-1.5 sm:p-2 rounded-xl transition-all relative ${isGlassTheme
-                            ? 'text-slate-600 dark:text-slate-300 hover:bg-white/40 dark:hover:bg-slate-800/40 backdrop-blur-sm'
-                            : 'text-slate-400 hover:text-accent hover:bg-slate-50 dark:hover:bg-slate-800'
+                        ? 'text-slate-600 dark:text-slate-300 hover:bg-white/40 dark:hover:bg-slate-800/40 backdrop-blur-sm'
+                        : 'text-slate-400 hover:text-accent hover:bg-slate-50 dark:hover:bg-slate-800'
                         }`}
                     aria-label="Notifications"
                 >
@@ -88,8 +89,8 @@ const Header = ({ title }) => {
 
                 {isDesktop && (
                     <div className={`hidden md:flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs font-bold border ${isOnline
-                            ? 'text-emerald-700 bg-emerald-50 border-emerald-200 dark:text-emerald-300 dark:bg-emerald-900/20 dark:border-emerald-800/50'
-                            : 'text-amber-700 bg-amber-50 border-amber-200 dark:text-amber-300 dark:bg-amber-900/20 dark:border-amber-800/50'
+                        ? 'text-emerald-700 bg-emerald-50 border-emerald-200 dark:text-emerald-300 dark:bg-emerald-900/20 dark:border-emerald-800/50'
+                        : 'text-amber-700 bg-amber-50 border-amber-200 dark:text-amber-300 dark:bg-amber-900/20 dark:border-amber-800/50'
                         }`}>
                         <span>{isOnline ? 'Online' : 'Offline'}</span>
                         <span className="text-slate-400">|</span>
@@ -100,8 +101,8 @@ const Header = ({ title }) => {
                 {/* Brand Icon */}
                 <div
                     className={`relative w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 lg:w-11 lg:h-11 rounded-xl md:rounded-2xl flex items-center justify-center text-white font-bold overflow-hidden shrink-0 transition-all duration-300 hover:scale-105 cursor-pointer ${isGlassTheme
-                            ? 'shadow-lg border-2 border-white/30 dark:border-slate-700/30'
-                            : 'shadow-md border-2 border-white/50 dark:border-slate-800/50'
+                        ? 'shadow-lg border-2 border-white/30 dark:border-slate-700/30'
+                        : 'shadow-md border-2 border-white/50 dark:border-slate-800/50'
                         }`}
                     style={{
                         backgroundColor: brand.color,

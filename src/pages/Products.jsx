@@ -12,6 +12,8 @@ import RowLimitDropdown from '../components/RowLimitDropdown';
 import { exportProductsToCSV } from '../utils/CSVExportUtil';
 import ImageWithFallback from '../components/common/ImageWithFallback';
 import Skeleton from '../components/common/Skeleton';
+import Toasts from '../components/Toasts';
+import DeleteConfirmModal from '../components/common/DeleteConfirmModal';
 
 const getAutoStatus = (stock) => {
     const s = Number(stock);
@@ -63,9 +65,9 @@ const Products = () => {
 
     // Sync to global modal state
     useEffect(() => {
-        setGlobalModalOpen(isModalOpen || isCategoryManagerOpen || isImageModalOpen);
+        setGlobalModalOpen(isModalOpen || isCategoryManagerOpen || isImageModalOpen || isDeleteModalOpen);
         return () => setGlobalModalOpen(false);
-    }, [isModalOpen, isCategoryManagerOpen, isImageModalOpen, setGlobalModalOpen]);
+    }, [isModalOpen, isCategoryManagerOpen, isImageModalOpen, isDeleteModalOpen, setGlobalModalOpen]);
 
     const [displayLimit, setDisplayLimit] = useState(100);
     const [editingProduct, setEditingProduct] = useState(null);
@@ -73,6 +75,10 @@ const Products = () => {
     const [editingProductForImage, setEditingProductForImage] = useState(null);
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'ascending' });
     const fileInputRef = useRef(null);
+
+    // New delete confirmation state
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [productToDelete, setProductToDelete] = useState(null);
 
     // Form State
     const initialFormState = {
@@ -275,8 +281,15 @@ const Products = () => {
     };
 
     const handleDelete = (id) => {
-        if (window.confirm(t("products.confirmDelete"))) {
-            deleteProduct(id);
+        setProductToDelete(id);
+        setIsDeleteModalOpen(true);
+    };
+
+    const confirmDelete = () => {
+        if (productToDelete) {
+            deleteProduct(productToDelete);
+            setIsDeleteModalOpen(false);
+            setProductToDelete(null);
         }
     };
 
@@ -973,14 +986,27 @@ const Products = () => {
                         setIsImageModalOpen(false);
                         setEditingProductForImage(null);
                     }}
-                    onSave={updateProduct}
-                    onUpload={async (files) => {
-                        // This matches the simplified mock upload in InventoryContext/Firebase
-                        // In a real app, this would return Firebase/Server URLs
-                        return files.map(file => URL.createObjectURL(file));
+                    onSave={async (updatedProduct, stayOpen = false) => {
+                        await updateProduct(updatedProduct);
+                        setEditingProductForImage(updatedProduct);
+                        if (!stayOpen) {
+                            setIsImageModalOpen(false);
+                            setEditingProductForImage(null);
+                        }
                     }}
                 />
             )}
+
+            <DeleteConfirmModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => {
+                    setIsDeleteModalOpen(false);
+                    setProductToDelete(null);
+                }}
+                onConfirm={confirmDelete}
+                title={t('common.delete')}
+                message={t('products.confirmDelete')}
+            />
         </Layout>
     );
 };

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Plus, Edit2, Trash2, Save, Ban } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
+import DeleteConfirmModal from './common/DeleteConfirmModal';
 
 const CategoryManagerModal = ({ categories, products, onClose, onAdd, onUpdate, onDelete }) => {
     const { addToast } = useInventory();
@@ -8,6 +9,10 @@ const CategoryManagerModal = ({ categories, products, onClose, onAdd, onUpdate, 
     const [editingCategory, setEditingCategory] = useState(null);
     const [editName, setEditName] = useState('');
     const [categoryCounts, setCategoryCounts] = useState({});
+
+    // New delete confirmation state
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [categoryToDelete, setCategoryToDelete] = useState(null);
 
     // Calculate usage counts
     useEffect(() => {
@@ -38,8 +43,15 @@ const CategoryManagerModal = ({ categories, products, onClose, onAdd, onUpdate, 
             addToast(`Cannot delete category "${cat}" because it is used by ${categoryCounts[cat]} products.`, "error");
             return;
         }
-        if (window.confirm(`Are you sure you want to delete category "${cat}"?`)) {
-            onDelete(cat);
+        setCategoryToDelete(cat);
+        setIsDeleteModalOpen(true);
+    };
+
+    const confirmDelete = () => {
+        if (categoryToDelete) {
+            onDelete(categoryToDelete);
+            setIsDeleteModalOpen(false);
+            setCategoryToDelete(null);
         }
     };
 
@@ -137,6 +149,17 @@ const CategoryManagerModal = ({ categories, products, onClose, onAdd, onUpdate, 
                 </div>
 
             </div>
+
+            <DeleteConfirmModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => {
+                    setIsDeleteModalOpen(false);
+                    setCategoryToDelete(null);
+                }}
+                onConfirm={confirmDelete}
+                title="Delete Category"
+                message={`Are you sure you want to delete category "${categoryToDelete}"?`}
+            />
         </div>
     );
 };
