@@ -40,10 +40,10 @@ const FilterDropdown = ({ title, options, selectedValues, onChange, icon: Icon, 
                 onClick={() => setIsOpen(!isOpen)}
                 aria-label={ariaLabel || title || 'Filter'}
                 className={`flex items-center gap-1.5 px-3 h-[44px] rounded-2xl border-2 transition-all font-bold text-[11px] outline-none ${isOpen || hasSelection
-                    ? 'bg-accent/10 border-accent/30 text-accent shadow-[0_0_15px_-3px_rgba(0,0,0,0.1)]'
+                    ? 'bg-accent/10 border-accent/30 dark:border-slate-500 text-accent shadow-[0_0_15px_-3px_rgba(0,0,0,0.1)]'
                     : (['liquid', 'default_glass'].includes(appearance?.theme)
-                        ? 'bg-white/40 dark:bg-slate-800/40 backdrop-blur-md border-white/20 dark:border-slate-700/50 text-slate-500 hover:bg-white/60 dark:hover:bg-slate-700/60'
-                        : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-800 text-slate-500 hover:border-slate-300 dark:hover:border-slate-600')
+                        ? 'bg-white/40 dark:bg-slate-800/40 backdrop-blur-md border-white/20 dark:border-slate-600 text-slate-500 hover:bg-white/60 dark:hover:bg-slate-700/60 dark:hover:border-slate-500'
+                        : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-600 text-slate-500 hover:border-slate-300 dark:hover:border-slate-500')
                     }`}
             >
                 {Icon ? <Icon className="w-4 h-4" /> : <Filter className="w-4 h-4" />}

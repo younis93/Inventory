@@ -6,6 +6,12 @@ const InventoryContext = createContext();
 const PROFESSIONAL_LOGO = '/brand-logo.svg';
 const PROFESSIONAL_FAVICON = '/brand-favicon.svg';
 const LEGACY_LOGO = 'https://i.imgur.com/9YXqZ5K.png';
+const DEFAULT_APPEARANCE = {
+    theme: 'light',
+    accentType: 'gradient',
+    accentColor: '#1e3a5f',
+    accentGradient: { start: '#EC4899', end: '#8B5CF6' } // Vibrant
+};
 
 export const useInventory = () => useContext(InventoryContext);
 
@@ -23,19 +29,14 @@ export const InventoryProvider = ({ children }) => {
 
             // Comprehensive fallback to ensure all required properties exist
             return {
-                theme: parsed?.theme || 'default',
-                accentType: parsed?.accentType || 'solid',
-                accentColor: parsed?.accentColor || '#1e3a5f',
-                accentGradient: parsed?.accentGradient || { start: '#8B5CF6', end: '#3B82F6' }
+                theme: parsed?.theme || DEFAULT_APPEARANCE.theme,
+                accentType: parsed?.accentType || DEFAULT_APPEARANCE.accentType,
+                accentColor: parsed?.accentColor || DEFAULT_APPEARANCE.accentColor,
+                accentGradient: parsed?.accentGradient || DEFAULT_APPEARANCE.accentGradient
             };
         } catch (e) {
             console.error("Error loading appearance settings:", e);
-            return {
-                theme: 'default',
-                accentType: 'solid',
-                accentColor: '#1e3a5f',
-                accentGradient: { start: '#8B5CF6', end: '#3B82F6' }
-            };
+            return DEFAULT_APPEARANCE;
         }
     });
 

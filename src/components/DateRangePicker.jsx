@@ -209,7 +209,7 @@ const DateRangePicker = ({ onChange, initialRange, range: controlledRange, onRan
 
             {/* Input Field */}
             <div
-                className="relative flex items-center w-full"
+                className="relative flex items-center w-full outline-none focus-visible:outline-none"
                 onClick={() => setIsOpen(!isOpen)}
                 role="button"
                 aria-haspopup="dialog"
@@ -223,7 +223,7 @@ const DateRangePicker = ({ onChange, initialRange, range: controlledRange, onRan
                 }}
             >
                 <div className={`w-full h-[44px] flex items-center ps-4 pe-10 bg-white dark:bg-slate-800 border-2 rounded-2xl cursor-pointer transition-all shadow-sm font-bold
-            ${isOpen ? 'border-accent/30 ring-4 ring-accent/10 bg-accent/5' : 'border-slate-100 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-600'}`}>
+            ${isOpen ? 'border-accent/30 ring-4 ring-accent/10 bg-accent/5 dark:border-slate-500 dark:ring-0 dark:bg-slate-800' : 'border-slate-100 dark:border-slate-600 hover:border-slate-300 dark:hover:border-slate-500'}`}>
                     <span className={`text-[11px] font-bold ${range.from ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-slate-400'}`}>
                         {range.from ? formatDateRange() : 'Select date range'}
                     </span>
@@ -268,17 +268,17 @@ const DateRangePicker = ({ onChange, initialRange, range: controlledRange, onRan
                         <div className="p-6 flex-1 min-w-[320px]">
                             <div className="flex items-center justify-between mb-6">
                                 <div className="w-7"></div>
-                                <h3 className="text-base font-bold text-gray-900">
+                                <h3 className="text-base font-bold text-gray-900 dark:text-white">
                                     {format(addMonths(viewDate, 1), 'MMMM yyyy')}
                                 </h3>
-                                <button onClick={nextMonth} className="p-1 hover:bg-gray-100 rounded-full text-gray-500 transition-colors" aria-label="Next month">
+                                <button onClick={nextMonth} className="p-1 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full text-gray-500 dark:text-slate-400 transition-colors" aria-label="Next month">
                                     <ChevronRight className="w-5 h-5" />
                                 </button>
                             </div>
 
                             <div className="grid grid-cols-7 mb-4">
                                 {weekDays.map(d => (
-                                    <span key={d} className="text-center text-xs font-semibold text-gray-400 uppercase tracking-wide">{d}</span>
+                                    <span key={d} className="text-center text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wide">{d}</span>
                                 ))}
                             </div>
 
@@ -288,8 +288,8 @@ const DateRangePicker = ({ onChange, initialRange, range: controlledRange, onRan
                     </div>
 
                     {/* Footer */}
-                    <div className="border-t border-gray-100 p-4 flex items-center justify-between bg-white px-6 py-4">
-                        <span className="text-sm font-semibold text-gray-700">
+                    <div className="border-t border-gray-100 dark:border-slate-700 p-4 flex items-center justify-between bg-white dark:bg-slate-800 px-6 py-4">
+                        <span className="text-sm font-semibold text-gray-700 dark:text-slate-300">
                             {range.from && range.to
                                 ? `${differenceInDays(range.to, range.from) + 1} days`
                                 : range.from ? 'Select end date' : ''}
@@ -297,7 +297,7 @@ const DateRangePicker = ({ onChange, initialRange, range: controlledRange, onRan
                         <div className="flex gap-3">
                             <button
                                 onClick={handleCancel}
-                                className="px-6 py-2.5 text-sm font-bold text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:text-gray-900 transition-all font-sans"
+                                className="px-6 py-2.5 text-sm font-bold text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-gray-900 dark:hover:text-white transition-all font-sans"
                             >
                                 Cancel
                             </button>
