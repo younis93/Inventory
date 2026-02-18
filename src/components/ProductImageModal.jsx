@@ -7,6 +7,8 @@ import ImageWithFallback from './common/ImageWithFallback';
 
 const ImageSlider = ({ images, currentIndex, onChange, onDelete, onDownload }) => {
     const { t } = useTranslation();
+    const { language } = useInventory();
+    const isRTL = language === 'ar';
 
     const safeIndex = images.length > 0 ? (currentIndex < images.length ? currentIndex : 0) : 0;
     const currentImage = images[safeIndex];
@@ -46,7 +48,7 @@ const ImageSlider = ({ images, currentIndex, onChange, onDelete, onDownload }) =
                 />
 
                 {/* Overlay Controls */}
-                <div className="absolute top-4 left-4 flex gap-2 z-30">
+                <div className={`absolute top-4 ${isRTL ? 'right-4' : 'left-4'} flex gap-2 z-30`}>
                     <button
                         onClick={onDownload}
                         className="p-2 bg-white/90 dark:bg-slate-800/90 hover:bg-white dark:hover:bg-slate-700 text-slate-800 dark:text-white rounded-lg backdrop-blur transition-all shadow-md border border-slate-200/50 dark:border-slate-700/50"
@@ -68,15 +70,15 @@ const ImageSlider = ({ images, currentIndex, onChange, onDelete, onDownload }) =
                     <>
                         <button
                             onClick={() => onChange((safeIndex - 1 + images.length) % images.length)}
-                            className="absolute left-4 top-[55%] md:top-1/2 -translate-y-1/2 p-2.5 md:p-3 bg-slate-900/40 hover:bg-slate-900/60 text-white rounded-full backdrop-blur-md transition-all z-20 shadow-lg border border-white/10"
+                            className={`absolute ${isRTL ? 'right-4' : 'left-4'} top-[55%] md:top-1/2 -translate-y-1/2 p-2.5 md:p-3 bg-slate-900/40 hover:bg-slate-900/60 text-white rounded-full backdrop-blur-md transition-all z-20 shadow-lg border border-white/10`}
                         >
-                            <ChevronLeft className="w-5 h-5 md:w-6 md:h-6" />
+                            {isRTL ? <ChevronRight className="w-5 h-5 md:w-6 md:h-6" /> : <ChevronLeft className="w-5 h-5 md:w-6 md:h-6" />}
                         </button>
                         <button
                             onClick={() => onChange((safeIndex + 1) % images.length)}
-                            className="absolute right-4 top-[55%] md:top-1/2 -translate-y-1/2 p-2.5 md:p-3 bg-slate-900/40 hover:bg-slate-900/60 text-white rounded-full backdrop-blur-md transition-all z-20 shadow-lg border border-white/10"
+                            className={`absolute ${isRTL ? 'left-4' : 'right-4'} top-[55%] md:top-1/2 -translate-y-1/2 p-2.5 md:p-3 bg-slate-900/40 hover:bg-slate-900/60 text-white rounded-full backdrop-blur-md transition-all z-20 shadow-lg border border-white/10`}
                         >
-                            <ChevronRight className="w-5 h-5 md:w-6 md:h-6" />
+                            {isRTL ? <ChevronLeft className="w-5 h-5 md:w-6 md:h-6" /> : <ChevronRight className="w-5 h-5 md:w-6 md:h-6" />}
                         </button>
                     </>
                 )}
@@ -107,7 +109,8 @@ const ImageSlider = ({ images, currentIndex, onChange, onDelete, onDownload }) =
 
 const ProductImageModal = ({ product, onClose, onSave, onUpload }) => {
     const { t } = useTranslation();
-    const { formatCurrency, isSidebarCollapsed } = useInventory();
+    const { formatCurrency, isSidebarCollapsed, language } = useInventory();
+    const isRTL = language === 'ar';
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [editedTitle, setEditedTitle] = useState(product.name || '');
     const [editedDescription, setEditedDescription] = useState(product.description || '');
@@ -246,8 +249,13 @@ const ProductImageModal = ({ product, onClose, onSave, onUpload }) => {
         document.body.removeChild(link);
     };
 
+    // Logical padding for sidebar offset
+    const sidebarPadding = isRTL
+        ? (isSidebarCollapsed ? 'lg:pr-20' : 'lg:pr-56')
+        : (isSidebarCollapsed ? 'lg:pl-20' : 'lg:pl-56');
+
     return (
-        <div className={`fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300 transition-all ${isSidebarCollapsed ? 'lg:pl-20' : 'lg:pl-56'}`}>
+        <div className={`fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300 transition-all ${sidebarPadding}`}>
             {/* Click outside to close - only active on desktop for safety */}
             <div className="absolute inset-0" onClick={onClose}></div>
 
@@ -256,7 +264,7 @@ const ProductImageModal = ({ product, onClose, onSave, onUpload }) => {
                 {/* Floating Close Button */}
                 <button
                     onClick={onClose}
-                    className="absolute top-16 right-8 md:top-4 md:right-4 z-[150] p-2 bg-slate-100/80 dark:bg-slate-900/80 hover:bg-slate-200 text-slate-500 dark:text-slate-400 rounded-lg transition-all active:scale-95 border border-slate-200/50 dark:border-slate-700/50 backdrop-blur shadow-sm"
+                    className={`absolute top-16 ${isRTL ? 'left-8' : 'right-8'} md:top-4 ${isRTL ? 'md:left-4' : 'md:right-4'} z-[150] p-2 bg-slate-100/80 dark:bg-slate-900/80 hover:bg-slate-200 text-slate-500 dark:text-slate-400 rounded-lg transition-all active:scale-95 border border-slate-200/50 dark:border-slate-700/50 backdrop-blur shadow-sm`}
                 >
                     <X className="w-4 h-4" />
                 </button>
@@ -285,7 +293,7 @@ const ProductImageModal = ({ product, onClose, onSave, onUpload }) => {
                     </div>
 
                     {/* Right: Product Details & Edit */}
-                    <div className="w-full md:w-1/3 flex-1 p-6 md:p-8 flex flex-col bg-white dark:bg-slate-800 md:border-l border-slate-100 dark:border-slate-700 overflow-y-auto scrollbar-none">
+                    <div className="w-full md:w-1/3 flex-1 p-6 md:p-8 flex flex-col bg-white dark:bg-slate-800 md:border-s border-slate-100 dark:border-slate-700 overflow-y-auto scrollbar-none">
                         <div className="space-y-6 flex-1">
                             <div>
                                 <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">{t('productPicture.modal.productTitle')}</label>

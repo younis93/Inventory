@@ -78,13 +78,13 @@ const ProductPicture = () => {
             <div className="sticky top-0 z-40 bg-slate-50/90 dark:bg-slate-900/95 backdrop-blur-xl -mx-4 md:-mx-8 px-4 md:px-8 py-4 mb-8 border-b border-slate-200/50 dark:border-slate-700/50 flex flex-col md:flex-row items-center justify-start gap-4">
                 {/* Search */}
                 <div className="relative w-full md:w-96">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input
                         type="text"
                         placeholder={t('products.searchPlaceholder')}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-accent outline-none transition-all shadow-sm"
+                        className="w-full ps-10 pe-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-accent outline-none transition-all shadow-sm"
                     />
                 </div>
             </div>
@@ -129,7 +129,7 @@ const ProductPicture = () => {
 
                                     {/* Badge Logic (Example) */}
                                     {product.stock <= 5 && (
-                                        <div className="absolute top-3 left-3 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-md">
+                                        <div className="absolute top-3 start-3 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-md">
                                             {t('products.stockStatus.lowStock')}
                                         </div>
                                     )}
