@@ -2,19 +2,23 @@ import React, { useState, useEffect } from 'react'; // Added useEffect
 import Layout from '../components/Layout';
 import { Moon, Sun, Monitor, User, Trash2, Plus, CheckCircle, Settings as SettingsIcon, Users, Lock, Edit, Upload, Image as ImageIcon, Sparkles, Droplets, Palette, Layout as LayoutIcon, AlertTriangle, ShieldAlert, Globe } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
+import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import ImageCropperModal from '../components/ImageCropperModal';
 import ImageWithFallback from '../components/common/ImageWithFallback';
 import DeleteConfirmModal from '../components/common/DeleteConfirmModal';
+import { useSearchParams } from 'react-router-dom';
 
 const Settings = () => {
     const { t } = useTranslation();
     const {
-        theme, toggleTheme, appearance, setAppearance, users, addUser, updateUser, deleteUser, currentUser, updateUserProfile,
+        theme, toggleTheme, appearance, setAppearance, users, addUser, updateUser, deleteUser,
         brand, updateBrand, addToast, language, changeLanguage, isDesktop, isOnline, pendingSyncCount, syncNow,
         desktopOfflineModeEnabled, setDesktopOfflineModeEnabled, conflicts
     } = useInventory();
+    const { user: authUser, updateAuthProfile, changeAuthPassword } = useAuth();
     const [activeTab, setActiveTab] = useState('general');
+    const [searchParams, setSearchParams] = useSearchParams();
     const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
     const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
@@ -28,19 +32,42 @@ const Settings = () => {
     const [cropType, setCropType] = useState(null); // 'avatar' or 'logo'
 
     // Account Settings State
-    const [displayName, setDisplayName] = useState(currentUser?.displayName || '');
+    const [displayName, setDisplayName] = useState(authUser?.displayName || '');
     const [isEditingProfile, setIsEditingProfile] = useState(false);
+    const [passwordForm, setPasswordForm] = useState({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+    });
 
-    // Update local state when currentUser changes
+    // Keep account tab state in sync with the authenticated user.
     useEffect(() => {
-        if (currentUser) {
-            setDisplayName(currentUser.displayName);
+        if (authUser) {
+            setDisplayName(authUser.displayName || '');
         }
-    }, [currentUser]);
+    }, [authUser]);
+
+    useEffect(() => {
+        const tab = searchParams.get('tab');
+        if (!tab) {
+            setSearchParams({ tab: 'general' }, { replace: true });
+            return;
+        }
+        if (['general', 'appearance', 'branding', 'users', 'account'].includes(tab)) {
+            setActiveTab(tab);
+        }
+    }, [searchParams, setSearchParams]);
+
+    const authUsername = authUser?.email ? authUser.email.split('@')[0] : '';
+
+    const handleTabChange = (tab) => {
+        setActiveTab(tab);
+        setSearchParams({ tab });
+    };
 
     const handleSaveProfile = async () => {
         try {
-            await updateUserProfile({ displayName });
+            await updateAuthProfile({ displayName: displayName.trim() });
             setIsEditingProfile(false);
             addToast("Profile updated successfully!", "success");
         } catch (error) {
@@ -118,14 +145,45 @@ const Settings = () => {
 
     const handleCropComplete = async (croppedImage) => {
         if (cropType === 'avatar') {
-            await updateUserProfile({ photoURL: croppedImage });
-            addToast("Avatar updated successfully!", "success");
+            try {
+                await updateAuthProfile({ photoURL: croppedImage });
+                addToast("Avatar updated successfully!", "success");
+            } catch (error) {
+                addToast("Failed to update avatar.", "error");
+            }
         } else if (cropType === 'logo') {
             setBrandForm(prev => ({ ...prev, logo: croppedImage }));
             addToast("Logo updated successfully!", "success");
         }
         setCroppingImage(null);
         setCropType(null);
+    };
+
+    const handlePasswordFormChange = (field, value) => {
+        setPasswordForm((prev) => ({ ...prev, [field]: value }));
+    };
+
+    const handleChangePassword = async (e) => {
+        e.preventDefault();
+        const { currentPassword, newPassword, confirmPassword } = passwordForm;
+        if (newPassword !== confirmPassword) {
+            addToast("New passwords do not match.", "error");
+            return;
+        }
+        if (newPassword.length < 6) {
+            addToast("Password must be at least 6 characters.", "error");
+            return;
+        }
+
+        try {
+            await changeAuthPassword(currentPassword, newPassword);
+            addToast(t('settings.toasts.passwordChanged'), "success");
+            setIsChangePasswordOpen(false);
+            setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+        } catch (error) {
+            console.error('Password change error:', error);
+            addToast("Failed to change password. Please verify your current password.", "error");
+        }
     };
 
     // User Management State
@@ -186,7 +244,7 @@ const Settings = () => {
                 <aside className="w-full lg:w-64 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6">
                     <nav className="space-y-2">
                         <button
-                            onClick={() => setActiveTab('general')}
+                            onClick={() => handleTabChange('general')}
                             className={`w-full text-left px-4 py-3 rounded-xl font-medium transition-all flex items-center gap-3 ${activeTab === 'general'
                                 ? 'bg-gradient-to-r from-[var(--brand-color)] to-[var(--brand-color)]/80 text-white shadow-md shadow-[var(--brand-color)]/20'
                                 : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
@@ -196,7 +254,7 @@ const Settings = () => {
                             {t('settings.general')}
                         </button>
                         <button
-                            onClick={() => setActiveTab('appearance')}
+                            onClick={() => handleTabChange('appearance')}
                             className={`w-full text-left px-4 py-3 rounded-xl font-medium transition-all flex items-center gap-3 ${activeTab === 'appearance'
                                 ? 'bg-gradient-to-r from-[var(--brand-color)] to-[var(--brand-color)]/80 text-white shadow-md shadow-[var(--brand-color)]/20'
                                 : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
@@ -206,7 +264,7 @@ const Settings = () => {
                             {t('settings.appearance')}
                         </button>
                         <button
-                            onClick={() => setActiveTab('branding')}
+                            onClick={() => handleTabChange('branding')}
                             className={`w-full text-left px-4 py-3 rounded-xl font-medium transition-all flex items-center gap-3 ${activeTab === 'branding'
                                 ? 'bg-gradient-to-r from-[var(--brand-color)] to-[var(--brand-color)]/80 text-white shadow-md shadow-[var(--brand-color)]/20'
                                 : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
@@ -216,7 +274,17 @@ const Settings = () => {
                             {t('settings.branding')}
                         </button>
                         <button
-                            onClick={() => setActiveTab('users')}
+                            onClick={() => handleTabChange('account')}
+                            className={`w-full text-left px-4 py-3 rounded-xl font-medium transition-all flex items-center gap-3 ${activeTab === 'account'
+                                ? 'bg-gradient-to-r from-[var(--brand-color)] to-[var(--brand-color)]/80 text-white shadow-md shadow-[var(--brand-color)]/20'
+                                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                                }`}
+                        >
+                            <User className="w-5 h-5" />
+                            {t('settings.account')}
+                        </button>
+                        <button
+                            onClick={() => handleTabChange('users')}
                             className={`w-full text-left px-4 py-3 rounded-xl font-medium transition-all flex items-center gap-3 ${activeTab === 'users'
                                 ? 'bg-gradient-to-r from-[var(--brand-color)] to-[var(--brand-color)]/80 text-white shadow-md shadow-[var(--brand-color)]/20'
                                 : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
@@ -597,10 +665,10 @@ const Settings = () => {
                             <div className="max-w-xl space-y-6">
                                 <div className="flex items-center gap-6 mb-8">
                                     <div className="w-24 h-24 bg-accent/20 rounded-full flex items-center justify-center text-3xl font-bold text-accent overflow-hidden border-4 border-white dark:border-slate-800 shadow-lg">
-                                        {currentUser?.photoURL ? (
-                                            <ImageWithFallback src={currentUser.photoURL} alt="Avatar" className="w-full h-full" imageClassName="w-full h-full object-cover" />
+                                        {authUser?.photoURL ? (
+                                            <ImageWithFallback src={authUser.photoURL} alt="Avatar" className="w-full h-full" imageClassName="w-full h-full object-cover" />
                                         ) : (
-                                            currentUser?.displayName?.charAt(0) || 'U'
+                                            authUser?.displayName?.charAt(0) || 'U'
                                         )}
                                     </div>
                                     <div>
@@ -630,7 +698,7 @@ const Settings = () => {
                                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">{t('settings.username')}</label>
                                     <input
                                         type="text"
-                                        value={currentUser?.username || ''}
+                                        value={authUsername}
                                         readOnly
                                         className="w-full p-3 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-100 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 cursor-not-allowed"
                                     />
@@ -639,7 +707,7 @@ const Settings = () => {
                                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">{t('settings.emailAddress')}</label>
                                     <input
                                         type="email"
-                                        value={currentUser?.email || ''}
+                                        value={authUser?.email || ''}
                                         readOnly
                                         className="w-full p-3 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-100 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 cursor-not-allowed"
                                     />
@@ -658,7 +726,7 @@ const Settings = () => {
                                         <div className="flex gap-3">
                                             <button
                                                 onClick={() => {
-                                                    setDisplayName(currentUser?.displayName || '');
+                                                    setDisplayName(authUser?.displayName || '');
                                                     setIsEditingProfile(false);
                                                 }}
                                                 className="px-6 py-3 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl transition-colors"
@@ -825,13 +893,13 @@ const Settings = () => {
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in zoom-in duration-200">
                         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6">
                             <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-4">{t('settings.changePassword')}</h3>
-                            <form onSubmit={(e) => { e.preventDefault(); addToast(t('settings.toasts.passwordChanged'), "success"); setIsChangePasswordOpen(false); }} className="space-y-4">
-                                <input required placeholder={t('settings.placeholders.currentPassword')} type="password" className="w-full p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700 dark:text-white outline-none" />
-                                <input required placeholder={t('settings.placeholders.newPassword')} type="password" className="w-full p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700 dark:text-white outline-none" />
-                                <input required placeholder={t('settings.placeholders.confirmPassword')} type="password" className="w-full p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700 dark:text-white outline-none" />
+                            <form onSubmit={handleChangePassword} className="space-y-4">
+                                <input required placeholder={t('settings.placeholders.currentPassword')} type="password" value={passwordForm.currentPassword} onChange={(e) => handlePasswordFormChange('currentPassword', e.target.value)} className="w-full p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700 dark:text-white outline-none" />
+                                <input required placeholder={t('settings.placeholders.newPassword')} type="password" value={passwordForm.newPassword} onChange={(e) => handlePasswordFormChange('newPassword', e.target.value)} className="w-full p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700 dark:text-white outline-none" />
+                                <input required placeholder={t('settings.placeholders.confirmPassword')} type="password" value={passwordForm.confirmPassword} onChange={(e) => handlePasswordFormChange('confirmPassword', e.target.value)} className="w-full p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700 dark:text-white outline-none" />
 
                                 <div className="flex gap-3 mt-6">
-                                    <button type="button" onClick={() => setIsChangePasswordOpen(false)} className="flex-1 py-3 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition-colors">{t('common.cancel')}</button>
+                                    <button type="button" onClick={() => { setIsChangePasswordOpen(false); setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' }); }} className="flex-1 py-3 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition-colors">{t('common.cancel')}</button>
                                     <button type="submit"
                                         className="flex-1 py-3 text-white font-bold rounded-xl transition-colors shadow-lg bg-accent"
                                         style={{ boxShadow: `0 10px 15px -3px var(--accent-color)33` }}

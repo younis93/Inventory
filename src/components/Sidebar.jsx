@@ -1,12 +1,15 @@
-import React from 'react';
-import { LayoutDashboard, Package, ShoppingCart, Settings, Users, Box, X, ChevronLeft, ChevronRight, Image as ImageIcon } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import React, { useEffect, useRef, useState } from 'react';
+import { LayoutDashboard, Package, ShoppingCart, Settings, Users, Box, X, ChevronLeft, ChevronRight, Image as ImageIcon, LogOut, UserCog, ChevronUp } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useInventory } from '../context/InventoryContext';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '../context/AuthContext';
 
 const Sidebar = () => {
     const { t, i18n } = useTranslation();
     const location = useLocation();
+    const navigate = useNavigate();
+    const { user: authUser, signOutUser } = useAuth();
     const {
         theme,
         currentUser,
@@ -17,6 +20,9 @@ const Sidebar = () => {
         closeMobileMenu,
         language
     } = useInventory();
+    const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+    const profileMenuRef = useRef(null);
+    const profileUser = authUser || currentUser;
 
     const isRTL = language === 'ar';
 
@@ -34,6 +40,33 @@ const Sidebar = () => {
     const widthClass = isSidebarCollapsed ? 'w-20' : 'w-56';
     const mobileHiddenTransform = isRTL ? 'translate-x-full' : '-translate-x-full';
     const sidebarClasses = `fixed lg:static top-0 bottom-0 ${positionClass} border-e z-40 ${widthClass} bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 flex flex-col h-screen transition-all duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0 shadow-2xl' : mobileHiddenTransform + ' lg:translate-x-0'} glass-panel`;
+
+    useEffect(() => {
+        const onClickOutside = (event) => {
+            if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
+                setIsProfileMenuOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', onClickOutside);
+        return () => document.removeEventListener('mousedown', onClickOutside);
+    }, []);
+
+    const handleAccountSettings = () => {
+        setIsProfileMenuOpen(false);
+        closeMobileMenu();
+        navigate('/settings?tab=account');
+    };
+
+    const handleLogout = async () => {
+        setIsProfileMenuOpen(false);
+        try {
+            await signOutUser();
+            closeMobileMenu();
+            navigate('/login', { replace: true });
+        } catch (error) {
+            console.error('Logout failed:', error);
+        }
+    };
 
     return (
         <aside className={sidebarClasses}>
@@ -106,24 +139,49 @@ const Sidebar = () => {
 
             {/* Bottom User Section */}
             <div className="p-4 mt-auto border-t border-slate-100 dark:border-slate-800/50">
-                <div className={`bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 flex items-center shadow-sm glass-panel ${isSidebarCollapsed ? 'p-2 justify-center' : 'p-4 gap-3'}`}>
-                    <div className="relative shrink-0 w-10 h-10">
-                        <div
-                            className="w-full h-full text-white rounded-full flex items-center justify-center font-bold text-lg overflow-hidden"
-                            style={{ backgroundColor: brand.color }}
-                        >
-                            {currentUser?.photoURL ? (
-                                <img src={currentUser.photoURL} alt="User" className="w-full h-full object-cover" />
-                            ) : (
-                                currentUser?.displayName?.charAt(0) || 'U'
-                            )}
+                <div className="relative" ref={profileMenuRef}>
+                    <button
+                        onClick={() => setIsProfileMenuOpen(prev => !prev)}
+                        className={`w-full bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 flex items-center shadow-sm glass-panel transition-all hover:border-slate-300 dark:hover:border-slate-600 ${isSidebarCollapsed ? 'p-2 justify-center' : 'p-4 gap-3'}`}
+                    >
+                        <div className="relative shrink-0 w-10 h-10">
+                            <div
+                                className="w-full h-full text-white rounded-full flex items-center justify-center font-bold text-lg overflow-hidden"
+                                style={{ backgroundColor: brand.color }}
+                            >
+                                {profileUser?.photoURL ? (
+                                    <img src={profileUser.photoURL} alt="User" className="w-full h-full object-cover" />
+                                ) : (
+                                    profileUser?.displayName?.charAt(0) || 'U'
+                                )}
+                            </div>
+                            <div className="absolute bottom-0 end-0 w-3 h-3 bg-emerald-500 border-2 border-white dark:border-slate-800 rounded-full"></div>
                         </div>
-                        <div className="absolute bottom-0 end-0 w-3 h-3 bg-emerald-500 border-2 border-white dark:border-slate-800 rounded-full"></div>
-                    </div>
-                    {!isSidebarCollapsed && (
-                        <div className="overflow-hidden animate-in fade-in duration-300">
-                            <p className="text-sm font-bold text-slate-800 dark:text-white truncate">{currentUser?.displayName?.split(' ')[0] || t('user.defaultName')}</p>
-                            <p className="text-xs text-slate-500 truncate">{currentUser?.role || t('user.defaultRole')}</p>
+                        {!isSidebarCollapsed && (
+                            <div className="flex-1 overflow-hidden text-left animate-in fade-in duration-300">
+                                <p className="text-sm font-bold text-slate-800 dark:text-white truncate">{profileUser?.displayName?.split(' ')[0] || t('user.defaultName')}</p>
+                                <p className="text-xs text-slate-500 truncate">{currentUser?.role || profileUser?.email || t('user.defaultRole')}</p>
+                            </div>
+                        )}
+                        {!isSidebarCollapsed && <ChevronUp className={`w-4 h-4 text-slate-400 transition-transform ${isProfileMenuOpen ? 'rotate-180' : ''}`} />}
+                    </button>
+
+                    {isProfileMenuOpen && !isSidebarCollapsed && (
+                        <div className="absolute bottom-full mb-2 left-0 right-0 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-2xl overflow-hidden z-50">
+                            <button
+                                onClick={handleAccountSettings}
+                                className="w-full flex items-center gap-2 px-4 py-3 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-colors"
+                            >
+                                <UserCog className="w-4 h-4" />
+                                <span>{t('settings.accountSettings') || 'Account Settings'}</span>
+                            </button>
+                            <button
+                                onClick={handleLogout}
+                                className="w-full flex items-center gap-2 px-4 py-3 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-colors border-t border-slate-100 dark:border-slate-700"
+                            >
+                                <LogOut className="w-4 h-4" />
+                                <span>{t('menu.logout') || 'Log out'}</span>
+                            </button>
                         </div>
                     )}
                 </div>
