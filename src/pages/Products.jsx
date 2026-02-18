@@ -63,15 +63,8 @@ const Products = () => {
     const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState(false);
     const [isImageModalOpen, setIsImageModalOpen] = useState(false);
 
-    // Sync to global modal state
-    useEffect(() => {
-        setGlobalModalOpen(isModalOpen || isCategoryManagerOpen || isImageModalOpen || isDeleteModalOpen);
-        return () => setGlobalModalOpen(false);
-    }, [isModalOpen, isCategoryManagerOpen, isImageModalOpen, isDeleteModalOpen, setGlobalModalOpen]);
-
     const [displayLimit, setDisplayLimit] = useState(100);
     const [editingProduct, setEditingProduct] = useState(null);
-    // isImageModalOpen was already declared above in replacement, removing duplications if any
     const [editingProductForImage, setEditingProductForImage] = useState(null);
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'ascending' });
     const fileInputRef = useRef(null);
@@ -79,6 +72,12 @@ const Products = () => {
     // New delete confirmation state
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [productToDelete, setProductToDelete] = useState(null);
+
+    // Sync to global modal state
+    useEffect(() => {
+        setGlobalModalOpen(isModalOpen || isCategoryManagerOpen || isImageModalOpen || isDeleteModalOpen);
+        return () => setGlobalModalOpen(false);
+    }, [isModalOpen, isCategoryManagerOpen, isImageModalOpen, isDeleteModalOpen, setGlobalModalOpen]);
 
     // Form State
     const initialFormState = {
@@ -562,10 +561,10 @@ const Products = () => {
                                                     src={
                                                         product.images && product.images[0]
                                                             ? (typeof product.images[0] === 'string' ? product.images[0] : product.images[0].url)
-                                                            : (product.imageUrl || 'https://via.placeholder.com/150')
+                                                            : (product.image || 'https://via.placeholder.com/400x400?text=No+Image')
                                                     }
                                                     alt={product.name}
-                                                    className="w-full h-full object-cover"
+                                                    className="w-full h-full"
                                                 />
                                             </div>
                                             <div>
@@ -629,7 +628,7 @@ const Products = () => {
                         filteredProducts.map(product => (
                             <div key={product._id} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4 flex items-start gap-4">
                                 <div className="w-16 h-16 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex-shrink-0">
-                                    <ImageWithFallback src={product.images && product.images[0] ? (typeof product.images[0] === 'string' ? product.images[0] : product.images[0].url) : (product.imageUrl || 'https://via.placeholder.com/150')} alt={product.name} className="w-full h-full object-cover" />
+                                    <ImageWithFallback src={product.images && product.images[0] ? (typeof product.images[0] === 'string' ? product.images[0] : product.images[0].url) : (product.image || 'https://via.placeholder.com/400x400?text=No+Image')} alt={product.name} className="w-full h-full" />
                                 </div>
                                 <div className="flex-1">
                                     <div className="flex justify-between items-start">

@@ -11,8 +11,8 @@ const Header = ({ title }) => {
     const isGlassTheme = ['liquid', 'default_glass'].includes(appearance?.theme);
 
     // Determine if header should be hidden
-    // Only hide on smaller screens when a modal is open to maximize screen space
-    const visibilityClass = isModalOpen ? 'hidden md:flex' : (isHidden ? 'flex lg:hidden' : 'flex');
+    // hide entirely when a modal is open to maximize screen space
+    const visibilityClass = isModalOpen ? 'hidden' : (isHidden ? 'flex lg:hidden' : 'flex');
 
     // Handle theme toggle - cycles through light/dark based on current theme
     const handleThemeToggle = () => {

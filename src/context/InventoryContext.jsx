@@ -139,7 +139,7 @@ export const InventoryProvider = ({ children }) => {
         });
         const unsubConflict = dataClient.onConflict((conflict) => {
             addToast(`Conflict detected on ${conflict.entity} #${conflict.docId} - resolved automatically`, 'warning');
-            dataClient.getConflicts().then(setConflicts).catch(() => {});
+            dataClient.getConflicts().then(setConflicts).catch(() => { });
         });
 
         return () => {
@@ -162,17 +162,32 @@ export const InventoryProvider = ({ children }) => {
         await dataClient.setOfflineModeEnabled(enabled);
         setDesktopOfflineModeEnabledState(enabled);
     };
-
     // Header Visibility State (for mobile modals)
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     // Branding State
-    const [brand, setBrand] = useState({
-        name: 'Gem Toys',
-        logo: PROFESSIONAL_LOGO,
-        favicon: PROFESSIONAL_FAVICON,
-        color: '#1e3a5f',
-        hideHeader: false
+    const [brand, setBrand] = useState(() => {
+        const savedAppearance = localStorage.getItem('appearance');
+        let initialColor = '#1e3a5f';
+        if (savedAppearance) {
+            try {
+                const parsed = JSON.parse(savedAppearance);
+                if (parsed.accentType === 'gradient' && parsed.accentGradient?.start) {
+                    initialColor = parsed.accentGradient.start;
+                } else if (parsed.accentColor) {
+                    initialColor = parsed.accentColor;
+                }
+            } catch (e) {
+                console.error("Error parsing appearance for initial brand color:", e);
+            }
+        }
+        return {
+            name: 'Gem Toys',
+            logo: PROFESSIONAL_LOGO,
+            favicon: PROFESSIONAL_FAVICON,
+            color: initialColor,
+            hideHeader: false
+        };
     });
 
     // Keep document title and favicon in sync with branding

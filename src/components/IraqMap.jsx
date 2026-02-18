@@ -37,7 +37,9 @@ const normalizeRingOrientation = (feature) => {
 };
 
 const IraqMap = ({ data, selectedGovernorates = [], onSelect }) => {
-    const { theme, brand } = useInventory();
+    const { theme, appearance } = useInventory();
+    const accentColor = appearance.accentType === 'solid' ? appearance.accentColor : appearance.accentGradient.start;
+
     const geoData = useMemo(() => {
         const parsed = JSON.parse(iraqGeoRaw);
         return {
@@ -69,9 +71,9 @@ const IraqMap = ({ data, selectedGovernorates = [], onSelect }) => {
     }, [data]);
 
     // Color scale for positive counts (from low -> high). Zero counts will use a separate color.
-    const colorScale = scaleLinear()
+    const colorScale = useMemo(() => scaleLinear()
         .domain([minPositive || 1, maxValue || (minPositive || 1)])
-        .range([`${brand.color}40`, brand.color]); // Using brand color variations
+        .range([`${accentColor}40`, accentColor]), [minPositive, maxValue, accentColor]); // Using accent color variations
 
     const zeroColor = theme === 'dark' ? "#0f172a" : "#f1f5f9";
 
@@ -86,27 +88,27 @@ const IraqMap = ({ data, selectedGovernorates = [], onSelect }) => {
                         {({ geographies }) =>
                             <>
                                 {geographies.map((geo) => {
-                                        // Robust Property Access: Check 'name', 'shapeName', or 'ADM1_EN' (common in geoBoundaries)
-                                        const p = geo.properties || {};
-                                        const governName = p.name || p.shapeName || p.ADM1_EN || "Unknown";
+                                    // Robust Property Access: Check 'name', 'shapeName', or 'ADM1_EN' (common in geoBoundaries)
+                                    const p = geo.properties || {};
+                                    const governName = p.name || p.shapeName || p.ADM1_EN || "Unknown";
 
-                                        const normalize = (str) => typeof str === 'string' ? str.toLowerCase().replace(/[^a-z0-9]/g, '') : '';
-                                        const n1 = normalize(governName);
+                                    const normalize = (str) => typeof str === 'string' ? str.toLowerCase().replace(/[^a-z0-9]/g, '') : '';
+                                    const n1 = normalize(governName);
 
-                                        // Try to find a match in our data keys
-                                        const matchingKey = Object.keys(data || {}).find(k => {
-                                            const n2 = normalize(k);
-                                            return n1 && n2 && (n1.includes(n2) || n2.includes(n1));
-                                        });
+                                    // Try to find a match in our data keys
+                                    const matchingKey = Object.keys(data || {}).find(k => {
+                                        const n2 = normalize(k);
+                                        return n1 && n2 && (n1.includes(n2) || n2.includes(n1));
+                                    });
 
-                                        const effectiveName = matchingKey || governName;
-                                        const value = (matchingKey && data[matchingKey]) || 0;
-                                        const isSelected = selectedGovernorates.includes(effectiveName);
+                                    const effectiveName = matchingKey || governName;
+                                    const value = (matchingKey && data[matchingKey]) || 0;
+                                    const isSelected = selectedGovernorates.includes(effectiveName);
 
-                                        // Choose fill: selected > positive gradient > zero color
-                                        let fillColor = zeroColor;
-                                        if (isSelected) fillColor = "#94a3b8";
-                                        else if (value > 0) fillColor = colorScale(value);
+                                    // Choose fill: selected > positive gradient > zero color
+                                    let fillColor = zeroColor;
+                                    if (isSelected) fillColor = "#94a3b8";
+                                    else if (value > 0) fillColor = colorScale(value);
 
                                     return (
                                         <Geography
@@ -129,22 +131,22 @@ const IraqMap = ({ data, selectedGovernorates = [], onSelect }) => {
                                 })}
                                 {/* Render Labels on top */}
                                 {geographies.map((geo) => {
-                                        const centroid = geoCentroid(geo);
-                                        // Check centroid validity
-                                        if (!centroid || isNaN(centroid[0]) || isNaN(centroid[1])) return null;
+                                    const centroid = geoCentroid(geo);
+                                    // Check centroid validity
+                                    if (!centroid || isNaN(centroid[0]) || isNaN(centroid[1])) return null;
 
-                                        const p = geo.properties || {};
-                                        const governName = p.name || p.shapeName || p.ADM1_EN || "Unknown";
+                                    const p = geo.properties || {};
+                                    const governName = p.name || p.shapeName || p.ADM1_EN || "Unknown";
 
-                                        const normalize = (str) => typeof str === 'string' ? str.toLowerCase().replace(/[^a-z0-9]/g, '') : '';
-                                        const n1 = normalize(governName);
+                                    const normalize = (str) => typeof str === 'string' ? str.toLowerCase().replace(/[^a-z0-9]/g, '') : '';
+                                    const n1 = normalize(governName);
 
-                                        const matchingKey = Object.keys(data || {}).find(k => {
-                                            const n2 = normalize(k);
-                                            return n1 && n2 && (n1.includes(n2) || n2.includes(n1));
-                                        });
-                                        const effectiveName = matchingKey || governName;
-                                        const value = (matchingKey && data[matchingKey]) || 0;
+                                    const matchingKey = Object.keys(data || {}).find(k => {
+                                        const n2 = normalize(k);
+                                        return n1 && n2 && (n1.includes(n2) || n2.includes(n1));
+                                    });
+                                    const effectiveName = matchingKey || governName;
+                                    const value = (matchingKey && data[matchingKey]) || 0;
 
                                     return (
                                         <Marker key={`${geo.rsmKey}-label`} coordinates={centroid}>

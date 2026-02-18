@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import { useInventory } from '../context/InventoryContext';
 import { useTranslation } from 'react-i18next';
@@ -9,9 +9,15 @@ import Skeleton from '../components/common/Skeleton';
 
 const ProductPicture = () => {
     const { t } = useTranslation();
-    const { products, updateProduct, loading, isDesktop, isOnline, addToast } = useInventory();
+    const { products, updateProduct, loading, isDesktop, isOnline, addToast, setIsModalOpen: setGlobalModalOpen } = useInventory();
     const [selectedProduct, setSelectedProduct] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
+
+    // Sync to global modal state
+    useEffect(() => {
+        setGlobalModalOpen(!!selectedProduct);
+        return () => setGlobalModalOpen(false);
+    }, [selectedProduct, setGlobalModalOpen]);
 
     const handleProductClick = (product) => {
         setSelectedProduct(product);
@@ -34,8 +40,10 @@ const ProductPicture = () => {
             return [];
         }
 
-        // Convert images to Base64 for persistence in this environment and avoid File object serialization errors
-        const base64Promises = files.map(file => {
+        // Handle both raw File objects and pre-processed {url, name} objects
+        const newImages = await Promise.all(files.map(async (file) => {
+            if (file.url) return file; // Already processed
+
             return new Promise((resolve) => {
                 const reader = new FileReader();
                 reader.onloadend = () => resolve({
@@ -44,9 +52,7 @@ const ProductPicture = () => {
                 });
                 reader.readAsDataURL(file);
             });
-        });
-
-        const newImages = await Promise.all(base64Promises);
+        }));
 
         if (selectedProduct) {
             const updatedImages = [...(selectedProduct.images || []), ...newImages];
@@ -68,23 +74,17 @@ const ProductPicture = () => {
 
     return (
         <Layout title={t('productPicture.title')}>
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-8">
-                <div>
-                    <h2 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                        <ImageIcon className="w-6 h-6 text-accent" />
-                        {t('productPicture.subtitle')}
-                    </h2>
-                </div>
-
+            {/* Sticky Search Bar area */}
+            <div className="sticky top-0 z-40 bg-slate-50/90 dark:bg-slate-900/95 backdrop-blur-xl -mx-4 md:-mx-8 px-4 md:px-8 py-4 mb-8 border-b border-slate-200/50 dark:border-slate-700/50 flex flex-col md:flex-row items-center justify-start gap-4">
                 {/* Search */}
-                <div className="relative w-full md:w-64">
+                <div className="relative w-full md:w-96">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input
                         type="text"
                         placeholder={t('products.searchPlaceholder')}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium focus:ring-2 focus:ring-accent outline-none transition-all"
+                        className="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-accent outline-none transition-all shadow-sm"
                     />
                 </div>
             </div>
@@ -107,9 +107,10 @@ const ProductPicture = () => {
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     {filteredProducts.map((product) => {
-                        // Determine main image
-                        const mainImage = product.images?.[0] || product.image || 'https://via.placeholder.com/400x400?text=No+Image';
-                        const imageUrl = typeof mainImage === 'string' ? mainImage : mainImage.url;
+                        // Determine main image logic
+                        const imageUrl = product.images && product.images[0]
+                            ? (typeof product.images[0] === 'string' ? product.images[0] : product.images[0].url)
+                            : (product.image || 'https://via.placeholder.com/400x400?text=No+Image');
 
                         return (
                             <div
