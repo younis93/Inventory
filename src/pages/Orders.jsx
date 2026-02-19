@@ -545,11 +545,21 @@ const Orders = () => {
         );
     };
 
+    const isSaveOrderDisabled = isSubmitting || newOrder.items.length === 0 || newOrder.items.some(item => {
+        const product = products.find(p => p._id === item.product._id);
+        const oldOrder = orders.find(o => o._id === editingOrderId);
+        const oldItem = oldOrder?.items.find(oi => oi.product._id === item.product._id);
+        const oldQty = oldItem ? oldItem.quantity : 0;
+        return item.quantity > ((product?.stock || 0) + oldQty);
+    });
+
+    const saveOrderLabel = editingOrderId ? t('orders.updateOrder') : t('orders.saveOrder');
+
     return (
         <Layout title={t('orders.title')}>
             {/* Actions Bar */}
             <div className={`flex flex-col gap-4 mb-8 bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 transition-all ${['liquid', 'default_glass'].includes(appearance.theme) ? 'glass-panel' : ''}`}>
-                {/* Top Row: Add Button + Export | Clear Filters Button + Order Count */}
+                {/* Top Row: Add Button + Export + Desktop controls */}
                 <div className="flex gap-3 w-full items-center justify-between flex-wrap">
                     <div className="flex gap-3 items-center flex-wrap">
                         <button
@@ -568,12 +578,29 @@ const Orders = () => {
                             className="flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-xl font-bold transition-all shadow-lg hover:bg-green-700"
                         >
                             <Download className="w-5 h-5" />
+                            <span className="sm:hidden">CSV</span>
                             <span className="hidden sm:inline">{t('common.exportCSV')}</span>
                         </button>
                     </div>
 
-                    <div className="flex gap-3 items-center flex-wrap">
-                        {/* Clear Filters Button */}
+                    {(filterGovernorates.length > 0 || filterStatuses.length > 0 || filterSocials.length > 0 || searchTerm ||
+                        dateRange.from?.getTime() !== defaultRange.from?.getTime() ||
+                        dateRange.to?.getTime() !== defaultRange.to?.getTime()) && (
+                            <button
+                                onClick={() => {
+                                    setSearchTerm('');
+                                    setFilterStatuses([]);
+                                    setFilterGovernorates([]);
+                                    setFilterSocials([]);
+                                    setDateRange(defaultRange);
+                                }}
+                                className="sm:hidden ms-auto shrink-0 whitespace-nowrap px-4 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-xl font-bold text-sm transition-all border border-slate-200 dark:border-slate-700"
+                            >
+                                {t('common.clearFilters')}
+                            </button>
+                        )}
+
+                    <div className="hidden sm:flex gap-2 sm:gap-3 items-center w-full sm:w-auto flex-nowrap overflow-visible">
                         {(filterGovernorates.length > 0 || filterStatuses.length > 0 || filterSocials.length > 0 || searchTerm ||
                             dateRange.from?.getTime() !== defaultRange.from?.getTime() ||
                             dateRange.to?.getTime() !== defaultRange.to?.getTime()) && (
@@ -585,7 +612,7 @@ const Orders = () => {
                                         setFilterSocials([]);
                                         setDateRange(defaultRange);
                                     }}
-                                    className="px-4 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-xl font-bold text-sm transition-all border border-slate-200 dark:border-slate-700"
+                                    className="shrink-0 whitespace-nowrap px-4 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-xl font-bold text-sm transition-all border border-slate-200 dark:border-slate-700"
                                 >
                                     {t('common.clearFilters')}
                                 </button>
@@ -593,8 +620,7 @@ const Orders = () => {
 
                         <RowLimitDropdown limit={displayLimit} onChange={setDisplayLimit} />
 
-                        {/* Orders Count */}
-                        <div className="flex items-center gap-3 px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
+                        <div className="shrink-0 whitespace-nowrap flex items-center gap-3 px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
                             <ShoppingBag className="w-4 h-4 text-slate-400" />
                             <span className="text-sm font-bold text-slate-500">
                                 <span className="text-slate-900 dark:text-white">{filteredAndSortedOrders.length}</span> {t('orders.title')}
@@ -603,10 +629,37 @@ const Orders = () => {
                     </div>
                 </div>
 
+                {/* Row Controls (mobile only): Show rows + orders count + sort */}
+                <div className="flex sm:hidden gap-2 items-center w-full flex-nowrap overflow-visible">
+                    <SortDropdown
+                        title={t('common.sort')}
+                        options={[
+                            { value: 'date-new', label: t('common.dateNew') },
+                            { value: 'date-old', label: t('common.dateOld') },
+                            { value: 'total-high', label: t('common.priceHigh') },
+                            { value: 'total-low', label: t('common.priceLow') },
+                            { value: 'name-asc', label: t('common.nameAZ') }
+                        ]}
+                        selectedValue={sortBy}
+                        onChange={handleSortChange}
+                    />
+
+                    <RowLimitDropdown limit={displayLimit} onChange={setDisplayLimit} />
+
+                    {/* Orders Count */}
+                    <div className="shrink-0 whitespace-nowrap flex items-center gap-3 px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
+                        <ShoppingBag className="w-4 h-4 text-slate-400" />
+                        <span className="text-sm font-bold text-slate-500">
+                            <span className="text-slate-900 dark:text-white">{filteredAndSortedOrders.length}</span> {t('orders.title')}
+                        </span>
+                    </div>
+
+                </div>
+
                 {/* Filters Row: Search + Date + All Filters + Sort */}
-                <div className="flex gap-3 w-full flex-wrap items-center">
+                <div className="flex gap-3 w-full flex-wrap lg:flex-nowrap items-center">
                     {/* Search Input with fixed height */}
-                    <div className="relative min-w-[200px] flex-1 md:flex-none h-[44px]">
+                    <div className="relative order-last w-full sm:order-none sm:min-w-[200px] sm:flex-1 lg:flex-none lg:w-[280px] h-[44px]">
                         <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                         <input
                             type="text"
@@ -656,19 +709,21 @@ const Orders = () => {
                         showSearch={false}
                     />
 
-                    {/* Sort */}
-                    <SortDropdown
-                        title={t('common.sort')}
-                        options={[
-                            { value: 'date-new', label: t('common.dateNew') },
-                            { value: 'date-old', label: t('common.dateOld') },
-                            { value: 'total-high', label: t('common.priceHigh') },
-                            { value: 'total-low', label: t('common.priceLow') },
-                            { value: 'name-asc', label: t('common.nameAZ') }
-                        ]}
-                        selectedValue={sortBy}
-                        onChange={handleSortChange}
-                    />
+                    {/* Sort (desktop/tablet) */}
+                    <div className="hidden sm:block">
+                        <SortDropdown
+                            title={t('common.sort')}
+                            options={[
+                                { value: 'date-new', label: t('common.dateNew') },
+                                { value: 'date-old', label: t('common.dateOld') },
+                                { value: 'total-high', label: t('common.priceHigh') },
+                                { value: 'total-low', label: t('common.priceLow') },
+                                { value: 'name-asc', label: t('common.nameAZ') }
+                            ]}
+                            selectedValue={sortBy}
+                            onChange={handleSortChange}
+                        />
+                    </div>
                 </div>
             </div>
 
@@ -795,16 +850,17 @@ const Orders = () => {
             </div>
 
             {isCreateModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-start justify-center bg-slate-900/60 backdrop-blur-md p-2 md:p-4 overflow-y-auto">
-                    <div className="bg-white dark:bg-slate-800 rounded-[32px] shadow-2xl w-full max-w-5xl my-4 sm:my-8 min-h-0 flex flex-col md:flex-row overflow-hidden animate-in fade-in zoom-in duration-300 relative max-h-[90vh]">
+                <div className="fixed inset-0 z-[100] flex items-start justify-center bg-slate-900/60 backdrop-blur-md p-2 md:p-4 overflow-hidden">
+                    <div className="bg-white dark:bg-slate-800 rounded-[32px] shadow-2xl w-full max-w-5xl my-4 sm:my-8 min-h-0 flex flex-col overflow-hidden animate-in fade-in zoom-in duration-300 relative max-h-[90vh]">
+                        <div className="flex-1 min-h-0 flex flex-col md:flex-row overflow-y-auto overflow-x-hidden md:overflow-hidden custom-scrollbar">
 
                         {/* Left: Product Selection & Cart */}
-                        <div className="flex-1 p-4 md:p-6 border-b md:border-b-0 md:border-e border-slate-100 dark:border-slate-700 flex flex-col min-h-0 overflow-y-auto lg:overflow-visible relative z-20">
-                            <div className="sticky top-0 bg-white dark:bg-slate-800 pb-4 z-10 lg:static">
+                        <div className="order-2 md:order-1 w-full shrink-0 md:shrink md:flex-1 p-4 md:p-6 border-t md:border-t-0 md:border-e border-slate-100 dark:border-slate-700 flex flex-col md:min-h-0 overflow-x-hidden overflow-visible md:overflow-visible relative z-20">
+                            <div className="bg-white dark:bg-slate-800 pb-4 z-10 md:sticky md:top-0 lg:static">
                                 <h3 className="text-lg font-bold mb-4 text-slate-800 dark:text-white">Add Items</h3>
                                 <div className="space-y-4">
-                                    <div className="flex flex-col sm:flex-row gap-4 items-end">
-                                        <div className="flex-1 w-full min-w-0">
+                                    <div className="grid grid-cols-[minmax(0,1fr)_68px_40px] sm:grid-cols-[minmax(0,1fr)_96px_52px] gap-2 items-end">
+                                        <div className="min-w-0">
                                             <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ms-1">{t('orders.searchProduct')}</label>
                                             <SearchableSelect
                                                 title={t('orders.chooseProduct')}
@@ -818,7 +874,7 @@ const Orders = () => {
                                                 placeholder={t('orders.searchPlaceholder')}
                                             />
                                         </div>
-                                        <div className="w-24">
+                                        <div className="w-full">
                                             <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ms-1">{t('orders.qty')}</label>
                                             <input
                                                 type="number"
@@ -835,15 +891,15 @@ const Orders = () => {
                                             type="button"
                                             onClick={handleAddToOrder}
                                             disabled={!selectedProductId || !qty}
-                                            className="h-[52px] px-6 text-white font-black rounded-xl transition-all bg-accent shadow-accent active:scale-95 disabled:opacity-50"
+                                            className="h-11 sm:h-[52px] w-11 sm:w-[52px] text-white font-black rounded-xl transition-all bg-accent shadow-accent active:scale-95 disabled:opacity-50 flex items-center justify-center"
                                         >
-                                            <Plus className="w-6 h-6" />
+                                            <Plus className="w-5 h-5 sm:w-6 sm:h-6" />
                                         </button>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="flex-1 overflow-y-auto mt-6 space-y-3 custom-scrollbar min-h-[300px]">
+                            <div className="overflow-visible mt-6 space-y-3 custom-scrollbar md:min-h-[300px] md:pr-1 md:flex-1 md:overflow-y-auto">
                                 {newOrder.items.length === 0 ? (
                                     <div className="h-full flex flex-col items-center justify-center text-slate-400 border-2 border-dashed border-slate-100 dark:border-slate-700/50 rounded-3xl py-12">
                                         <ShoppingBag className="w-12 h-12 mb-2 opacity-20" />
@@ -852,8 +908,8 @@ const Orders = () => {
                                     </div>
                                 ) : (
                                     newOrder.items.map((item, idx) => (
-                                        <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900/30 rounded-2xl border border-slate-100 dark:border-slate-700/50 group hover:border-indigo-500/50 transition-all">
-                                            <div className="flex items-center gap-4 flex-1">
+                                        <div key={idx} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 bg-slate-50 dark:bg-slate-900/30 rounded-2xl border border-slate-100 dark:border-slate-700/50 group hover:border-indigo-500/50 transition-all overflow-hidden">
+                                            <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
                                                 <div className="w-12 h-12 rounded-lg overflow-hidden bg-white dark:bg-slate-800 border dark:border-slate-700 shrink-0">
                                                     <ImageWithFallback
                                                         src={item.product.images && item.product.images[0] ? (typeof item.product.images[0] === 'string' ? item.product.images[0] : item.product.images[0].url) : ''}
@@ -864,14 +920,14 @@ const Orders = () => {
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <h4 className="text-sm font-black text-slate-800 dark:text-white truncate">{item.product.name}</h4>
-                                                    <div className="flex items-center gap-4 mt-1">
+                                                    <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-1">
                                                         <div className="flex items-center gap-2">
                                                             <span className="text-[10px] font-bold text-slate-400">{t('orders.price')}</span>
                                                             <input
                                                                 type="number"
                                                                 value={item.price}
                                                                 onChange={(e) => handlePriceChange(idx, e.target.value)}
-                                                                className="w-24 p-1.5 text-xs font-black border-2 border-slate-100 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 dark:text-white transition-colors focus:border-[var(--brand-color)]"
+                                                                className="w-20 sm:w-24 p-1.5 text-xs font-black border-2 border-slate-100 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 dark:text-white transition-colors focus:border-[var(--brand-color)]"
                                                             />
                                                         </div>
                                                         <div className="flex items-center gap-2">
@@ -882,7 +938,7 @@ const Orders = () => {
                                                                     min="1"
                                                                     value={item.quantity}
                                                                     onChange={(e) => handleQtyChange(idx, e.target.value)}
-                                                                    className={`w-16 p-1.5 text-xs font-black border-2 rounded-lg bg-white dark:bg-slate-800 dark:text-white transition-all text-center ${item.quantity > item.product.stock ? 'border-red-500 text-red-500 ring-4 ring-red-500/10' : 'border-slate-100 dark:border-slate-700 focus:border-indigo-500'}`}
+                                                                    className={`w-14 sm:w-16 p-1.5 text-xs font-black border-2 rounded-lg bg-white dark:bg-slate-800 dark:text-white transition-all text-center ${item.quantity > item.product.stock ? 'border-red-500 text-red-500 ring-4 ring-red-500/10' : 'border-slate-100 dark:border-slate-700 focus:border-indigo-500'}`}
                                                                 />
                                                                 {item.quantity > item.product.stock && (
                                                                     <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-red-500 text-white text-[8px] px-1.5 py-0.5 rounded font-black whitespace-nowrap animate-bounce">
@@ -894,10 +950,10 @@ const Orders = () => {
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div className="flex items-center gap-4 ml-4">
+                                            <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto justify-between sm:justify-end mt-3 sm:mt-0 sm:ml-4">
                                                 <div className="text-right">
                                                     <p className="text-[10px] font-bold text-slate-400 uppercase">{t('orders.subtotal')}</p>
-                                                    <span className="text-sm font-black dark:text-white">{formatCurrency(item.price * item.quantity)}</span>
+                                                    <span className="text-sm font-black dark:text-white break-words">{formatCurrency(item.price * item.quantity)}</span>
                                                 </div>
                                                 <button onClick={() => handleRemoveFromOrder(idx)} className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all">
                                                     <Trash2 className="w-4 h-4" />
@@ -909,7 +965,7 @@ const Orders = () => {
                             </div>
 
                             {/* Totals Summary */}
-                            <div className="mt-8 pt-6 pb-8 border-t border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 sticky bottom-0">
+                            <div className="mt-8 pt-6 pb-8 md:pb-8 border-t border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 md:sticky md:bottom-0">
                                 <div className="flex flex-col gap-3">
                                     <div className="flex justify-between items-center text-sm">
                                         <span className="font-bold text-slate-400 uppercase tracking-widest text-[10px]">{t('orders.orderSubtotal')}</span>
@@ -922,7 +978,7 @@ const Orders = () => {
                                         <div className="w-48">
                                             <SearchableSelect
                                                 title={t('orders.noDiscount')}
-                                                options={[0, 5, 10, 15, 20, 30, 40, 50].map(v => ({
+                                                options={[0, 5, 10, 15, 20, 30, 40, 50, 75, 100].map(v => ({
                                                     value: v,
                                                     label: v === 0 ? t('orders.noDiscount') : t('orders.offDiscount', { percent: v })
                                                 }))}
@@ -942,7 +998,7 @@ const Orders = () => {
                         </div>
 
                         {/* Right: Customer Details & Save */}
-                        <div className="w-full md:w-1/3 p-4 bg-slate-50 dark:bg-slate-900/50 flex flex-col min-h-0 border-t md:border-t-0 md:border-l border-slate-100 dark:border-slate-700 relative z-10">
+                        <div className="order-1 md:order-2 w-full shrink-0 md:w-1/3 p-4 bg-slate-50 dark:bg-slate-900/50 md:flex md:flex-col md:min-h-0 border-b md:border-b-0 md:border-l border-slate-100 dark:border-slate-700 relative z-10">
                             <div className="flex justify-between items-center mb-4">
                                 <h3 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tighter">{t('orders.customerInfo')}</h3>
                                 <button onClick={() => setIsCreateModalOpen(false)} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-lg hover:bg-white dark:hover:bg-slate-800 transition-colors">
@@ -950,7 +1006,7 @@ const Orders = () => {
                                 </button>
                             </div>
 
-                            <div className="space-y-2 flex-1 overflow-y-auto pr-1 custom-scrollbar">
+                            <div className="space-y-2 pb-2 md:pb-0 md:pr-1 custom-scrollbar">
                                 <div className="space-y-2">
                                     <SearchableSelect
                                         title={t('orders.chooseCustomer')}
@@ -978,7 +1034,7 @@ const Orders = () => {
                                             disabled={newOrder.customerId !== 'new'}
                                         />
                                     </div>
-                                    <div className="grid grid-cols-2 gap-2">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                         <div className="space-y-1.5">
                                             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">{t('orders.phone')}</label>
                                             <input
@@ -1002,7 +1058,7 @@ const Orders = () => {
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-2">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                         <div className="space-y-1.5">
                                             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">{t('orders.governorate')}</label>
                                             <SearchableSelect
@@ -1053,16 +1109,10 @@ const Orders = () => {
                                     </div>
                                 </div>
                             </div>
-                            <div className="mt-auto pt-2 border-t border-slate-100 dark:border-slate-700">
+                            <div className="mt-auto pt-2 border-t border-slate-100 dark:border-slate-700 hidden md:block">
                                 <button
                                     onClick={handleSubmitOrder}
-                                    disabled={isSubmitting || newOrder.items.length === 0 || newOrder.items.some(item => {
-                                        const product = products.find(p => p._id === item.product._id);
-                                        const oldOrder = orders.find(o => o._id === editingOrderId);
-                                        const oldItem = oldOrder?.items.find(oi => oi.product._id === item.product._id);
-                                        const oldQty = oldItem ? oldItem.quantity : 0;
-                                        return item.quantity > ((product?.stock || 0) + oldQty);
-                                    })}
+                                    disabled={isSaveOrderDisabled}
                                     className="w-full py-3 bg-accent text-white rounded-2xl font-black shadow-accent active:scale-[0.98] transition-all disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-3"
                                 >
                                     {isSubmitting ? (
@@ -1073,11 +1123,32 @@ const Orders = () => {
                                     ) : (
                                         <>
                                             <ShoppingBag className="w-5 h-5" />
-                                            {editingOrderId ? t('orders.updateOrder') : t('orders.saveOrder')}
+                                            {saveOrderLabel}
                                         </>
                                     )}
                                 </button>
                             </div>
+                        </div>
+
+                        <div className="order-3 md:hidden mt-2 bg-white dark:bg-slate-800 border-t border-slate-100 dark:border-slate-700 p-4">
+                            <button
+                                onClick={handleSubmitOrder}
+                                disabled={isSaveOrderDisabled}
+                                className="w-full py-3 bg-accent text-white rounded-2xl font-black shadow-accent active:scale-[0.98] transition-all disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-3"
+                            >
+                                {isSubmitting ? (
+                                    <>
+                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                        {t('common.saving')}
+                                    </>
+                                ) : (
+                                    <>
+                                        <ShoppingBag className="w-5 h-5" />
+                                        {saveOrderLabel}
+                                    </>
+                                )}
+                            </button>
+                        </div>
                         </div>
                     </div>
                 </div>

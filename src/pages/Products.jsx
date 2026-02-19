@@ -414,13 +414,13 @@ const Products = () => {
             <div className="flex flex-col gap-4 mb-8 bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
                 {/* Top Row: Add Button + Export | Clear Filters Button + Count */}
                 <div className="flex gap-3 w-full items-center justify-between flex-wrap">
-                    <div className="flex gap-3 items-center flex-wrap">
+                    <div className="flex gap-2 sm:gap-3 items-center w-full sm:w-auto flex-nowrap">
                         <button
                             onClick={openAddModal}
-                            className="flex items-center gap-2 px-6 py-2.5 text-white rounded-xl font-bold transition-all bg-accent shadow-accent hover:brightness-110 active:scale-95"
+                            className="flex-1 sm:flex-none min-w-0 flex items-center justify-center gap-1 sm:gap-2 px-2.5 sm:px-6 py-2.5 text-white rounded-xl font-bold text-[13px] sm:text-base transition-all bg-accent shadow-accent hover:brightness-110 active:scale-95"
                         >
-                            <Plus className="w-5 h-5" />
-                            <span>{t('products.addProduct')}</span>
+                            <Plus className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+                            <span className="truncate">{t('products.addProduct')}</span>
                         </button>
 
                         <button
@@ -428,18 +428,35 @@ const Products = () => {
                                 if (filteredProducts.length === 0) return addToast(t('common.noDataToExport'), "info");
                                 exportProductsToCSV(filteredProducts);
                             }}
-                            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-xl font-bold transition-all shadow-lg hover:bg-green-700 active:scale-95"
+                            className="flex-1 sm:flex-none min-w-0 flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 bg-green-600 text-white rounded-xl font-bold text-[13px] sm:text-base transition-all shadow-lg hover:bg-green-700 active:scale-95"
                         >
                             <Download className="w-5 h-5" />
-                            <span className="hidden sm:inline">{t('common.exportCSV')}</span>
+                            <span className="truncate sm:hidden">CSV</span>
+                            <span className="truncate hidden sm:inline">{t('common.exportCSV')}</span>
                         </button>
 
                         <button
                             onClick={() => setIsCategoryManagerOpen(true)}
-                            className="flex items-center gap-2 px-6 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-xl font-bold text-sm transition-all border border-slate-200 dark:border-slate-700 active:scale-95"
+                            className="hidden sm:flex flex-1 sm:flex-none min-w-0 items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-xl font-bold text-sm transition-all border border-slate-200 dark:border-slate-700 active:scale-95"
                         >
                             <Filter className="w-4 h-4" />
-                            <span>{t('products.manageCategories')}</span>
+                            <span className="truncate">{t('products.manageCategories')}</span>
+                        </button>
+
+                        <button
+                            onClick={() => {
+                                if (!(selectedCategories.length > 0 || selectedStatuses.length > 0 || searchTerm)) return;
+                                setSearchTerm('');
+                                setSelectedCategories([]);
+                                setSelectedStatuses([]);
+                            }}
+                            className={`sm:hidden flex-1 min-w-0 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl font-bold text-sm transition-all border active:scale-95 ${
+                                (selectedCategories.length > 0 || selectedStatuses.length > 0 || searchTerm)
+                                    ? 'bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                                    : 'opacity-0 pointer-events-none border-transparent'
+                            }`}
+                        >
+                            <span className="truncate">{t('common.clearFilters')}</span>
                         </button>
                     </div>
 
@@ -452,11 +469,18 @@ const Products = () => {
                                     setSelectedCategories([]);
                                     setSelectedStatuses([]);
                                 }}
-                                className="px-4 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-xl font-bold text-sm transition-all border border-slate-200 dark:border-slate-700"
+                                className="hidden sm:inline-flex px-4 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-xl font-bold text-sm transition-all border border-slate-200 dark:border-slate-700"
                             >
                                 {t('common.clearFilters')}
                             </button>
                         )}
+
+                        <button
+                            onClick={() => setIsCategoryManagerOpen(true)}
+                            className="sm:hidden shrink-0 whitespace-nowrap px-4 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-xl font-bold text-sm transition-all border border-slate-200 dark:border-slate-700 active:scale-95"
+                        >
+                            {t('products.manageCategories')}
+                        </button>
 
                         <RowLimitDropdown limit={displayLimit} onChange={setDisplayLimit} />
 
@@ -471,9 +495,9 @@ const Products = () => {
                 </div>
 
                 {/* Filters Row: Search + Category + Status + Row Limit */}
-                <div className="flex gap-3 w-full flex-wrap items-center">
+                <div className="flex gap-3 w-full flex-wrap lg:flex-nowrap items-center">
                     {/* Search Input */}
-                    <div className="relative min-w-[200px] flex-1 md:flex-none h-[44px]">
+                    <div className="relative order-last w-full sm:order-none sm:min-w-[200px] sm:flex-1 lg:flex-none lg:w-[320px] h-[44px]">
                         <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                         <input
                             type="text"
@@ -952,23 +976,23 @@ const Products = () => {
                                 <input type="file" ref={fileInputRef} className="hidden" onChange={handleImageUpload} multiple accept="image/*" />
                             </section>
 
-                            {/* Added padding to prevent overlap with sticky footer */}
-                            <div className="h-20"></div>
+                            {/* Added padding to prevent overlap with mobile fixed footer */}
+                            <div className="h-28 sm:h-20"></div>
                         </form>
 
-                        {/* Sticky Footer in Modal Bottom */}
-                        <div className="p-6 border-t border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row justify-end gap-3 sticky bottom-0 bg-white dark:bg-slate-800 rounded-b-2xl shadow-[0_-10px_20px_rgba(0,0,0,0.05)] z-20">
+                        {/* Footer actions: fixed on mobile, sticky on larger screens */}
+                        <div className="fixed sm:sticky bottom-0 left-2 right-2 sm:left-auto sm:right-auto w-auto sm:w-auto max-w-2xl p-4 sm:p-6 border-t border-slate-100 dark:border-slate-700 flex flex-row justify-end gap-3 bg-white dark:bg-slate-800 rounded-b-3xl sm:rounded-b-2xl shadow-[0_-10px_20px_rgba(0,0,0,0.05)] z-30">
                             <button
                                 type="button"
                                 onClick={() => setIsModalOpen(false)}
-                                className="order-2 sm:order-1 px-6 py-2.5 text-slate-500 dark:text-slate-400 font-bold hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl transition-all"
+                                className="px-4 sm:px-6 py-2.5 text-slate-500 dark:text-slate-400 font-bold hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl transition-all"
                             >
                                 {t('common.cancel')}
                             </button>
                             <button
                                 type="submit"
                                 form="productForm"
-                                className="order-1 sm:order-2 px-8 py-2.5 text-white font-black rounded-xl transition-all bg-accent shadow-accent active:scale-95 flex items-center justify-center gap-2"
+                                className="px-5 sm:px-8 py-2.5 text-white font-black rounded-xl transition-all bg-accent shadow-accent active:scale-95 flex items-center justify-center gap-2"
                             >
                                 <Save className="w-5 h-5" />
                                 {editingProduct ? t('products.update') : t('products.create')}

@@ -116,6 +116,7 @@
             "outofstock": "نفذ المخزون"
         },
         "form": {
+            "basicInfo": "المعلومات الأساسية",
             "generalInfo": "معلومات عامة",
             "description": "الوصف",
             "descriptionPlaceholder": "وصف المنتج، الميزات، أو ملاحظات داخلية...",
@@ -163,7 +164,7 @@
         "marginTooHigh": "نسبة الهامش يجب أن تكون أقل من 100%",
         "fillInfo": "املأ التفاصيل أدناه لإضافة منتج جديد.",
         "editProduct": "تعديل المنتج",
-        "manageCategories": "إدارة الفئات",
+        "manageCategories": "الفئات",
         "categories": "الفئات",
         "table": {
             "product": "المنتج",

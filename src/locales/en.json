@@ -116,6 +116,7 @@
             "outofstock": "Out of Stock"
         },
         "form": {
+            "basicInfo": "Basic Information",
             "generalInfo": "General Information",
             "description": "Description",
             "descriptionPlaceholder": "General product description, features, or internal notes...",
@@ -163,7 +164,7 @@
         "marginTooHigh": "Margin percentage must be less than 100%",
         "fillInfo": "Fill in the details below to add a new product.",
         "editProduct": "Edit Product",
-        "manageCategories": "Manage Categories",
+        "manageCategories": "Categories",
         "categories": "Categories",
         "table": {
             "product": "Product",

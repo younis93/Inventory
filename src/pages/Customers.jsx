@@ -334,25 +334,25 @@ const Customers = () => {
                             <span className="hidden sm:inline">{t('common.exportCSV')}</span>
                         </button>
 
-                        <div className="flex bg-slate-100 dark:bg-slate-700 p-1 rounded-xl border border-slate-200 dark:border-slate-600 ms-2">
-                            <button
-                                onClick={() => setViewMode('table')}
-                                className={`p-1.5 rounded-lg transition-all ${viewMode === 'table' ? 'bg-white dark:bg-slate-600 text-[var(--brand-color)] shadow-sm' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}
-                                title="Table View"
-                            >
-                                <List className="w-4 h-4" />
-                            </button>
-                            <button
-                                onClick={() => setViewMode('card')}
-                                className={`p-1.5 rounded-lg transition-all ${viewMode === 'card' ? 'bg-white dark:bg-slate-600 text-[var(--brand-color)] shadow-sm' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}
-                                title={t('customers.viewCard')}
-                            >
-                                <LayoutGrid className="w-4 h-4" />
-                            </button>
-                        </div>
                     </div>
 
-                    <div className="flex gap-3 items-center flex-wrap">
+                    {(filterGovernorates.length > 0 || filterSocials.length > 0 || searchTerm ||
+                        !isSameDay(dateRange.from, defaultRange.from) ||
+                        !isSameDay(dateRange.to, defaultRange.to)) && (
+                            <button
+                                onClick={() => {
+                                    setSearchTerm('');
+                                    setFilterGovernorates([]);
+                                    setFilterSocials([]);
+                                    setDateRange(defaultRange);
+                                }}
+                                className="sm:hidden ms-auto shrink-0 whitespace-nowrap px-4 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-xl font-bold text-sm transition-all border border-slate-200 dark:border-slate-700"
+                            >
+                                {t('common.clearFilters')}
+                            </button>
+                        )}
+
+                    <div className="hidden sm:flex gap-3 items-center flex-wrap">
                         {/* Clear Filters Button */}
                         {(filterGovernorates.length > 0 || filterSocials.length > 0 || searchTerm ||
                             !isSameDay(dateRange.from, defaultRange.from) ||
@@ -382,10 +382,32 @@ const Customers = () => {
                     </div>
                 </div>
 
+                {/* Row Controls (mobile only): Sort + show rows + customer count */}
+                <div className="flex sm:hidden gap-2 items-center w-full flex-nowrap overflow-visible">
+                    <SortDropdown
+                        title={t('common.sort')}
+                        options={[
+                            { value: 'orders-high', label: t('customers.totalSpent') + ' (High)' },
+                            { value: 'orders-low', label: t('customers.totalSpent') + ' (Low)' },
+                            { value: 'date-new', label: t('common.dateNew') },
+                            { value: 'name-asc', label: t('common.nameAZ') }
+                        ]}
+                        selectedValue={sortBy}
+                        onChange={handleSortChange}
+                    />
+                    <RowLimitDropdown limit={displayLimit} onChange={setDisplayLimit} />
+                    <div className="shrink-0 whitespace-nowrap flex items-center gap-3 px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
+                        <User className="w-4 h-4 text-slate-400" />
+                        <span className="text-sm font-bold text-slate-500">
+                            <span className="text-slate-900 dark:text-white">{filteredAndSortedCustomers.length}</span> {t('customers.title')}
+                        </span>
+                    </div>
+                </div>
+
                 {/* Filters Row: Search + Date + Other Filters + Sort */}
-                <div className="flex gap-3 w-full flex-wrap items-center">
+                <div className="flex gap-3 w-full flex-wrap lg:flex-nowrap items-center">
                     {/* Search Input */}
-                    <div className="relative min-w-[200px] flex-1 md:flex-none h-[44px]">
+                    <div className="relative order-last w-full sm:order-none sm:min-w-[200px] sm:flex-1 lg:flex-none lg:w-[320px] h-[44px]">
                         <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                         <input
                             type="text"
@@ -397,7 +419,7 @@ const Customers = () => {
                     </div>
 
                     {/* Date Picker with fixed height */}
-                    <div className="h-[44px] flex-shrink-0">
+                    <div className="h-[44px] flex-shrink-0 order-2 sm:order-none">
                         <DateRangePicker
                             range={dateRange}
                             onRangeChange={setDateRange}
@@ -416,26 +438,47 @@ const Customers = () => {
                     />
 
                     {/* Social Media Filter (title on button, no search) */}
-                    <FilterDropdown
-                        title={t('customers.social')}
-                        options={socialOptions}
-                        selectedValues={filterSocials}
-                        onChange={setFilterSocials}
-                        icon={Globe}
-                        showSearch={false}
-                    />
+                    <div className="order-1 sm:order-none">
+                        <FilterDropdown
+                            title={t('customers.social')}
+                            options={socialOptions}
+                            selectedValues={filterSocials}
+                            onChange={setFilterSocials}
+                            icon={Globe}
+                            showSearch={false}
+                        />
+                    </div>
 
-                    <SortDropdown
-                        title={t('common.sort')}
-                        options={[
-                            { value: 'orders-high', label: t('common.priceHigh') },
-                            { value: 'orders-low', label: t('common.priceLow') },
-                            { value: 'date-new', label: t('common.dateNew') },
-                            { value: 'name-asc', label: t('common.nameAZ') }
-                        ].map(opt => ({ ...opt, label: opt.value === 'orders-high' ? t('customers.totalSpent') + ' (High)' : opt.value === 'orders-low' ? t('customers.totalSpent') + ' (Low)' : opt.label }))}
-                        selectedValue={sortBy}
-                        onChange={handleSortChange}
-                    />
+                    <div className="hidden sm:block">
+                        <SortDropdown
+                            title={t('common.sort')}
+                            options={[
+                                { value: 'orders-high', label: t('common.priceHigh') },
+                                { value: 'orders-low', label: t('common.priceLow') },
+                                { value: 'date-new', label: t('common.dateNew') },
+                                { value: 'name-asc', label: t('common.nameAZ') }
+                            ].map(opt => ({ ...opt, label: opt.value === 'orders-high' ? t('customers.totalSpent') + ' (High)' : opt.value === 'orders-low' ? t('customers.totalSpent') + ' (Low)' : opt.label }))}
+                            selectedValue={sortBy}
+                            onChange={handleSortChange}
+                        />
+                    </div>
+
+                    <div className="hidden lg:flex bg-slate-100 dark:bg-slate-700 p-1 rounded-xl border border-slate-200 dark:border-slate-600 ms-auto">
+                        <button
+                            onClick={() => setViewMode('table')}
+                            className={`p-1.5 rounded-lg transition-all ${viewMode === 'table' ? 'bg-white dark:bg-slate-600 text-[var(--brand-color)] shadow-sm' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}
+                            title="Table View"
+                        >
+                            <List className="w-4 h-4" />
+                        </button>
+                        <button
+                            onClick={() => setViewMode('card')}
+                            className={`p-1.5 rounded-lg transition-all ${viewMode === 'card' ? 'bg-white dark:bg-slate-600 text-[var(--brand-color)] shadow-sm' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}
+                            title={t('customers.viewCard')}
+                        >
+                            <LayoutGrid className="w-4 h-4" />
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -741,23 +784,23 @@ const Customers = () => {
                                 ) : (
                                     <div className="space-y-4">
                                         {getCustomerOrders(selectedCustomer._id).map(order => (
-                                            <div key={order._id} className="bg-white dark:bg-slate-800 rounded-[28px] border-2 border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden transition-all hover:shadow-xl hover:border-accent group">
+                                            <div key={order._id} className="bg-white dark:bg-slate-800 rounded-2xl sm:rounded-[28px] border-2 border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden transition-all hover:shadow-xl hover:border-accent group">
                                                 <div
-                                                    className="p-6 flex items-center justify-between cursor-pointer"
+                                                    className="p-4 sm:p-6 flex items-center justify-between cursor-pointer"
                                                     onClick={() => setExpandedOrderId(expandedOrderId === order._id ? null : order._id)}
                                                 >
-                                                    <div className="flex items-center gap-6">
-                                                        <div className="w-14 h-14 bg-slate-50 dark:bg-slate-900 rounded-2xl flex items-center justify-center text-[var(--brand-color)] group-hover:bg-[var(--brand-color)] group-hover:text-white transition-all">
-                                                            <ShoppingBag className="w-7 h-7" />
+                                                    <div className="flex items-center gap-4 sm:gap-6">
+                                                        <div className="w-12 h-12 sm:w-14 sm:h-14 bg-slate-50 dark:bg-slate-900 rounded-xl sm:rounded-2xl flex items-center justify-center text-[var(--brand-color)] group-hover:bg-[var(--brand-color)] group-hover:text-white transition-all">
+                                                            <ShoppingBag className="w-6 h-6 sm:w-7 sm:h-7" />
                                                         </div>
                                                         <div>
-                                                            <div className="font-black text-slate-900 dark:text-white text-lg">{order.orderId}</div>
+                                                            <div className="font-black text-slate-900 dark:text-white text-base sm:text-lg">{order.orderId}</div>
                                                             <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">{order.date}</div>
                                                         </div>
                                                     </div>
-                                                    <div className="flex items-center gap-8">
+                                                    <div className="flex items-center gap-4 sm:gap-8">
                                                         <div className="text-end">
-                                                            <div className="font-black text-slate-900 dark:text-white text-xl">{formatCurrency(order.total)}</div>
+                                                            <div className="font-black text-slate-900 dark:text-white text-lg sm:text-xl">{formatCurrency(order.total)}</div>
                                                             <div className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-lg inline-block mt-1 ${order.status === 'Completed' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
                                                                 order.status === 'Processing' ? 'bg-amber-50 text-amber-600 border border-amber-100' :
                                                                     'bg-slate-50 text-slate-600 border border-slate-100'
@@ -766,13 +809,13 @@ const Customers = () => {
                                                             </div>
                                                         </div>
                                                         <div
-                                                            className={`w-10 h-10 rounded-full flex items-center justify-center transition-transform ${expandedOrderId === order._id ? 'rotate-180' : 'bg-slate-50 dark:bg-slate-900 text-slate-300'}`}
+                                                            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-transform ${expandedOrderId === order._id ? 'rotate-180' : 'bg-slate-50 dark:bg-slate-900 text-slate-300'}`}
                                                             style={expandedOrderId === order._id ? {
                                                                 backgroundColor: `color-mix(in srgb, var(--accent-color), transparent 90%)`,
                                                                 color: `var(--accent-color)`
                                                             } : {}}
                                                         >
-                                                            <ChevronDown className="w-6 h-6" />
+                                                            <ChevronDown className="w-5 h-5 sm:w-6 sm:h-6" />
                                                         </div>
                                                     </div>
                                                 </div>

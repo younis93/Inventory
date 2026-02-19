@@ -45,7 +45,7 @@ const RowLimitDropdown = ({ limit, onChange }) => {
         <div className="relative" ref={containerRef}>
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className={`flex items-center gap-1.5 px-3 h-[44px] rounded-2xl border-2 transition-all font-bold text-[11px] outline-none ${isOpen
+                className={`shrink-0 flex items-center gap-1.5 px-3 h-[44px] rounded-2xl border-2 transition-all font-bold text-[11px] outline-none ${isOpen
                     ? 'bg-accent/10 border-accent/30 text-accent shadow-[0_0_15px_-3px_rgba(0,0,0,0.1)]'
                     : (['liquid', 'default_glass'].includes(appearance?.theme)
                         ? 'bg-white/40 dark:bg-slate-800/40 backdrop-blur-md border-white/20 dark:border-slate-700/50 text-slate-500 hover:bg-white/60 dark:hover:bg-slate-700/60'
@@ -54,13 +54,13 @@ const RowLimitDropdown = ({ limit, onChange }) => {
             >
                 <List className="w-4 h-4" />
                 <span className="truncate">
-                    {t('common.showRows') || 'Rows'}: {limit}
+                    {limit}
                 </span>
                 <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {isOpen && (
-                <div className="absolute top-full end-0 mt-2 z-50 w-48 animate-in fade-in zoom-in-95 duration-200">
+                <div className="absolute top-full start-0 sm:start-auto sm:end-0 mt-2 z-50 w-48 max-w-[calc(100vw-1rem)] animate-in fade-in zoom-in-95 duration-200">
                     <div className={`bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 overflow-hidden py-2 ${['liquid', 'default_glass'].includes(appearance?.theme) ? 'glass-panel' : ''}`}>
                         {options.map((opt) => (
                             <button

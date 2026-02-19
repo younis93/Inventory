@@ -75,7 +75,7 @@ const ProductPicture = () => {
     return (
         <Layout title={t('productPicture.title')}>
             {/* Sticky Search Bar area */}
-            <div className="sticky top-0 z-40 bg-slate-50/90 dark:bg-slate-900/95 backdrop-blur-xl -mx-4 md:-mx-8 px-4 md:px-8 py-4 mb-8 border-b border-slate-200/50 dark:border-slate-700/50 flex flex-col md:flex-row items-center justify-start gap-4">
+            <div className="sticky top-14 sm:top-16 md:top-0 z-40 bg-slate-50/90 dark:bg-slate-900/95 backdrop-blur-xl -mx-4 md:-mx-8 px-4 md:px-8 py-3 md:py-4 mb-3 md:mb-8 border-b border-slate-200/50 dark:border-slate-700/50 flex flex-col md:flex-row items-center justify-start gap-3 md:gap-4">
                 {/* Search */}
                 <div className="relative w-full md:w-96">
                     <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />

@@ -123,8 +123,8 @@ const DateRangePicker = ({ onChange, initialRange, range: controlledRange, onRan
                         const isCurrentMonth = isSameMonth(d, monthStart);
 
                         // Base styles
-                        let wrapperClass = "relative w-10 h-10 flex items-center justify-center";
-                        let dayClass = "w-10 h-10 flex items-center justify-center text-sm relative z-10 cursor-pointer rounded-full transition-colors font-medium";
+                        let wrapperClass = "relative w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center";
+                        let dayClass = "w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center text-sm relative z-10 cursor-pointer rounded-full transition-colors font-medium";
                         let bgClass = "";
                         let textClass = "text-gray-700 dark:text-slate-300";
 
@@ -146,7 +146,7 @@ const DateRangePicker = ({ onChange, initialRange, range: controlledRange, onRan
                         // Background pill logic
                         let pillClass = "";
                         if (isCurrentMonth && (isInRange || isHoverRange)) {
-                            pillClass = "absolute h-10 z-0 top-0 bottom-0";
+                            pillClass = "absolute h-9 sm:h-10 z-0 top-0 bottom-0";
                             const pillStyle = { backgroundColor: 'color-mix(in srgb, var(--accent-color), transparent 90%)' };
 
                             if (isSelectedStart && (range.to || hoverDate)) {
@@ -166,7 +166,7 @@ const DateRangePicker = ({ onChange, initialRange, range: controlledRange, onRan
                             // Edge case corrections
                             if (isSelectedStart && range.to && isBefore(range.to, range.from)) {
                                 // Swapped selection
-                                pillClass = "absolute h-10 z-0 top-0 bottom-0 left-0 right-1/2";
+                                pillClass = "absolute h-9 sm:h-10 z-0 top-0 bottom-0 left-0 right-1/2";
                             }
                         }
 
@@ -222,9 +222,9 @@ const DateRangePicker = ({ onChange, initialRange, range: controlledRange, onRan
                     }
                 }}
             >
-                <div className={`w-full h-[44px] flex items-center ps-4 pe-10 bg-white dark:bg-slate-800 border-2 rounded-2xl cursor-pointer transition-all shadow-sm font-bold
+                <div className={`w-full h-[42px] sm:h-[44px] flex items-center ps-3 sm:ps-4 pe-9 sm:pe-10 bg-white dark:bg-slate-800 border-2 rounded-2xl cursor-pointer transition-all shadow-sm font-bold
             ${isOpen ? 'border-accent/30 ring-4 ring-accent/10 bg-accent/5 dark:border-slate-500 dark:ring-0 dark:bg-slate-800' : 'border-slate-100 dark:border-slate-600 hover:border-slate-300 dark:hover:border-slate-500'}`}>
-                    <span className={`text-[11px] font-bold ${range.from ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-slate-400'}`}>
+                    <span className={`text-[11px] font-bold truncate ${range.from ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-slate-400'}`}>
                         {range.from ? formatDateRange() : 'Select date range'}
                     </span>
                 </div>
@@ -234,7 +234,7 @@ const DateRangePicker = ({ onChange, initialRange, range: controlledRange, onRan
             {/* Popover */}
             {isOpen && (
                 <div
-                    className="absolute top-full start-0 mt-4 z-50 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-gray-100 dark:border-slate-700 p-0 overflow-hidden w-[680px] animate-in fade-in zoom-in-95 duration-200"
+                    className="absolute top-full start-0 mt-2 sm:mt-4 z-50 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-gray-100 dark:border-slate-700 p-0 overflow-hidden w-[min(420px,calc(100vw-1rem))] sm:w-[680px] animate-in fade-in zoom-in-95 duration-200"
                     role="dialog"
                     aria-modal="true"
                     aria-label="Calendar date range picker"
@@ -244,7 +244,7 @@ const DateRangePicker = ({ onChange, initialRange, range: controlledRange, onRan
                     <div className="flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x dark:md:divide-slate-700 md:divide-gray-100">
 
                         {/* Left Calendar */}
-                        <div className="p-6 flex-1 min-w-[320px]">
+                        <div className="p-3 sm:p-6 flex-1 min-w-0">
                             <div className="flex items-center justify-between mb-6">
                                 <button onClick={prevMonth} className="p-1 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full text-gray-500 dark:text-slate-400 transition-colors" aria-label="Previous month">
                                     <ChevronLeft className="w-5 h-5" />
@@ -252,7 +252,10 @@ const DateRangePicker = ({ onChange, initialRange, range: controlledRange, onRan
                                 <h3 className="text-base font-bold text-gray-900 dark:text-white">
                                     {format(viewDate, 'MMMM yyyy')}
                                 </h3>
-                                <div className="w-7"></div>
+                                <button onClick={nextMonth} className="p-1 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full text-gray-500 dark:text-slate-400 transition-colors md:hidden" aria-label="Next month">
+                                    <ChevronRight className="w-5 h-5" />
+                                </button>
+                                <div className="w-7 hidden md:block"></div>
                             </div>
 
                             <div className="grid grid-cols-7 mb-4">
@@ -265,7 +268,7 @@ const DateRangePicker = ({ onChange, initialRange, range: controlledRange, onRan
                         </div>
 
                         {/* Right Calendar */}
-                        <div className="p-6 flex-1 min-w-[320px]">
+                        <div className="hidden md:block p-3 sm:p-6 flex-1 min-w-0">
                             <div className="flex items-center justify-between mb-6">
                                 <div className="w-7"></div>
                                 <h3 className="text-base font-bold text-gray-900 dark:text-white">
@@ -288,13 +291,13 @@ const DateRangePicker = ({ onChange, initialRange, range: controlledRange, onRan
                     </div>
 
                     {/* Footer */}
-                    <div className="border-t border-gray-100 dark:border-slate-700 p-4 flex items-center justify-between bg-white dark:bg-slate-800 px-6 py-4">
+                    <div className="border-t border-gray-100 dark:border-slate-700 p-3 sm:p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-slate-800 sm:px-6 sm:py-4">
                         <span className="text-sm font-semibold text-gray-700 dark:text-slate-300">
                             {range.from && range.to
                                 ? `${differenceInDays(range.to, range.from) + 1} days`
                                 : range.from ? 'Select end date' : ''}
                         </span>
-                        <div className="flex gap-3">
+                        <div className="flex gap-2 sm:gap-3 justify-end">
                             <button
                                 onClick={handleCancel}
                                 className="px-6 py-2.5 text-sm font-bold text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-gray-900 dark:hover:text-white transition-all font-sans"
