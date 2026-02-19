@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ImageOff } from 'lucide-react';
 
-const ImageWithFallback = ({ src, alt, className = 'bg-slate-100 dark:bg-slate-700', imageClassName = '', fallback = null }) => {
+const ImageWithFallback = ({ src, alt, className = 'bg-slate-100 dark:bg-slate-700', imageClassName = '', imageStyle = undefined, fallback = null }) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
     const imgRef = useRef(null);
@@ -60,6 +60,7 @@ const ImageWithFallback = ({ src, alt, className = 'bg-slate-100 dark:bg-slate-7
                             src={src}
                             alt={alt}
                             className={`w-full h-full object-cover transition-opacity duration-300 ${loading ? 'opacity-0' : 'opacity-100'} ${imageClassName}`}
+                            style={imageStyle}
                             onLoad={handleLoad}
                             onError={handleError}
                         />

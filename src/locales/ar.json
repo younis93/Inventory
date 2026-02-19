@@ -378,6 +378,8 @@
         "password": "كلمة المرور",
         "passwordDescription": "غير كلمة المرور للحفاظ على أمان حسابك.",
         "changePassword": "تغيير كلمة المرور",
+        "enable2fa": "تفعيل التحقق بخطوتين",
+        "editProfile": "تعديل الملف الشخصي",
         "addUser": "إضافة مستخدم",
         "editUser": "تعديل المستخدم",
         "addNewUser": "إضافة مستخدم جديد",

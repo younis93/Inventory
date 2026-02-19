@@ -12,6 +12,7 @@ const ImageCropperModal = ({ image, onCrop, onClose, aspect = 1 }) => {
     // Config
     const CROP_SIZE = 320; // 320px square
     const OUTPUT_SIZE = 512;
+    const isCircleSelection = aspect === 1;
 
     const imageRef = useRef(null);
     const containerRef = useRef(null);
@@ -66,6 +67,14 @@ const ImageCropperModal = ({ image, onCrop, onClose, aspect = 1 }) => {
 
         // 1. Move to center of canvas
         ctx.translate(canvas.width / 2, canvas.height / 2);
+
+        if (isCircleSelection) {
+            const radius = Math.min(canvas.width, canvas.height) / 2;
+            ctx.beginPath();
+            ctx.arc(0, 0, radius, 0, Math.PI * 2);
+            ctx.closePath();
+            ctx.clip();
+        }
 
         // 2. Apply position offset (drag) - must be scaled to output
         ctx.translate(position.x * outputScale, position.y * outputScale);
@@ -134,7 +143,7 @@ const ImageCropperModal = ({ image, onCrop, onClose, aspect = 1 }) => {
                         <div className="absolute inset-0 bg-black/40 pointer-events-none z-0"></div>
 
                         {/* The Crop Area Indicator */}
-                        <div className="relative z-10 border-2 border-white/80 shadow-[0_0_0_9999px_rgba(0,0,0,0.7)] rounded-xl overflow-visible"
+                        <div className={`relative z-10 border-2 border-white/80 shadow-[0_0_0_9999px_rgba(0,0,0,0.7)] overflow-visible ${isCircleSelection ? 'rounded-full' : 'rounded-xl'}`}
                             style={{
                                 width: CROP_SIZE,
                                 height: CROP_SIZE / aspect,
@@ -142,7 +151,7 @@ const ImageCropperModal = ({ image, onCrop, onClose, aspect = 1 }) => {
                             }}
                         >
                             {/* Grid Lines */}
-                            <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 pointer-events-none opacity-50">
+                            <div className={`absolute inset-0 grid grid-cols-3 grid-rows-3 pointer-events-none opacity-50 ${isCircleSelection ? 'rounded-full overflow-hidden' : ''}`}>
                                 <div className="border-r border-white/30 h-full col-start-2"></div>
                                 <div className="border-r border-white/30 h-full col-start-3"></div>
                                 <div className="border-b border-white/30 w-full row-start-2 col-span-3"></div>
@@ -150,10 +159,14 @@ const ImageCropperModal = ({ image, onCrop, onClose, aspect = 1 }) => {
                             </div>
 
                             {/* Corner Markers */}
-                            <div className="absolute -top-1 -left-1 w-4 h-4 border-t-4 border-l-4 border-white rounded-tl-sm shadow-sm"></div>
-                            <div className="absolute -top-1 -right-1 w-4 h-4 border-t-4 border-r-4 border-white rounded-tr-sm shadow-sm"></div>
-                            <div className="absolute -bottom-1 -left-1 w-4 h-4 border-b-4 border-l-4 border-white rounded-bl-sm shadow-sm"></div>
-                            <div className="absolute -bottom-1 -right-1 w-4 h-4 border-b-4 border-r-4 border-white rounded-br-sm shadow-sm"></div>
+                            {!isCircleSelection && (
+                                <>
+                                    <div className="absolute -top-1 -left-1 w-4 h-4 border-t-4 border-l-4 border-white rounded-tl-sm shadow-sm"></div>
+                                    <div className="absolute -top-1 -right-1 w-4 h-4 border-t-4 border-r-4 border-white rounded-tr-sm shadow-sm"></div>
+                                    <div className="absolute -bottom-1 -left-1 w-4 h-4 border-b-4 border-l-4 border-white rounded-bl-sm shadow-sm"></div>
+                                    <div className="absolute -bottom-1 -right-1 w-4 h-4 border-b-4 border-r-4 border-white rounded-br-sm shadow-sm"></div>
+                                </>
+                            )}
                         </div>
 
                         {/* Image Layer */}

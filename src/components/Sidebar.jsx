@@ -22,7 +22,7 @@ const Sidebar = () => {
     } = useInventory();
     const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
     const profileMenuRef = useRef(null);
-    const profileUser = authUser || currentUser;
+    const profileUser = currentUser || authUser;
 
     const isRTL = language === 'ar';
 

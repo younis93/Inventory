@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { dataClient } from '../data/dataClient';
 import { useTranslation } from 'react-i18next';
 
@@ -93,6 +93,7 @@ export const InventoryProvider = ({ children }) => {
     const [users, setUsers] = useState([]);
     const [categories, setCategories] = useState(['Electronics', 'Clothing', 'Home', 'Beauty', 'Sports']);
     const [loading, setLoading] = useState(true);
+    const loadingRef = useRef(true);
     const [toasts, setToasts] = useState([]);
     const isDesktop = dataClient.isDesktop();
     const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
@@ -107,6 +108,10 @@ export const InventoryProvider = ({ children }) => {
             setToasts(prev => prev.filter(t => t.id !== id));
         }, 3000);
     };
+
+    useEffect(() => {
+        loadingRef.current = loading;
+    }, [loading]);
 
     useEffect(() => {
         if (!isDesktop) return;
@@ -308,7 +313,7 @@ export const InventoryProvider = ({ children }) => {
 
         // Safety timeout in case a listener never fires
         const safetyTimer = setTimeout(() => {
-            if (loading) {
+            if (loadingRef.current) {
                 console.warn("Loading safety timeout hit.");
                 setLoading(false);
             }

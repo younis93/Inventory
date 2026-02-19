@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'; // Added useEffect
 import Layout from '../components/Layout';
-import { Moon, Sun, Monitor, User, Trash2, Plus, CheckCircle, Settings as SettingsIcon, Users, Lock, Edit, Upload, Image as ImageIcon, Sparkles, Droplets, Palette, Layout as LayoutIcon, AlertTriangle, ShieldAlert, Globe } from 'lucide-react';
+import { Moon, Sun, Monitor, User, Trash2, Plus, CheckCircle, Settings as SettingsIcon, Users, Lock, Edit, Sparkles, Droplets, Palette, Layout as LayoutIcon, AlertTriangle, ShieldAlert, Globe } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
@@ -12,7 +12,7 @@ import { useSearchParams } from 'react-router-dom';
 const Settings = () => {
     const { t } = useTranslation();
     const {
-        theme, toggleTheme, appearance, setAppearance, users, addUser, updateUser, deleteUser,
+        theme, toggleTheme, appearance, setAppearance, users, addUser, updateUser, deleteUser, currentUser, updateUserProfile,
         brand, updateBrand, addToast, language, changeLanguage, isDesktop, isOnline, pendingSyncCount, syncNow,
         desktopOfflineModeEnabled, setDesktopOfflineModeEnabled, conflicts
     } = useInventory();
@@ -59,6 +59,7 @@ const Settings = () => {
     }, [searchParams, setSearchParams]);
 
     const authUsername = authUser?.email ? authUser.email.split('@')[0] : '';
+    const accountAvatar = currentUser?.photoURL || authUser?.photoURL || '';
 
     const handleTabChange = (tab) => {
         setActiveTab(tab);
@@ -109,11 +110,43 @@ const Settings = () => {
 
     const handleSaveBranding = async () => {
         try {
-            await updateBrand(brandForm);
+            const optimizedBrand = await optimizeBrandAssets(brandForm);
+            await updateBrand(optimizedBrand);
+            setBrandForm(optimizedBrand);
             addToast("Branding settings saved successfully!", "success");
         } catch (error) {
+            console.error("Branding save error:", error);
             addToast("Failed to save branding settings.", "error");
         }
+    };
+
+    const resizeDataUrl = (dataUrl, maxSize, quality = 0.85) => new Promise((resolve, reject) => {
+        if (!dataUrl) {
+            resolve(dataUrl);
+            return;
+        }
+        const img = new Image();
+        img.onload = () => {
+            const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+            const width = Math.max(1, Math.round(img.width * scale));
+            const height = Math.max(1, Math.round(img.height * scale));
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = () => reject(new Error('Image processing failed'));
+        img.src = dataUrl;
+    });
+
+    const optimizeBrandAssets = async (brandData) => {
+        const [logo, favicon] = await Promise.all([
+            resizeDataUrl(brandData.logo, 384, 0.82),
+            resizeDataUrl(brandData.favicon, 96, 0.8),
+        ]);
+        return { ...brandData, logo, favicon };
     };
 
     const handleLogoUpload = (e) => {
@@ -134,10 +167,14 @@ const Settings = () => {
         if (file) {
             if (file.size > 512 * 1024) return addToast("Favicon too large. Max 512KB.", "error");
             const reader = new FileReader();
-            reader.onloadend = () => {
-                // Favicons are small square icons; no cropping modal used
-                setBrandForm(prev => ({ ...prev, favicon: reader.result }));
-                addToast("Favicon updated (preview). Save to persist.", "success");
+            reader.onloadend = async () => {
+                try {
+                    const optimizedFavicon = await resizeDataUrl(reader.result, 96, 0.8);
+                    setBrandForm(prev => ({ ...prev, favicon: optimizedFavicon }));
+                    addToast("Favicon updated (preview). Save to persist.", "success");
+                } catch (error) {
+                    addToast("Failed to process favicon image.", "error");
+                }
             };
             reader.readAsDataURL(file);
         }
@@ -146,10 +183,11 @@ const Settings = () => {
     const handleCropComplete = async (croppedImage) => {
         if (cropType === 'avatar') {
             try {
-                await updateAuthProfile({ photoURL: croppedImage });
+                await updateUserProfile({ photoURL: croppedImage });
                 addToast("Avatar updated successfully!", "success");
             } catch (error) {
-                addToast("Failed to update avatar.", "error");
+                console.error("Avatar update error:", error);
+                addToast(`Failed to update avatar (${error?.code || 'unknown'}).`, "error");
             }
         } else if (cropType === 'logo') {
             setBrandForm(prev => ({ ...prev, logo: croppedImage }));
@@ -397,59 +435,60 @@ const Settings = () => {
                                 {/* Logo + Favicon Upload */}
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-4">{t('settings.logoAndFavicon') || 'Logo & Favicon'}</label>
-                                    <div className="flex flex-wrap items-center gap-8">
-                                        <div className="flex flex-col items-center gap-2">
-                                            <div
-                                                className="w-24 h-24 rounded-2xl flex items-center justify-center border border-slate-200 dark:border-slate-600 overflow-hidden bg-slate-100 dark:bg-slate-800 shadow-sm"
-                                                style={{ backgroundColor: appearance.accentType === 'solid' ? appearance.accentColor : appearance.accentGradient?.start }}
-                                            >
-                                                {brandForm.logo ? (
-                                                    <ImageWithFallback src={brandForm.logo} alt="Logo" className="w-full h-full" imageClassName="w-full h-full object-cover" />
-                                                ) : (
-                                                    <span className="text-white font-bold text-3xl">{(brandForm.name || '').charAt(0)}</span>
-                                                )}
+                                    <div className="flex flex-col items-start gap-4">
+                                        <div className="flex flex-wrap items-center gap-8">
+                                            <div className="flex flex-col items-center gap-2">
+                                                <div className="relative">
+                                                    <label
+                                                        className="cursor-pointer w-24 h-24 rounded-full flex items-center justify-center border-2 border-white dark:border-slate-700 overflow-hidden bg-slate-100 dark:bg-slate-800 shadow-md"
+                                                        style={{ backgroundColor: appearance.accentType === 'solid' ? appearance.accentColor : appearance.accentGradient?.start }}
+                                                    >
+                                                        {brandForm.logo ? (
+                                                            <ImageWithFallback src={brandForm.logo} alt="Logo" className="w-full h-full bg-white/85 dark:bg-slate-900/60" imageClassName="w-full h-full" imageStyle={{ objectFit: 'contain' }} />
+                                                        ) : (
+                                                            <span className="text-white font-bold text-3xl">{(brandForm.name || '').charAt(0)}</span>
+                                                        )}
+                                                        <input type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} />
+                                                    </label>
+                                                    {brandForm.logo && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setBrandForm({ ...brandForm, logo: null })}
+                                                            className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center shadow-md hover:bg-red-600 transition-colors"
+                                                            aria-label={t('settings.removeLogo') || 'Remove Logo'}
+                                                        >
+                                                            <Trash2 className="w-3 h-3" />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('settings.logo')}</span>
                                             </div>
-                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('settings.logo')}</span>
-                                        </div>
 
-                                        <div className="flex flex-col items-center gap-2">
-                                            <div className="w-16 h-16 rounded-xl flex items-center justify-center border border-slate-200 dark:border-slate-600 overflow-hidden bg-slate-100 dark:bg-slate-800 shadow-sm">
-                                                {brandForm.favicon ? (
-                                                    <ImageWithFallback src={brandForm.favicon} alt="Favicon" className="w-full h-full" imageClassName="w-full h-full object-cover" />
-                                                ) : (
-                                                    <div className="w-8 h-8 rounded bg-slate-200 dark:bg-slate-700 animate-pulse" />
-                                                )}
-                                            </div>
-                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Favicon</span>
-                                        </div>
-
-                                        <div className="flex flex-col gap-3">
-                                            <div className="flex gap-3">
-                                                <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 bg-accent text-white rounded-xl transition-all shadow-lg shadow-accent/20 hover:brightness-110 font-bold text-sm">
-                                                    <Upload className="w-4 h-4" />
-                                                    <span>{t('settings.uploadLogo')}</span>
-                                                    <input type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} />
-                                                </label>
-                                                <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-xl transition-colors font-bold text-sm border border-slate-200 dark:border-slate-600">
-                                                    <ImageIcon className="w-4 h-4" />
-                                                    <span>{t('settings.uploadFavicon') || 'Upload Favicon'}</span>
-                                                    <input type="file" className="hidden" accept="image/*" onChange={handleFaviconUpload} />
-                                                </label>
-                                            </div>
-                                            <p className="text-xs text-slate-500 dark:text-slate-400">{t('settings.logoSize')}</p>
-                                            <div className="flex gap-4">
-                                                {brandForm.logo && (
-                                                    <button onClick={() => setBrandForm({ ...brandForm, logo: null })} className="text-[11px] text-red-500 hover:text-red-600 font-bold uppercase tracking-wider">
-                                                        {t('settings.removeLogo') || 'Remove Logo'}
-                                                    </button>
-                                                )}
-                                                {brandForm.favicon && (
-                                                    <button onClick={() => setBrandForm(prev => ({ ...prev, favicon: null }))} className="text-[11px] text-red-500 hover:text-red-600 font-bold uppercase tracking-wider">
-                                                        {t('settings.removeFavicon') || 'Remove Favicon'}
-                                                    </button>
-                                                )}
+                                            <div className="flex flex-col items-center gap-2">
+                                                <div className="relative">
+                                                    <label className="cursor-pointer w-16 h-16 rounded-full flex items-center justify-center border-2 border-white dark:border-slate-700 overflow-hidden bg-slate-100 dark:bg-slate-800 shadow-md">
+                                                        {brandForm.favicon ? (
+                                                            <ImageWithFallback src={brandForm.favicon} alt="Favicon" className="w-full h-full bg-white/85 dark:bg-slate-900/60" imageClassName="w-full h-full" imageStyle={{ objectFit: 'contain' }} />
+                                                        ) : (
+                                                            <div className="w-8 h-8 rounded bg-slate-200 dark:bg-slate-700 animate-pulse" />
+                                                        )}
+                                                        <input type="file" className="hidden" accept="image/*" onChange={handleFaviconUpload} />
+                                                    </label>
+                                                    {brandForm.favicon && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setBrandForm(prev => ({ ...prev, favicon: null }))}
+                                                            className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center shadow-md hover:bg-red-600 transition-colors"
+                                                            aria-label={t('settings.removeFavicon') || 'Remove Favicon'}
+                                                        >
+                                                            <Trash2 className="w-2.5 h-2.5" />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Favicon</span>
                                             </div>
                                         </div>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">{t('settings.logoSize')}</p>
                                     </div>
                                 </div>
 
@@ -665,10 +704,10 @@ const Settings = () => {
                             <div className="max-w-xl space-y-6">
                                 <div className="flex items-center gap-6 mb-8">
                                     <div className="w-24 h-24 bg-accent/20 rounded-full flex items-center justify-center text-3xl font-bold text-accent overflow-hidden border-4 border-white dark:border-slate-800 shadow-lg">
-                                        {authUser?.photoURL ? (
-                                            <ImageWithFallback src={authUser.photoURL} alt="Avatar" className="w-full h-full" imageClassName="w-full h-full object-cover" />
+                                        {accountAvatar ? (
+                                            <ImageWithFallback src={accountAvatar} alt="Avatar" className="w-full h-full" imageClassName="w-full h-full object-cover" />
                                         ) : (
-                                            authUser?.displayName?.charAt(0) || 'U'
+                                            (currentUser?.displayName || authUser?.displayName)?.charAt(0) || 'U'
                                         )}
                                     </div>
                                     <div>

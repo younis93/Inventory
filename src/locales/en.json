@@ -378,6 +378,8 @@
         "password": "Password",
         "passwordDescription": "Change your password to keep your account safe.",
         "changePassword": "Change Password",
+        "enable2fa": "Enable 2FA",
+        "editProfile": "Edit Profile",
         "addUser": "Add User",
         "editUser": "Edit User",
         "addNewUser": "Add New User",

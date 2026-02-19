@@ -11,7 +11,8 @@ import {
     updatePassword,
     updateProfile,
 } from 'firebase/auth';
-import { auth } from '../firebase';
+import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
+import { auth, storage } from '../firebase';
 
 const AuthContext = createContext(null);
 
@@ -48,6 +49,23 @@ export const AuthProvider = ({ children }) => {
             await updateProfile(auth.currentUser, profile);
             setUser({ ...auth.currentUser });
         },
+        updateAuthAvatar: async (avatarDataUrl) => {
+            if (!auth.currentUser) throw new Error('No authenticated user');
+            try {
+                const blob = await dataUrlToBlob(avatarDataUrl);
+                const avatarRef = ref(storage, `users/${auth.currentUser.uid}/avatar.jpg`);
+                await uploadBytes(avatarRef, blob, { contentType: blob.type || 'image/jpeg' });
+                const photoURL = await getDownloadURL(avatarRef);
+                await updateProfile(auth.currentUser, { photoURL });
+                setUser({ ...auth.currentUser });
+                return photoURL;
+            } catch (storageError) {
+                // Fallback for environments where Storage is unavailable/misconfigured.
+                await updateProfile(auth.currentUser, { photoURL: avatarDataUrl });
+                setUser({ ...auth.currentUser });
+                return avatarDataUrl;
+            }
+        },
         changeAuthPassword: async (currentPassword, newPassword) => {
             if (!auth.currentUser?.email) throw new Error('No authenticated user');
             const credential = EmailAuthProvider.credential(auth.currentUser.email, currentPassword);
@@ -58,3 +76,7 @@ export const AuthProvider = ({ children }) => {
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
+    const dataUrlToBlob = async (dataUrl) => {
+        const response = await fetch(dataUrl);
+        return response.blob();
+    };
