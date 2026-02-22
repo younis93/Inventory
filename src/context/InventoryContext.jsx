@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { dataClient } from '../data/dataClient';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from './AuthContext';
 
 const InventoryContext = createContext();
 const PROFESSIONAL_LOGO = '/brand-logo.svg';
@@ -18,6 +19,7 @@ const DEFAULT_EXPENSE_TYPES = ['Social Media Post', 'Social Media Reels', 'Other
 export const useInventory = () => useContext(InventoryContext);
 
 export const InventoryProvider = ({ children }) => {
+    const { user: authUser } = useAuth();
     // --- UI State ---
     const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
@@ -411,22 +413,17 @@ export const InventoryProvider = ({ children }) => {
 
     const [currentUser, setCurrentUser] = useState(null);
 
-    // Keep currentUser synced with the users list
+    // Keep currentUser synced with the users list and authenticated user
     useEffect(() => {
-        if (users.length > 0) {
-            if (!currentUser) {
-                // Initial load: pick a default user (Admin if possible)
-                const admin = users.find(u => u.role === 'Admin');
-                setCurrentUser(admin || users[0]);
-            } else {
-                // Sync current user data from the latest users list
-                const latestData = users.find(u => u._id === currentUser._id || u.username === currentUser.username);
-                if (latestData) {
-                    setCurrentUser(latestData);
-                }
+        if (users.length > 0 && authUser?.email) {
+            const matchedUser = users.find(u => u.email?.toLowerCase() === authUser.email.toLowerCase());
+            if (matchedUser) {
+                setCurrentUser(matchedUser);
             }
+        } else if (!authUser) {
+            setCurrentUser(null);
         }
-    }, [users]);
+    }, [users, authUser]);
 
     // Theme Logic
     const toggleTheme = (newTheme) => {
@@ -495,7 +492,11 @@ export const InventoryProvider = ({ children }) => {
     // --- Actions (using Service) ---
     const addProduct = async (newProduct) => {
         try {
-            const result = await dataClient.add("products", newProduct);
+            const payload = {
+                ...newProduct,
+                createdBy: currentUser?.displayName || currentUser?.username || 'System'
+            };
+            const result = await dataClient.add("products", payload);
             addToast('Product added successfully', 'success');
             return result;
         } catch (error) {
@@ -531,7 +532,8 @@ export const InventoryProvider = ({ children }) => {
     const addCustomer = async (newCustomer) => {
         const customerWithDate = {
             ...newCustomer,
-            createdOn: new Date().toISOString()
+            createdOn: new Date().toISOString(),
+            createdBy: currentUser?.displayName || currentUser?.username || 'System'
         };
         const result = await dataClient.add("customers", customerWithDate);
         addToast('Customer added successfully', 'success');
@@ -549,7 +551,8 @@ export const InventoryProvider = ({ children }) => {
             const orderWithDetails = {
                 ...newOrder,
                 orderId,
-                date: new Date().toISOString()
+                date: new Date().toISOString(),
+                createdBy: currentUser?.displayName || currentUser?.username || 'System'
             };
 
             // Add the order
@@ -582,7 +585,8 @@ export const InventoryProvider = ({ children }) => {
                 ...newExpense,
                 amountIQD: Number(newExpense.amountIQD || 0),
                 createdAt: newExpense.createdAt || new Date().toISOString(),
-                updatedAt: new Date().toISOString()
+                updatedAt: new Date().toISOString(),
+                createdBy: currentUser?.displayName || currentUser?.username || 'System'
             };
             const result = await dataClient.add("expenses", payload);
             addToast('Expense added successfully', 'success');

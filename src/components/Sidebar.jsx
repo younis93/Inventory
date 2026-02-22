@@ -27,14 +27,14 @@ const Sidebar = () => {
     const isRTL = language === 'ar';
 
     const menuItems = [
-        { icon: LayoutDashboard, label: t('menu.dashboard'), path: '/' },
-        { icon: Box, label: t('menu.inventory'), path: '/products' },
-        { icon: ImageIcon, label: t('menu.productPicture'), path: '/product-picture' },
-        { icon: ShoppingCart, label: t('menu.orders'), path: '/orders' },
-        { icon: Receipt, label: t('menu.expenses'), path: '/expenses' },
-        { icon: Users, label: t('menu.customers'), path: '/customers' },
-        { icon: Settings, label: t('menu.settings'), path: '/settings' },
-    ];
+        { icon: LayoutDashboard, label: t('menu.dashboard'), path: '/', roles: ['Admin', 'Manager'] },
+        { icon: Box, label: t('menu.inventory'), path: '/products', roles: ['Admin', 'Manager'] },
+        { icon: ImageIcon, label: t('menu.productPicture'), path: '/product-picture', roles: ['Admin', 'Manager'] },
+        { icon: ShoppingCart, label: t('menu.orders'), path: '/orders', roles: ['Admin', 'Manager', 'Sales'] },
+        { icon: Receipt, label: t('menu.expenses'), path: '/expenses', roles: ['Admin', 'Manager'] },
+        { icon: Users, label: t('menu.customers'), path: '/customers', roles: ['Admin', 'Manager', 'Sales'] },
+        { icon: Settings, label: t('menu.settings'), path: '/settings', roles: ['Admin', 'Manager', 'Sales'] },
+    ].filter(item => !item.roles || item.roles.includes(currentUser?.role || 'Sales'));
 
     // Use explicit left/right classes and transforms to avoid centering issues
     const positionClass = isRTL ? 'right-0 left-auto' : 'left-0 right-auto';

@@ -3,6 +3,7 @@ import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AlertCircle, ChevronDown, Lock, Mail } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
+import { dataClient } from '../data/dataClient';
 
 const GoogleIcon = () => (
     <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
@@ -43,6 +44,8 @@ const copy = {
         createOne: 'Create one',
         switchSignIn: 'Sign in',
         language: 'العربية',
+        unauthorizedTitle: 'Access Denied',
+        unauthorizedMessage: "Your email is not registered in our system. Please contact the website admin to grant you access.",
     },
     ar: {
         welcomeBack: 'مرحبًا بعودتك',
@@ -62,11 +65,13 @@ const copy = {
         createOne: 'إنشاء حساب',
         switchSignIn: 'تسجيل الدخول',
         language: 'English',
+        unauthorizedTitle: 'تم رفض الوصول',
+        unauthorizedMessage: 'بريدك الإلكتروني غير مسجل في نظامنا. يرجى الاتصال بمسؤول الموقع لمنحك حق الوصول.',
     },
 };
 
 const Login = () => {
-    const { user, signInWithGoogle, signInWithEmail, signUpWithEmail } = useAuth();
+    const { user, signInWithGoogle, signInWithEmail, signUpWithEmail, signOutUser } = useAuth();
     const { i18n } = useTranslation();
     const navigate = useNavigate();
     const location = useLocation();
@@ -93,8 +98,30 @@ const Login = () => {
         setError('');
         setSubmitting(true);
         try {
-            if (mode === 'signup') await signUpWithEmail(email.trim(), password);
-            else await signInWithEmail(email.trim(), password);
+            const normalizedEmail = email.trim().toLowerCase();
+
+            // 1. Check if email is in the allowed list first if possible
+            // Note: If Firestore rules are tight, this might fail until signed in.
+            // So we'll check after sign-in for simplicity and consistency.
+
+            if (mode === 'signup') {
+                const allowedUser = await dataClient.getUserByEmail(normalizedEmail);
+                if (!allowedUser) {
+                    setError(tr.unauthorizedMessage);
+                    setSubmitting(false);
+                    return;
+                }
+                await signUpWithEmail(normalizedEmail, password);
+            } else {
+                await signInWithEmail(normalizedEmail, password);
+                const allowedUser = await dataClient.getUserByEmail(normalizedEmail);
+                if (!allowedUser) {
+                    await signOutUser();
+                    setError(tr.unauthorizedMessage);
+                    setSubmitting(false);
+                    return;
+                }
+            }
             navigate(from, { replace: true });
         } catch (err) {
             setError(formatAuthError(err));
@@ -107,7 +134,17 @@ const Login = () => {
         setError('');
         setSubmitting(true);
         try {
-            await signInWithGoogle();
+            const result = await signInWithGoogle();
+            const userEmail = result.user.email;
+
+            const allowedUser = await dataClient.getUserByEmail(userEmail);
+            if (!allowedUser) {
+                await signOutUser();
+                setError(tr.unauthorizedMessage);
+                setSubmitting(false);
+                return;
+            }
+
             navigate(from, { replace: true });
         } catch (err) {
             setError(formatAuthError(err));

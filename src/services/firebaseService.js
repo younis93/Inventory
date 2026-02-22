@@ -8,7 +8,8 @@ import {
     doc,
     query,
     orderBy,
-    getDocs
+    getDocs,
+    where
 } from 'firebase/firestore';
 import { db } from '../firebase';
 
@@ -16,6 +17,27 @@ import { db } from '../firebase';
  * Service to handle generic Firestore operations
  */
 export const firebaseService = {
+    /**
+     * Check if a user exists by email
+     */
+    getUserByEmail: async (email) => {
+        if (!email) return null;
+        try {
+            const q = query(collection(db, "users"), where("email", "==", email.toLowerCase().trim()));
+            const querySnapshot = await getDocs(q);
+            if (!querySnapshot.empty) {
+                const doc = querySnapshot.docs[0];
+                return { _id: doc.id, ...doc.data() };
+            }
+            return null;
+        } catch (error) {
+            console.error("Error checking user existence:", error);
+            // If we can't check (e.g. permission denied), we should probably fail safe and say not found
+            // unless we want to allow login and then let InventoryContext handle it.
+            // But the requirement is to block login.
+            return null;
+        }
+    },
     /**
      * Set up a real-time listener for a collection
      */

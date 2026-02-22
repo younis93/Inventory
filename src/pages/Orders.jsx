@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Layout from '../components/Layout';
 import { Search, Plus, Printer, Trash2, X, Tag, Filter, Eye, Edit, ShoppingBag, Download, MapPin, Globe } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
@@ -7,7 +7,7 @@ import { GOVERNORATES, SOCIAL_PLATFORMS } from '../constants/iraq';
 import DateRangePicker from '../components/DateRangePicker';
 import FilterDropdown from '../components/FilterDropdown';
 import SortDropdown from '../components/SortDropdown';
-import { isWithinInterval, parseISO, startOfMonth, endOfMonth, subDays } from 'date-fns';
+import { isWithinInterval, parseISO, startOfMonth, endOfMonth, subDays, isBefore, startOfDay, isSameDay } from 'date-fns';
 import { exportOrdersToCSV } from '../utils/CSVExportUtil';
 import SearchableSelect from '../components/SearchableSelect';
 import RowLimitDropdown from '../components/RowLimitDropdown';
@@ -15,8 +15,7 @@ import { User, MapPin as MapPinIcon, Globe as GlobeIcon, Package } from 'lucide-
 import ImageWithFallback from '../components/common/ImageWithFallback';
 import Skeleton from '../components/common/Skeleton';
 import DeleteConfirmModal from '../components/common/DeleteConfirmModal';
-import { useReactToPrint } from 'react-to-print';
-import ReceiptPDF from '../components/ReceiptPDF';
+
 
 // StatusCell component for inline status editing
 const StatusCell = ({ order, onUpdate }) => {
@@ -91,27 +90,177 @@ const StatusCell = ({ order, onUpdate }) => {
 
 const Orders = () => {
     const { t } = useTranslation();
-    const { orders, products, customers, addOrder, updateOrder, deleteOrder, addCustomer, formatCurrency, brand, loading, appearance, addToast, setIsModalOpen } = useInventory();
+    const { orders, products, customers, addOrder, updateOrder, deleteOrder, addCustomer, formatCurrency, brand, loading, appearance, addToast, setIsModalOpen, currentUser } = useInventory();
     const [searchTerm, setSearchTerm] = useState('');
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     const [viewingOrder, setViewingOrder] = useState(null);
     const [editingOrderId, setEditingOrderId] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [orderToPrint, setOrderToPrint] = useState(null);
-    const receiptRef = useRef();
+    const generateInvoiceHTML = (order) => {
+        const accentColor = brand?.color || '#1e3a5f';
+        const brandName = brand?.name || 'Invoice';
+        const brandLogo = brand?.logo || '';
+        const brandWebsite = brand?.website || '';
 
-    const handlePrintPDF = useReactToPrint({
-        contentRef: receiptRef,
-        onAfterPrint: () => setOrderToPrint(null)
-    });
+        const hexToRgba = (hex, alpha) => {
+            try {
+                const r = parseInt(hex.slice(1, 3), 16);
+                const g = parseInt(hex.slice(3, 5), 16);
+                const b = parseInt(hex.slice(5, 7), 16);
+                return `rgba(${r},${g},${b},${alpha})`;
+            } catch { return `rgba(30,58,95,${alpha})`; }
+        };
+
+        const formatDate = (dateStr) => {
+            try {
+                const d = new Date(dateStr);
+                return `${d.getFullYear()}-${d.toLocaleString('en-US', { month: 'long' })}-${d.getDate()}`;
+            } catch { return dateStr; }
+        };
+
+        const subtotal = order.subtotal || order.total || 0;
+        const discountAmount = order.discount ? (subtotal * (order.discount / 100)) : 0;
+        const total = order.total || 0;
+
+        const itemRows = (order.items || []).map((item, i) => `
+            <tr style="background:${i % 2 === 0 ? '#f8fafc' : '#fff'}; border-bottom:1px solid #e2e8f0;">
+                <td style="padding:10px 12px;color:#94a3b8;font-weight:700;font-size:11px;">${i + 1}</td>
+                <td style="padding:10px 12px;font-weight:600;color:#1e293b;font-size:12px;">${item.product?.name || ''}</td>
+                <td style="padding:10px 12px;text-align:center;font-weight:700;">${item.quantity}</td>
+                <td style="padding:10px 12px;text-align:right;font-weight:600;color:#475569;">${formatCurrency(item.price)}</td>
+                <td style="padding:10px 12px;text-align:right;font-weight:800;color:#1e293b;">${formatCurrency(item.price * item.quantity)}</td>
+            </tr>`).join('');
+
+        return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Invoice ${order.orderId}</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Cairo','Segoe UI',Arial,sans-serif;background:#fff;color:#1a1a2e;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+@page{size:A4;margin:0;}
+@media print{.no-print{display:none!important}}
+.page{width:210mm;min-height:297mm;margin:0 auto;background:#fff;}
+@media(max-width:600px){.page{width:100%;min-height:unset;}}
+</style>
+</head>
+<body>
+<div class="no-print" style="background:${accentColor};color:#fff;padding:10px 20px;text-align:center;font-family:Cairo,sans-serif;font-size:13px;">
+    📄 Invoice ready — tap <strong>Share / Print</strong> to save as PDF &nbsp;·&nbsp; اضغط <strong>مشاركة / طباعة</strong> لحفظ كـ PDF
+</div>
+<div class="page">
+    <!-- TOP BAR -->
+    <div style="height:8px;background:linear-gradient(90deg,${accentColor} 0%,${hexToRgba(accentColor, 0.6)} 100%);width:100%;"></div>
+
+    <!-- HEADER -->
+    <div style="padding:28px 36px 22px;display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid ${hexToRgba(accentColor, 0.15)};">
+        <div style="display:flex;align-items:center;gap:12px;">
+            ${brandLogo ? `<img src="${brandLogo}" alt="Logo" style="width:52px;height:52px;object-fit:contain;border-radius:50%;"/>` : ''}
+            <div>
+                <div style="font-size:22px;font-weight:900;color:${accentColor};letter-spacing:-0.5px;line-height:1.1;">${brandName}</div>
+                ${brandWebsite ? `<div style="font-size:11px;color:#94a3b8;margin-top:2px;font-weight:600;">${brandWebsite.replace(/^https?:\/\//, '')}</div>` : ''}
+            </div>
+        </div>
+        <div style="text-align:right;">
+            <div style="font-size:36px;font-weight:900;color:${accentColor};letter-spacing:-1px;line-height:1;text-transform:uppercase;">INVOICE</div>
+            <div style="font-size:18px;font-weight:700;color:${hexToRgba(accentColor, 0.7)};margin-top:2px;direction:rtl;">فاتورة</div>
+        </div>
+    </div>
+
+    <!-- META BAND -->
+    <div style="background:${hexToRgba(accentColor, 0.05)};border-bottom:1px solid ${hexToRgba(accentColor, 0.1)};padding:14px 36px;display:flex;justify-content:space-between;align-items:flex-start;gap:16px;">
+        <div style="display:flex;gap:32px;">
+            <div>
+                <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#94a3b8;margin-bottom:3px;">Invoice No. / رقم الفاتورة</div>
+                <div style="font-size:14px;font-weight:800;color:${accentColor};">${order.orderId}</div>
+            </div>
+            <div>
+                <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#94a3b8;margin-bottom:3px;">Date / التاريخ</div>
+                <div style="font-size:14px;font-weight:700;color:#334155;">${formatDate(order.date)}</div>
+            </div>
+        </div>
+        <div style="text-align:right;">
+            <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#94a3b8;margin-bottom:3px;">Billed To / إلى العميل</div>
+            <div style="font-size:15px;font-weight:800;color:#1e293b;">${order.customer?.name || ''}</div>
+            ${order.customer?.phone ? `<div style="font-size:12px;color:#64748b;font-weight:600;margin-top:1px;">📞 ${order.customer.phone}</div>` : ''}
+            ${order.customer?.governorate ? `<div style="font-size:11px;color:#94a3b8;font-weight:600;margin-top:1px;">📍 ${order.customer.governorate}</div>` : ''}
+        </div>
+    </div>
+
+    <!-- ITEMS TABLE -->
+    <div style="padding:24px 36px 0;">
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+            <thead>
+                <tr style="background:${accentColor};">
+                    <th style="padding:10px 12px;color:#fff;font-weight:700;font-size:10px;width:36px;">#</th>
+                    <th style="padding:10px 12px;color:#fff;font-weight:700;font-size:10px;text-align:left;">
+                        <div style="display:flex;justify-content:space-between;"><span>Description</span><span style="opacity:.85;">الوصف</span></div>
+                    </th>
+                    <th style="padding:10px 12px;color:#fff;font-weight:700;font-size:10px;text-align:center;width:60px;"><div>Qty</div><div style="opacity:.85;font-size:9px;">الكمية</div></th>
+                    <th style="padding:10px 12px;color:#fff;font-weight:700;font-size:10px;text-align:right;width:110px;"><div>Unit Price</div><div style="opacity:.85;font-size:9px;">سعر الوحدة</div></th>
+                    <th style="padding:10px 12px;color:#fff;font-weight:700;font-size:10px;text-align:right;width:110px;"><div>Total</div><div style="opacity:.85;font-size:9px;">الإجمالي</div></th>
+                </tr>
+            </thead>
+            <tbody>${itemRows}</tbody>
+        </table>
+    </div>
+
+    <!-- TOTALS -->
+    <div style="padding:20px 36px 24px;display:flex;justify-content:flex-end;">
+        <div style="min-width:220px;">
+            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;">
+                <span style="font-size:11px;font-weight:700;color:#64748b;">Subtotal / المجموع</span>
+                <span style="font-size:13px;font-weight:700;color:#334155;">${formatCurrency(subtotal)}</span>
+            </div>
+            ${order.discount > 0 ? `
+            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;">
+                <span style="font-size:11px;font-weight:700;color:#dc2626;">Discount (${order.discount}%) / خصم</span>
+                <span style="font-size:13px;font-weight:700;color:#dc2626;">-${formatCurrency(discountAmount)}</span>
+            </div>` : ''}
+            ${order.paymentMethod ? `
+            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;">
+                <span style="font-size:11px;font-weight:700;color:#64748b;">Payment / الدفع</span>
+                <span style="font-size:11px;font-weight:600;color:#334155;">${order.paymentMethod}</span>
+            </div>` : ''}
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;margin-top:8px;background:${accentColor};border-radius:10px;">
+                <div>
+                    <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.85);text-transform:uppercase;letter-spacing:1px;">Grand Total</div>
+                    <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.7);direction:rtl;">الإجمالي الكلي</div>
+                </div>
+                <div style="font-size:24px;font-weight:900;color:#fff;letter-spacing:-0.5px;">${formatCurrency(total)}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div style="border-top:2px solid ${hexToRgba(accentColor, 0.15)};padding:16px 36px 20px;display:flex;justify-content:space-between;align-items:center;background:#f8fafc;position:relative;">
+        <div style="position:absolute;bottom:0;left:0;right:0;height:4px;background:linear-gradient(90deg,${accentColor} 0%,${hexToRgba(accentColor, 0.4)} 100%);"></div>
+        <div>
+            <div style="font-size:12px;font-weight:700;color:${accentColor};">Thank you for your Purchase!</div>
+            <div style="font-size:11px;font-weight:600;color:${hexToRgba(accentColor, 0.8)};margin-top:2px;direction:rtl;">شكراً على شرائكم</div>
+            <div style="font-size:9.5px;color:#94a3b8;margin-top:4px;">Items sold are non-refundable · البضاعة المباعة لا ترد ولا تستبدل</div>
+        </div>
+        <div style="text-align:right;">
+            <div style="font-size:13px;font-weight:800;color:${accentColor};">${brandName}</div>
+            ${brandWebsite ? `<div style="font-size:10px;color:#94a3b8;margin-top:2px;">${brandWebsite.replace(/^https?:\/\//, '')}</div>` : ''}
+        </div>
+    </div>
+</div>
+</body>
+</html>`;
+    };
 
     const triggerPDFPrint = (order) => {
-        setOrderToPrint(order);
-        // Delay to ensure the hidden ReceiptPDF component renders before printing
-        setTimeout(() => {
-            handlePrintPDF();
-        }, 300);
+        const html = generateInvoiceHTML(order);
+        const blob = new Blob([html], { type: 'text/html; charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+        // Revoke after a delay to free memory
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
     };
 
     // New delete confirmation state
@@ -591,17 +740,19 @@ const Orders = () => {
                             <span>{t('orders.createOrder')}</span>
                         </button>
 
-                        <button
-                            onClick={() => {
-                                if (filteredAndSortedOrders.length === 0) return addToast(t('common.noDataToExport'), "info");
-                                exportOrdersToCSV(filteredAndSortedOrders);
-                            }}
-                            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-xl font-bold transition-all shadow-lg hover:bg-green-700"
-                        >
-                            <Download className="w-5 h-5" />
-                            <span className="sm:hidden">CSV</span>
-                            <span className="hidden sm:inline">{t('common.exportCSV')}</span>
-                        </button>
+                        {currentUser?.role !== 'Sales' && (
+                            <button
+                                onClick={() => {
+                                    if (filteredAndSortedOrders.length === 0) return addToast(t('common.noDataToExport'), "info");
+                                    exportOrdersToCSV(filteredAndSortedOrders);
+                                }}
+                                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-xl font-bold transition-all shadow-lg hover:bg-green-700"
+                            >
+                                <Download className="w-5 h-5" />
+                                <span className="sm:hidden">CSV</span>
+                                <span className="hidden sm:inline">{t('common.exportCSV')}</span>
+                            </button>
+                        )}
                     </div>
 
                     {(filterGovernorates.length > 0 || filterStatuses.length > 0 || filterSocials.length > 0 || searchTerm ||
@@ -760,6 +911,7 @@ const Orders = () => {
                                 <SortableHeader column="date" label={t('orders.table.date')} border={true} />
                                 <SortableHeader column="total" label={t('orders.table.total')} border={true} />
                                 <SortableHeader column="status" label={t('orders.table.status')} border={true} />
+                                <SortableHeader column="createdBy" label={t('common.createdBy')} border={true} />
                                 <th className="ps-6 pe-6 py-4 text-end border-s dark:border-slate-700">{t('common.actions')}</th>
                             </tr>
                         </thead>
@@ -793,6 +945,7 @@ const Orders = () => {
                                         <td className="px-6 py-4 border-s dark:border-slate-700">
                                             <StatusCell order={order} onUpdate={updateOrder} />
                                         </td>
+                                        <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400 border-s dark:border-slate-700">{order.createdBy || 'System'}</td>
                                         <td className="px-6 py-4 text-end border-s dark:border-slate-700">
                                             <div className="flex items-center justify-end gap-2">
                                                 <button onClick={() => handleViewOrder(order)} className="p-2 text-slate-400 hover:text-[var(--brand-color)] hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg" title="View Details">
@@ -807,12 +960,14 @@ const Orders = () => {
                                                 <button onClick={() => printReceipt(order)} className="p-2 text-slate-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg" title="Thermal Print">
                                                     <Printer className="w-4 h-4" />
                                                 </button>
-                                                <button onClick={() => {
-                                                    setOrderToDelete(order._id);
-                                                    setIsDeleteModalOpen(true);
-                                                }} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg" title="Delete Order">
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
+                                                {(currentUser?.role !== 'Sales' || !isBefore(parseISO(order.date), startOfDay(new Date()))) && (
+                                                    <button onClick={() => {
+                                                        setOrderToDelete(order);
+                                                        setIsDeleteModalOpen(true);
+                                                    }} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg" title="Delete Order">
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>
@@ -851,7 +1006,10 @@ const Orders = () => {
                                 <div className="flex-1 min-w-0">
                                     <div className="flex justify-between items-start mb-1">
                                         <div className="text-sm font-black text-[var(--brand-color)]">{order.orderId}</div>
-                                        <div className="font-black text-slate-900 dark:text-white">{formatCurrency(order.total)}</div>
+                                        <div className="text-right">
+                                            <div className="font-black text-slate-900 dark:text-white">{formatCurrency(order.total)}</div>
+                                            <div className="text-[9px] text-slate-400 font-bold">{order.createdBy || 'System'}</div>
+                                        </div>
                                     </div>
                                     <div className="text-sm font-bold text-slate-800 dark:text-white mb-0.5">{order.customer.name}</div>
                                     <div className="flex justify-between items-center gap-2">
@@ -876,9 +1034,11 @@ const Orders = () => {
                                         <button onClick={() => printReceipt(order)} className="p-2 text-slate-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-all" title="Thermal Print">
                                             <Printer className="w-5 h-5" />
                                         </button>
-                                        <button onClick={() => { setOrderToDelete(order); setIsDeleteModalOpen(true); }} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-all" title="Delete Order">
-                                            <Trash2 className="w-5 h-5" />
-                                        </button>
+                                        {(currentUser?.role !== 'Sales' || !isBefore(parseISO(order.date), startOfDay(new Date()))) && (
+                                            <button onClick={() => { setOrderToDelete(order); setIsDeleteModalOpen(true); }} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-all" title="Delete Order">
+                                                <Trash2 className="w-5 h-5" />
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -1338,10 +1498,7 @@ const Orders = () => {
                 message={t('orders.deleteConfirm')}
             />
 
-            {/* Hidden Receipt Component for Printing — must be in DOM but off-screen */}
-            <div style={{ position: 'absolute', left: '-9999px', top: 0, width: '210mm' }}>
-                <ReceiptPDF ref={receiptRef} order={orderToPrint} />
-            </div>
+
         </Layout>
     );
 };

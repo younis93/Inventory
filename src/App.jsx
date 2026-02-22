@@ -7,7 +7,7 @@ import Customers from './pages/Customers';
 import ProductPicture from './pages/ProductPicture';
 import Settings from './pages/Settings';
 import Expenses from './pages/Expenses';
-import { InventoryProvider } from './context/InventoryContext';
+import { InventoryProvider, useInventory } from './context/InventoryContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 
@@ -33,6 +33,18 @@ const PublicOnly = () => {
     return <Outlet />;
 };
 
+const RoleRoute = ({ roles, children }) => {
+    const { currentUser, loading } = useInventory();
+    if (loading) return <FullScreenLoading />;
+
+    const userRole = currentUser?.role || 'Sales';
+    if (!roles.includes(userRole)) {
+        return <Navigate to="/orders" replace />;
+    }
+
+    return children;
+};
+
 function App() {
     const isDesktopRuntime = typeof window !== 'undefined' && (window.desktopAPI?.isDesktop || window.location?.protocol === 'file:');
     const Router = isDesktopRuntime ? HashRouter : BrowserRouter;
@@ -53,12 +65,12 @@ function App() {
                                 </InventoryProvider>
                             )}
                         >
-                            <Route path="/" element={<Dashboard />} />
-                            <Route path="/products" element={<Products />} />
+                            <Route path="/" element={<RoleRoute roles={['Admin', 'Manager']}><Dashboard /></RoleRoute>} />
+                            <Route path="/products" element={<RoleRoute roles={['Admin', 'Manager']}><Products /></RoleRoute>} />
                             <Route path="/orders" element={<Orders />} />
-                            <Route path="/expenses" element={<Expenses />} />
+                            <Route path="/expenses" element={<RoleRoute roles={['Admin', 'Manager']}><Expenses /></RoleRoute>} />
                             <Route path="/customers" element={<Customers />} />
-                            <Route path="/product-picture" element={<ProductPicture />} />
+                            <Route path="/product-picture" element={<RoleRoute roles={['Admin', 'Manager']}><ProductPicture /></RoleRoute>} />
                             <Route path="/settings" element={<Settings />} />
                         </Route>
                     </Route>

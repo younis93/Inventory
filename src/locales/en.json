@@ -63,7 +63,8 @@
         "custom": "Custom",
         "select": "Select...",
         "cashOnDelivery": "Cash on Delivery",
-        "perUnit": "per unit"
+        "perUnit": "per unit",
+        "createdBy": "Created By"
     },
     "dashboard": {
         "title": "Dashboard",
@@ -394,6 +395,7 @@
         "avatarRecommendedSize": "JPG, GIF or PNG. Max size of 3MB",
         "displayName": "Display Name",
         "username": "Username",
+        "userRole": "Account Role",
         "securitySettings": "Security Settings",
         "password": "Password",
         "passwordDescription": "Change your password to keep your account safe.",

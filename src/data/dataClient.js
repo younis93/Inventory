@@ -109,11 +109,16 @@ export const dataClient = {
     await window.desktopAPI.setOfflineMode(enabled);
   },
   onSyncState: (callback) => {
-    if (!isDesktop()) return () => {};
+    if (!isDesktop()) return () => { };
     return window.desktopAPI.onSyncState(callback);
   },
   onConflict: (callback) => {
-    if (!isDesktop()) return () => {};
+    if (!isDesktop()) return () => { };
     return window.desktopAPI.onConflict(callback);
+  },
+  getUserByEmail: async (email) => {
+    if (!isDesktop()) return firebaseService.getUserByEmail(email);
+    const users = await desktopList('users');
+    return users.find(u => u.email?.toLowerCase() === email?.toLowerCase().trim()) || null;
   }
 };

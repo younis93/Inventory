@@ -63,7 +63,8 @@
         "custom": "مخصص",
         "select": "اختر...",
         "cashOnDelivery": "الدفع عند الاستلام",
-        "perUnit": "لكل وحدة"
+        "perUnit": "لكل وحدة",
+        "createdBy": "بواسطة"
     },
     "dashboard": {
         "title": "لوحة التحكم",
@@ -394,6 +395,7 @@
         "avatarRecommendedSize": "JPG، GIF أو PNG. الحد الأقصى 3 ميجابايت",
         "displayName": "الاسم المعروض",
         "username": "اسم المستخدم",
+        "userRole": "دور الحساب",
         "securitySettings": "إعدادات الأمان",
         "password": "كلمة المرور",
         "passwordDescription": "غير كلمة المرور للحفاظ على أمان حسابك.",

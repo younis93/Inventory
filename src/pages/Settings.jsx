@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import ImageCropperModal from '../components/ImageCropperModal';
 import ImageWithFallback from '../components/common/ImageWithFallback';
 import DeleteConfirmModal from '../components/common/DeleteConfirmModal';
+import SearchableSelect from '../components/SearchableSelect';
 import { useSearchParams } from 'react-router-dom';
 
 const Settings = () => {
@@ -53,10 +54,19 @@ const Settings = () => {
             setSearchParams({ tab: 'general' }, { replace: true });
             return;
         }
+
+        const role = currentUser?.role || 'Sales';
+        const restrictedTabs = role === 'Sales' ? ['branding', 'users'] : (role === 'Manager' ? ['branding'] : []);
+
         if (['general', 'appearance', 'branding', 'users', 'account'].includes(tab)) {
-            setActiveTab(tab);
+            if (restrictedTabs.includes(tab)) {
+                setSearchParams({ tab: 'general' }, { replace: true });
+                setActiveTab('general');
+            } else {
+                setActiveTab(tab);
+            }
         }
-    }, [searchParams, setSearchParams]);
+    }, [searchParams, setSearchParams, currentUser?.role]);
 
     const authUsername = authUser?.email ? authUser.email.split('@')[0] : '';
     const accountAvatar = currentUser?.photoURL || authUser?.photoURL || '';
@@ -231,7 +241,8 @@ const Settings = () => {
 
     const handleOpenAddUser = () => {
         setEditingUser(null);
-        setUserForm({ username: '', email: '', role: 'Staff', password: '', displayName: '' });
+        const role = currentUser?.role === 'Manager' ? 'Sales' : 'Sales'; // Default role
+        setUserForm({ username: '', email: '', role, password: '', displayName: '' });
         setIsAddUserModalOpen(true);
     };
 
@@ -303,16 +314,18 @@ const Settings = () => {
                             <Palette className="w-5 h-5" />
                             {t('settings.appearance')}
                         </button>
-                        <button
-                            onClick={() => handleTabChange('branding')}
-                            className={`w-full text-left px-4 py-3 rounded-xl font-medium transition-all flex items-center gap-3 ${activeTab === 'branding'
-                                ? 'bg-gradient-to-r from-[var(--brand-color)] to-[var(--brand-color)]/80 text-white shadow-md shadow-[var(--brand-color)]/20'
-                                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-                                }`}
-                        >
-                            <Sparkles className="w-5 h-5" />
-                            {t('settings.branding')}
-                        </button>
+                        {currentUser?.role === 'Admin' && (
+                            <button
+                                onClick={() => handleTabChange('branding')}
+                                className={`w-full text-left px-4 py-3 rounded-xl font-medium transition-all flex items-center gap-3 ${activeTab === 'branding'
+                                    ? 'bg-gradient-to-r from-[var(--brand-color)] to-[var(--brand-color)]/80 text-white shadow-md shadow-[var(--brand-color)]/20'
+                                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                                    }`}
+                            >
+                                <Sparkles className="w-5 h-5" />
+                                {t('settings.branding')}
+                            </button>
+                        )}
                         <button
                             onClick={() => handleTabChange('account')}
                             className={`w-full text-left px-4 py-3 rounded-xl font-medium transition-all flex items-center gap-3 ${activeTab === 'account'
@@ -323,16 +336,18 @@ const Settings = () => {
                             <User className="w-5 h-5" />
                             {t('settings.account')}
                         </button>
-                        <button
-                            onClick={() => handleTabChange('users')}
-                            className={`w-full text-left px-4 py-3 rounded-xl font-medium transition-all flex items-center gap-3 ${activeTab === 'users'
-                                ? 'bg-gradient-to-r from-[var(--brand-color)] to-[var(--brand-color)]/80 text-white shadow-md shadow-[var(--brand-color)]/20'
-                                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-                                }`}
-                        >
-                            <Users className="w-5 h-5" />
-                            {t('settings.users')}
-                        </button>
+                        {currentUser?.role !== 'Sales' && (
+                            <button
+                                onClick={() => handleTabChange('users')}
+                                className={`w-full text-left px-4 py-3 rounded-xl font-medium transition-all flex items-center gap-3 ${activeTab === 'users'
+                                    ? 'bg-gradient-to-r from-[var(--brand-color)] to-[var(--brand-color)]/80 text-white shadow-md shadow-[var(--brand-color)]/20'
+                                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                                    }`}
+                            >
+                                <Users className="w-5 h-5" />
+                                {t('settings.users')}
+                            </button>
+                        )}
                     </nav>
                 </aside>
 
@@ -782,6 +797,15 @@ const Settings = () => {
                                         className="w-full p-3 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-100 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 cursor-not-allowed"
                                     />
                                 </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">{t('settings.userRole') || 'Role'}</label>
+                                    <input
+                                        type="text"
+                                        value={currentUser?.role || ''}
+                                        readOnly
+                                        className="w-full p-3 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-100 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 cursor-not-allowed uppercase font-bold text-xs tracking-widest"
+                                    />
+                                </div>
 
                                 <div className="flex justify-end pt-4">
                                     {!isEditingProfile ? (
@@ -859,67 +883,142 @@ const Settings = () => {
                                 </button>
                             </div>
 
-                            <div className="overflow-x-auto">
-                                <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
-                                    <thead>
-                                        <tr>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">{t('settings.table.user')}</th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">{t('settings.table.email')}</th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">{t('settings.table.role')}</th>
-                                            <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">{t('common.actions')}</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                                        {users.map((user) => (
-                                            <tr key={user._id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
-                                                <td className="px-4 py-4 whitespace-nowrap">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden flex-shrink-0 border-2 border-white dark:border-slate-700 shadow-sm">
-                                                            {user.photoURL ? (
-                                                                <ImageWithFallback src={user.photoURL} alt={user.displayName} className="w-full h-full" imageClassName="w-full h-full object-cover" />
-                                                            ) : (
-                                                                <div className="w-full h-full flex items-center justify-center bg-accent text-white font-bold">
-                                                                    {user.displayName?.charAt(0) || user.username?.charAt(0) || 'U'}
+                            {/* Filtered users based on role */}
+                            {(() => {
+                                const role = currentUser?.role || 'Sales';
+                                const filteredUsers = role === 'Admin'
+                                    ? users
+                                    : users.filter(u => u.role === 'Sales' || u.email === authUser?.email);
+
+                                return (
+                                    <>
+                                        {/* Desktop/Tablet View: Table */}
+                                        <div className="hidden sm:block overflow-x-auto">
+                                            <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+                                                <thead>
+                                                    <tr>
+                                                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">{t('settings.table.user')}</th>
+                                                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">{t('settings.table.email')}</th>
+                                                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">{t('settings.table.role')}</th>
+                                                        <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">{t('common.actions')}</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                                                    {filteredUsers.map((user) => {
+                                                        const canManage = currentUser?.role === 'Admin' || (currentUser?.role === 'Manager' && user.role === 'Sales');
+                                                        const isSelf = user.email === authUser?.email;
+
+                                                        return (
+                                                            <tr key={user._id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                                                                <td className="px-4 py-4 whitespace-nowrap">
+                                                                    <div className="flex items-center gap-3">
+                                                                        <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden flex-shrink-0 border-2 border-white dark:border-slate-700 shadow-sm">
+                                                                            {user.photoURL ? (
+                                                                                <ImageWithFallback src={user.photoURL} alt={user.displayName} className="w-full h-full" imageClassName="w-full h-full object-cover" />
+                                                                            ) : (
+                                                                                <div className="w-full h-full flex items-center justify-center bg-accent text-white font-bold">
+                                                                                    {user.displayName?.charAt(0) || user.username?.charAt(0) || 'U'}
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                        <div>
+                                                                            <div className="text-sm font-bold text-slate-900 dark:text-white">{user.displayName}</div>
+                                                                            <div className="text-xs text-slate-500">@{user.username}</div>
+                                                                        </div>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-300">{user.email}</td>
+                                                                <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-300">
+                                                                    <span className={`px-2 py-1 rounded-lg text-xs font-bold ${user.role === 'Admin' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'}`}>
+                                                                        {user.role}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                                    <div className="flex items-center justify-end gap-2">
+                                                                        {canManage && (
+                                                                            <button
+                                                                                onClick={() => handleOpenEditUser(user)}
+                                                                                className="p-2 text-accent hover:bg-accent/10 rounded-lg transition-all"
+                                                                            >
+                                                                                <Edit className="w-4 h-4" />
+                                                                            </button>
+                                                                        )}
+                                                                        {(canManage && !isSelf) && (
+                                                                            <button
+                                                                                onClick={() => handleDeleteUser(user._id)}
+                                                                                className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all"
+                                                                            >
+                                                                                <Trash2 className="w-4 h-4" />
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </div>
+
+                                        {/* Mobile View: Card List */}
+                                        <div className="sm:hidden space-y-4">
+                                            {filteredUsers.map((user) => {
+                                                const canManage = currentUser?.role === 'Admin' || (currentUser?.role === 'Manager' && user.role === 'Sales');
+                                                const isSelf = user.email === authUser?.email;
+
+                                                return (
+                                                    <div key={user._id} className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800 animate-in fade-in duration-300">
+                                                        <div className="flex items-center justify-between mb-4">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="w-12 h-12 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden border-2 border-white dark:border-slate-700 shadow-sm">
+                                                                    {user.photoURL ? (
+                                                                        <ImageWithFallback src={user.photoURL} alt={user.displayName} className="w-full h-full" imageClassName="w-full h-full object-cover" />
+                                                                    ) : (
+                                                                        <div className="w-full h-full flex items-center justify-center bg-accent text-white font-bold text-lg">
+                                                                            {user.displayName?.charAt(0) || user.username?.charAt(0) || 'U'}
+                                                                        </div>
+                                                                    )}
                                                                 </div>
-                                                            )}
+                                                                <div>
+                                                                    <h4 className="font-bold text-slate-900 dark:text-white">{user.displayName}</h4>
+                                                                    <p className="text-xs text-slate-500">@{user.username}</p>
+                                                                </div>
+                                                            </div>
+                                                            <span className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${user.role === 'Admin' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'}`}>
+                                                                {user.role}
+                                                            </span>
                                                         </div>
-                                                        <div>
-                                                            <div className="text-sm font-bold text-slate-900 dark:text-white">{user.displayName}</div>
-                                                            <div className="text-xs text-slate-500">@{user.username}</div>
+
+                                                        <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800">
+                                                            <div className="text-xs text-slate-500 truncate max-w-[150px]">{user.email}</div>
+                                                            <div className="flex items-center gap-2">
+                                                                {canManage && (
+                                                                    <button
+                                                                        onClick={() => handleOpenEditUser(user)}
+                                                                        className="p-2.5 text-accent bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 transition-all active:scale-90"
+                                                                    >
+                                                                        <Edit className="w-4 h-4" />
+                                                                    </button>
+                                                                )}
+                                                                {(canManage && !isSelf) && (
+                                                                    <button
+                                                                        onClick={() => handleDeleteUser(user._id)}
+                                                                        className="p-2.5 text-red-500 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 transition-all active:scale-90"
+                                                                    >
+                                                                        <Trash2 className="w-4 h-4" />
+                                                                    </button>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </td>
-                                                <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-300">{user.email}</td>
-                                                <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-300">
-                                                    <span className={`px-2 py-1 rounded-lg text-xs font-bold ${user.role === 'Admin' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'}`}>
-                                                        {user.role}
-                                                    </span>
-                                                </td>
-                                                <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                    <div className="flex items-center justify-end gap-2">
-                                                        <button
-                                                            onClick={() => handleOpenEditUser(user)}
-                                                            className="p-2 text-accent hover:bg-accent/10 rounded-lg transition-all"
-                                                        >
-                                                            <Edit className="w-4 h-4" />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleDeleteUser(user._id)}
-                                                            className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all"
-                                                        >
-                                                            <Trash2 className="w-4 h-4" />
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </>
+                                );
+                            })()}
                         </div>
                     )}
-
-
                 </div>
             </div>
 
@@ -935,12 +1034,23 @@ const Settings = () => {
                                 <input required placeholder={t('settings.placeholders.displayName')} value={userForm.displayName} onChange={e => setUserForm({ ...userForm, displayName: e.target.value })} className="w-full p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700 dark:text-white outline-none" />
                                 <input required placeholder={t('settings.placeholders.username')} value={userForm.username} onChange={e => setUserForm({ ...userForm, username: e.target.value })} className="w-full p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700 dark:text-white outline-none" />
                                 <input required placeholder={t('settings.placeholders.email')} type="email" value={userForm.email} onChange={e => setUserForm({ ...userForm, email: e.target.value })} className="w-full p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700 dark:text-white outline-none" />
-                                <select value={userForm.role} onChange={e => setUserForm({ ...userForm, role: e.target.value })} className="w-full p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700 dark:text-white outline-none">
-                                    <option value="Manager">Manager</option>
-                                    <option value="Staff">Staff</option>
-                                    <option value="Admin">Admin</option>
-                                </select>
-                                <input placeholder={editingUser ? t('settings.placeholders.passwordKeep') : t('settings.placeholders.password')} type="password" value={userForm.password} onChange={e => setUserForm({ ...userForm, password: e.target.value })} className="w-full p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700 dark:text-white outline-none" required={!editingUser} />
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('settings.table.role')}</label>
+                                    <SearchableSelect
+                                        title={t('common.select')}
+                                        options={[
+                                            { value: 'Sales', label: 'Sales' },
+                                            ...(currentUser?.role === 'Admin' ? [{ value: 'Manager', label: 'Manager' }] : []),
+                                            ...(currentUser?.role === 'Admin' ? [{ value: 'Admin', label: 'Admin' }] : []),
+                                        ]}
+                                        selectedValue={userForm.role}
+                                        onChange={val => setUserForm({ ...userForm, role: val })}
+                                        icon={ShieldAlert}
+                                        showSearch={false}
+                                    />
+                                </div>
+
+                                <input placeholder={editingUser ? t('settings.placeholders.passwordKeep') : t('settings.placeholders.password')} type="password" value={userForm.password} onChange={e => setUserForm({ ...userForm, password: e.target.value })} className="w-full p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700 dark:text-white outline-none" required={false} />
 
                                 <div className="flex gap-3 mt-6">
                                     <button type="button" onClick={() => setIsAddUserModalOpen(false)} className="flex-1 py-3 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition-colors">{t('common.cancel')}</button>
@@ -999,7 +1109,7 @@ const Settings = () => {
                 title="Delete User"
                 message="Are you sure you want to delete this user?"
             />
-        </Layout >
+        </Layout>
     );
 };
 
