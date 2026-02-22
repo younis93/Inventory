@@ -11,6 +11,7 @@ function createWindow() {
     height: 900,
     minWidth: 1024,
     minHeight: 700,
+    icon: path.join(__dirname, '..', 'build', 'icon.png'),
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
@@ -66,6 +67,14 @@ function registerIpc() {
     syncApi.setOnlineStatus(online);
     return { ok: true };
   });
+  ipcMain.handle('desktop:setAuthToken', async (_evt, { token }) => {
+    syncApi.setAuthToken(token || null);
+    return { ok: true };
+  });
+  ipcMain.handle('desktop:setSyncConfig', async (_evt, { config }) => {
+    syncApi.setFirebaseConfig(config || {});
+    return { ok: true };
+  });
 
   ipcMain.handle('desktop:getOfflineMode', async () => dbApi.getMeta('offlineModeEnabled') !== '0');
   ipcMain.handle('desktop:setOfflineMode', async (_evt, { enabled }) => {
@@ -95,7 +104,7 @@ app.whenReady().then(async () => {
     }
   });
 
-  syncApi.startSyncLoop();
+  syncApi.startSyncLoop(60000);
   registerIpc();
   createWindow();
 });

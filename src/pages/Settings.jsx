@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'; // Added useEffect
 import Layout from '../components/Layout';
-import { Moon, Sun, Monitor, User, Trash2, Plus, CheckCircle, Settings as SettingsIcon, Users, Lock, Edit, Sparkles, Droplets, Palette, Layout as LayoutIcon, AlertTriangle, ShieldAlert, Globe } from 'lucide-react';
+import { Moon, Sun, Monitor, User, Trash2, Plus, CheckCircle, Settings as SettingsIcon, Users, Lock, Edit, Sparkles, Palette, Layout as LayoutIcon, AlertTriangle, ShieldAlert, Globe } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
@@ -527,9 +527,8 @@ const Settings = () => {
                                     {t('settings.themeOptions')}
                                 </h3>
 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     {[
-                                        { id: 'liquid', name: 'Liquid Glass', icon: Droplets, desc: 'Apple macOS style' },
                                         { id: 'light', name: 'Pro Light', icon: Sun, desc: 'Clean & minimal' },
                                         { id: 'dark', name: 'Pro Dark', icon: Moon, desc: 'Deep & elegant' }
                                     ].map((t) => (
@@ -551,6 +550,24 @@ const Settings = () => {
                                             )}
                                         </button>
                                     ))}
+                                </div>
+
+                                <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-700">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="font-bold text-slate-800 dark:text-white">{t('settings.liquidBackground')}</p>
+                                            <p className="text-xs text-slate-500 mt-1">{t('settings.liquidBackgroundDesc')}</p>
+                                        </div>
+                                        <button
+                                            onClick={() => setAppearance({ glassBackground: !appearance.glassBackground })}
+                                            className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none"
+                                            style={{ backgroundColor: appearance.glassBackground ? 'var(--accent-color)' : '#cbd5e1' }}
+                                        >
+                                            <span
+                                                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${appearance.glassBackground ? 'translate-x-6' : 'translate-x-1'}`}
+                                            />
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
 
@@ -663,7 +680,7 @@ const Settings = () => {
                             {/* Live Preview Card */}
                             <div className="bg-slate-100 dark:bg-slate-900 rounded-2xl p-8 flex flex-col items-center justify-center min-h-[300px] border border-slate-200 dark:border-slate-800">
                                 <p className="text-sm font-bold text-slate-500 mb-8 tracking-widest uppercase">{t('settings.livePreview')}</p>
-                                <div className={`w-full max-w-sm p-8 rounded-2xl transition-all glass-panel ${appearance.theme === 'liquid' ? '' : 'bg-white dark:bg-slate-800 shadow-xl'}`}>
+                                <div className={`w-full max-w-sm p-8 rounded-2xl transition-all ${appearance.glassBackground ? 'glass-panel' : 'bg-white dark:bg-slate-800 shadow-xl'}`}>
                                     <div className="flex justify-between items-center mb-4">
                                         <h4 className="font-bold text-slate-800 dark:text-white">{t('settings.contentLayoutExample')}</h4>
                                         <div className="flex gap-2">

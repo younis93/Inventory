@@ -3,6 +3,7 @@ import {
     EmailAuthProvider,
     GoogleAuthProvider,
     createUserWithEmailAndPassword,
+    onIdTokenChanged,
     onAuthStateChanged,
     reauthenticateWithCredential,
     signInWithEmailAndPassword,
@@ -13,6 +14,7 @@ import {
 } from 'firebase/auth';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { auth, storage } from '../firebase';
+import { dataClient } from '../data/dataClient';
 
 const AuthContext = createContext(null);
 
@@ -30,6 +32,23 @@ export const AuthProvider = ({ children }) => {
         const unsub = onAuthStateChanged(auth, (nextUser) => {
             setUser(nextUser);
             setLoading(false);
+        });
+        return unsub;
+    }, []);
+
+    useEffect(() => {
+        if (!dataClient.isDesktop()) return;
+        dataClient.setSyncConfig({
+            projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID
+        }).catch(() => { });
+
+        const unsub = onIdTokenChanged(auth, async (nextUser) => {
+            try {
+                const token = nextUser ? await nextUser.getIdToken() : null;
+                await dataClient.setAuthToken(token);
+            } catch {
+                await dataClient.setAuthToken(null);
+            }
         });
         return unsub;
     }, []);

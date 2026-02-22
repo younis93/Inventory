@@ -1,0 +1,22 @@
+directories:
+  output: release-builder
+  buildResources: build
+appId: com.gemtoys.inventory
+productName: Inventory Management
+files:
+  - filter:
+      - dist/**/*
+      - electron/**/*
+      - package.json
+      - '!src/**/*'
+      - '!node_modules/.cache/**/*'
+extraMetadata:
+  main: electron/main.cjs
+win:
+  target:
+    - nsis
+    - portable
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+electronVersion: 36.9.5

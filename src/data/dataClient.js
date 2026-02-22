@@ -92,6 +92,14 @@ export const dataClient = {
     if (!isDesktop()) return;
     await window.desktopAPI.setOnline(online);
   },
+  setAuthToken: async (token) => {
+    if (!isDesktop()) return;
+    await window.desktopAPI.setAuthToken(token || null);
+  },
+  setSyncConfig: async (config) => {
+    if (!isDesktop()) return;
+    await window.desktopAPI.setSyncConfig(config || {});
+  },
   getOfflineModeEnabled: async () => {
     if (!isDesktop()) return false;
     return window.desktopAPI.getOfflineMode();

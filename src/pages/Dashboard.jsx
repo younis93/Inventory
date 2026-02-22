@@ -15,7 +15,7 @@ import Skeleton from '../components/common/Skeleton';
 
 const Dashboard = () => {
     const { t } = useTranslation();
-    const { orders, products, customers, loading, formatCurrency, brand, categories, theme, appearance } = useInventory();
+    const { orders, expenses, products, customers, loading, formatCurrency, brand, categories, theme, appearance } = useInventory();
 
     // Filters State
     const minDate = useMemo(() => {
@@ -109,6 +109,23 @@ const Dashboard = () => {
 
     // KPI Calculations
     const totalRevenue = useMemo(() => filteredOrders.reduce((sum, order) => sum + order.total, 0), [filteredOrders]);
+    const filteredExpensesByDate = useMemo(() => {
+        return expenses.filter((expense) => {
+            let expenseDate;
+            try {
+                expenseDate = expense.date ? parseISO(expense.date) : null;
+            } catch (e) {
+                return false;
+            }
+            if (!expenseDate || isNaN(expenseDate.getTime())) return false;
+            return !dateRange?.from || !dateRange?.to ||
+                isWithinInterval(expenseDate, { start: dateRange.from, end: dateRange.to });
+        });
+    }, [expenses, dateRange]);
+    const totalExpenses = useMemo(
+        () => filteredExpensesByDate.reduce((sum, expense) => sum + Number(expense.amountIQD || 0), 0),
+        [filteredExpensesByDate]
+    );
     const totalRevenueDisplay = useMemo(() => formatCurrency(totalRevenue).replace(/\u00A0/g, ' '), [formatCurrency, totalRevenue]);
     const revenueChangePercent = useMemo(() => {
         if (previousPeriodRevenue <= 0) return totalRevenue > 0 ? 100 : 0;
@@ -338,9 +355,9 @@ const Dashboard = () => {
 
             <div className="space-y-6">
                 {/* KPI Cards */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
                     {loading ? (
-                        Array.from({ length: 4 }).map((_, i) => (
+                        Array.from({ length: 5 }).map((_, i) => (
                             <div key={i} className="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-100 dark:border-slate-700 shadow-sm">
                                 <div className="flex justify-between items-start mb-4">
                                     <Skeleton className="h-4 w-24" />
@@ -380,6 +397,17 @@ const Dashboard = () => {
                                 </div>
                                 <h3 className="text-2xl font-black text-slate-800 dark:text-white mb-1 truncate">{topRegion.name}</h3>
                                 <p className="text-xs text-slate-500 font-medium mt-1">{t('dashboard.ordersCount', { count: topRegion.count })}</p>
+                            </div>
+
+                            <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-100 dark:border-slate-700 shadow-sm">
+                                <div className="flex justify-between items-start mb-4 text-slate-400">
+                                    <span className="font-bold text-xs uppercase tracking-widest">{t('dashboard.totalExpenses')}</span>
+                                    <AlertCircle className="w-5 h-5" />
+                                </div>
+                                <h3 className="text-2xl font-black text-slate-800 dark:text-white mb-1 whitespace-nowrap overflow-hidden text-ellipsis">
+                                    {formatCurrency(totalExpenses).replace(/\u00A0/g, ' ')}
+                                </h3>
+                                <p className="text-xs text-slate-500 font-medium mt-1">{filteredExpensesByDate.length} records</p>
                             </div>
 
                             <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-100 dark:border-slate-700 shadow-sm">
@@ -513,7 +541,7 @@ const Dashboard = () => {
                             <div className="h-full">
                                 <TopSellingProductsTable
                                     products={products}
-                                    orders={ordersInDateRange} // Pass filtered orders
+                                    orders={filteredOrders}
                                     formatCurrency={formatCurrency}
                                 />
                             </div>

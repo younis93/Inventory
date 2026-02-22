@@ -1,7 +1,5 @@
 import dotenv from 'dotenv';
 import path from 'path';
-import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore/lite';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
@@ -14,6 +12,4 @@ const firebaseConfig = {
   appId: process.env.VITE_FIREBASE_APP_ID,
   measurementId: process.env.VITE_FIREBASE_MEASUREMENT_ID
 };
-
-const app = initializeApp(firebaseConfig);
-export const firestore = getFirestore(app);
+export { firebaseConfig };

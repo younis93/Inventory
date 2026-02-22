@@ -2,8 +2,8 @@ import path from 'path';
 import crypto from 'crypto';
 import { DatabaseSync } from 'node:sqlite';
 
-const ENTITY_TABLES = ['products', 'orders', 'customers', 'categories', 'users', 'settings'];
-const SYNCED_TABLES = ['products', 'orders', 'customers', 'categories', 'users', 'settings'];
+const ENTITY_TABLES = ['products', 'orders', 'expenses', 'customers', 'categories', 'users', 'settings'];
+const SYNCED_TABLES = ['products', 'orders', 'expenses', 'customers', 'categories', 'users', 'settings'];
 
 let db;
 let notify = () => {};

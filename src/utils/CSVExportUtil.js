@@ -159,10 +159,38 @@ export const exportProductsToCSV = (products, filename = null) => {
     downloadCSV(csvContent, defaultFilename);
 };
 
+/**
+ * Export expenses to CSV
+ * @param {Array} expenses - Array of expense objects
+ * @param {string} filename - Optional filename
+ */
+export const exportExpensesToCSV = (expenses, filename = null) => {
+    if (!expenses || expenses.length === 0) {
+        return;
+    }
+
+    const formattedExpenses = expenses.map((expense) => ({
+        'Date': expense.date || '',
+        'Type': expense.type || '',
+        'Campaign': expense.campaign || '',
+        'Amount (IQD)': expense.amountIQD || 0,
+        'Link': expense.link || '',
+        'Tags': Array.isArray(expense.tags) ? expense.tags.join(', ') : (expense.tags || ''),
+        'Attachments': Array.isArray(expense.attachments) ? expense.attachments.map((a) => a?.name || a?.url).filter(Boolean).join(' | ') : '',
+        'Notes': expense.notes || ''
+    }));
+
+    const csvContent = convertToCSV(formattedExpenses);
+    const defaultFilename = filename || `expenses_export_${new Date().toISOString().split('T')[0]}.csv`;
+
+    downloadCSV(csvContent, defaultFilename);
+};
+
 export default {
     convertToCSV,
     downloadCSV,
     exportOrdersToCSV,
     exportCustomersToCSV,
-    exportProductsToCSV
+    exportProductsToCSV,
+    exportExpensesToCSV
 };

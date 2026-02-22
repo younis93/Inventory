@@ -5,6 +5,7 @@
         "inventory": "المخزون",
         "productPicture": "صور المنتجات",
         "orders": "الطلبات",
+        "expenses": "المصروفات",
         "customers": "العملاء",
         "settings": "الإعدادات",
         "logout": "تسجيل الخروج"
@@ -68,6 +69,7 @@
         "title": "لوحة التحكم",
         "live": "لوحة التحكم الحية",
         "totalRevenue": "إجمالي الإيرادات",
+        "totalExpenses": "إجمالي المصروفات",
         "revenueTrend": "اتجاه الإيرادات",
         "totalOrders": "إجمالي الطلبات",
         "ordersPlaced": "الطلبات المقدمة",
@@ -265,8 +267,23 @@
             "description": "الوصف",
             "enterDescription": "أدخل وصف المنتج...",
             "sellingPrice": "سعر البيع",
-            "confirmDeleteImage": "هل أنت متأكد من حذف هذه الصورة؟"
+            "confirmDeleteImage": "هل أنت متأكد من حذف هذه الصورة؟",
+            "invalidImageFormat": "يسمح فقط بصيغ الصور JPG وPNG وWEBP وGIF."
         }
+    },
+    "expenses": {
+        "title": "المصروفات",
+        "newExpense": "مصروف جديد",
+        "editExpense": "تعديل المصروف",
+        "createExpense": "إنشاء مصروف",
+        "updateExpense": "تحديث المصروف",
+        "searchPlaceholder": "ابحث في الحملة أو الوسوم أو الملاحظات...",
+        "totalSpend": "إجمالي الصرف",
+        "topType": "أعلى نوع",
+        "topCampaign": "أعلى حملة",
+        "addType": "إضافة نوع",
+        "typePrompt": "أدخل نوع مصروف جديد",
+        "noExpenses": "لا توجد مصروفات"
     },
     "customers": {
         "title": "العملاء",
@@ -343,6 +360,8 @@
         "removeLogo": "إزالة الشعار",
         "removeFavicon": "إزالة الأيقونة",
         "themeOptions": "خيارات السمة",
+        "liquidBackground": "خلفية زجاجية سائلة",
+        "liquidBackgroundDesc": "تطبيق خلفية زجاجية متدرجة على الموقع فقط",
         "themes": {
             "liquid": "زجاج سائل",
             "liquidDesc": "نمط أبل ماك",

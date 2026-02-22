@@ -3,10 +3,10 @@ import { Menu } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 import { useTranslation } from 'react-i18next';
 
-const Header = ({ title }) => {
+const Header = ({ title, isHiddenManual }) => {
     const { t } = useTranslation();
     const { currentUser, toggleMobileMenu, isModalOpen, appearance, brand } = useInventory();
-    const isHidden = brand.hideHeader;
+    const isHidden = isHiddenManual || brand.hideHeader;
     const isGlassTheme = ['liquid', 'default_glass'].includes(appearance?.theme);
 
     // Determine if header should be hidden

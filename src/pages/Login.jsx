@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { AlertCircle, Lock, Mail } from 'lucide-react';
+import { AlertCircle, ChevronDown, Lock, Mail } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from 'react-i18next';
 
 const GoogleIcon = () => (
     <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
@@ -23,17 +24,67 @@ const formatAuthError = (err) => {
     return 'Authentication failed. Please try again.';
 };
 
+const copy = {
+    en: {
+        welcomeBack: 'Welcome Back',
+        heroText: 'Manage inventory, orders, customers, and analytics from one dashboard.',
+        signIn: 'Sign in',
+        createAccount: 'Create account',
+        loginHint: 'Use your email/password or continue with Google.',
+        continueGoogle: 'Continue with Google',
+        or: 'or',
+        email: 'Email',
+        password: 'Password',
+        placeholderEmail: 'you@example.com',
+        placeholderPassword: 'Enter your password',
+        pleaseWait: 'Please wait...',
+        dontHave: "Don't have an account?",
+        haveAccount: 'Already have an account?',
+        createOne: 'Create one',
+        switchSignIn: 'Sign in',
+        language: 'العربية',
+    },
+    ar: {
+        welcomeBack: 'مرحبًا بعودتك',
+        heroText: 'إدارة المخزون والطلبات والعملاء والتحليلات من لوحة واحدة.',
+        signIn: 'تسجيل الدخول',
+        createAccount: 'إنشاء حساب',
+        loginHint: 'استخدم البريد/كلمة المرور أو المتابعة عبر Google.',
+        continueGoogle: 'المتابعة باستخدام Google',
+        or: 'أو',
+        email: 'البريد الإلكتروني',
+        password: 'كلمة المرور',
+        placeholderEmail: 'you@example.com',
+        placeholderPassword: 'أدخل كلمة المرور',
+        pleaseWait: 'يرجى الانتظار...',
+        dontHave: 'ليس لديك حساب؟',
+        haveAccount: 'لديك حساب بالفعل؟',
+        createOne: 'إنشاء حساب',
+        switchSignIn: 'تسجيل الدخول',
+        language: 'English',
+    },
+};
+
 const Login = () => {
     const { user, signInWithGoogle, signInWithEmail, signUpWithEmail } = useAuth();
+    const { i18n } = useTranslation();
     const navigate = useNavigate();
     const location = useLocation();
     const from = useMemo(() => location.state?.from?.pathname || '/', [location.state]);
+    const lang = i18n.language?.startsWith('ar') ? 'ar' : 'en';
+    const tr = copy[lang];
 
     const [mode, setMode] = useState('signin');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
+    const [isLangOpen, setIsLangOpen] = useState(false);
+
+    const setAppLanguage = (lng) => {
+        i18n.changeLanguage(lng);
+        localStorage.setItem('language', lng);
+    };
 
     if (user) return <Navigate to={from} replace />;
 
@@ -66,22 +117,53 @@ const Login = () => {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50">
+        <div className="min-h-screen bg-slate-50" dir={lang === 'ar' ? 'ltr' : 'ltr'}>
             <div className="grid min-h-screen grid-cols-1 lg:grid-cols-2">
                 <div className="relative hidden lg:flex items-center justify-center overflow-hidden bg-gradient-to-br from-[#1e3a5f] via-[#243b6f] to-[#8b5cf6] p-10">
                     <div className="absolute -top-24 -left-16 h-72 w-72 rounded-full bg-white/15 blur-2xl" />
                     <div className="absolute -bottom-24 -right-20 h-80 w-80 rounded-full bg-pink-400/25 blur-2xl" />
-                    <div className="relative max-w-md text-white">
-                        <h1 className="text-5xl font-black leading-tight">Welcome Back</h1>
-                        <p className="mt-4 text-lg text-white/80">Manage inventory, orders, customers, and analytics from one dashboard.</p>
+                    <div className="relative max-w-md text-white text-right">
+                        <h1 className="text-5xl font-black leading-tight">{tr.welcomeBack}</h1>
+                        <p className="mt-4 text-lg text-white/80">{tr.heroText}</p>
                     </div>
                 </div>
 
                 <div className="flex items-center justify-center p-6 sm:p-10">
-                    <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-7 shadow-xl sm:p-8">
-                        <div className="mb-8">
-                            <h2 className="text-3xl font-black text-slate-900">{mode === 'signin' ? 'Sign in' : 'Create account'}</h2>
-                            <p className="mt-2 text-sm text-slate-500">Use your email/password or continue with Google.</p>
+                    <div className={`w-full max-w-md rounded-3xl border border-slate-200 bg-white p-7 shadow-xl sm:p-8 ${lang === 'ar' ? 'text-right' : 'text-left'}`}>
+                        <div className={`mb-8 ${lang === 'ar' ? 'text-right' : 'text-left'}`}>
+                            <div className="mb-3 flex justify-end relative">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsLangOpen((v) => !v)}
+                                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50"
+                                >
+                                    <span>{lang === 'ar' ? '🇮🇶' : '🇬🇧'}</span>
+                                    <span>{lang === 'ar' ? 'العربية' : 'English'}</span>
+                                    <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isLangOpen ? 'rotate-180' : ''}`} />
+                                </button>
+                                {isLangOpen && (
+                                    <div className="absolute top-full mt-2 w-32 rounded-lg border border-slate-200 bg-white p-1 shadow-lg z-20">
+                                        <button
+                                            type="button"
+                                            onClick={() => { setAppLanguage('en'); setIsLangOpen(false); }}
+                                            className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50"
+                                        >
+                                            <span>🇬🇧</span>
+                                            English
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => { setAppLanguage('ar'); setIsLangOpen(false); }}
+                                            className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50"
+                                        >
+                                            <span>🇮🇶</span>
+                                            العربية
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                            <h2 className="text-3xl font-black text-slate-900">{mode === 'signin' ? tr.signIn : tr.createAccount}</h2>
+                            <p className="mt-2 text-sm text-slate-500">{tr.loginHint}</p>
                         </div>
 
                         {error && (
@@ -98,18 +180,18 @@ const Login = () => {
                             className="mb-4 flex w-full items-center justify-center gap-3 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             <GoogleIcon />
-                            Continue with Google
+                            {tr.continueGoogle}
                         </button>
 
                         <div className="mb-4 flex items-center gap-3">
                             <div className="h-px flex-1 bg-slate-200" />
-                            <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">or</span>
+                            <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">{tr.or}</span>
                             <div className="h-px flex-1 bg-slate-200" />
                         </div>
 
                         <form onSubmit={handleEmailSubmit} className="space-y-3">
                             <label className="block">
-                                <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Email</span>
+                                <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">{tr.email}</span>
                                 <div className="relative">
                                     <Mail className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                                     <input
@@ -119,13 +201,13 @@ const Login = () => {
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
                                         className="w-full rounded-xl border border-slate-300 bg-white py-3 ps-10 pe-3 text-sm font-medium text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
-                                        placeholder="you@example.com"
+                                        placeholder={tr.placeholderEmail}
                                     />
                                 </div>
                             </label>
 
                             <label className="block">
-                                <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Password</span>
+                                <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">{tr.password}</span>
                                 <div className="relative">
                                     <Lock className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                                     <input
@@ -136,7 +218,7 @@ const Login = () => {
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
                                         className="w-full rounded-xl border border-slate-300 bg-white py-3 ps-10 pe-3 text-sm font-medium text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
-                                        placeholder="Enter your password"
+                                        placeholder={tr.placeholderPassword}
                                     />
                                 </div>
                             </label>
@@ -146,18 +228,18 @@ const Login = () => {
                                 disabled={submitting}
                                 className="w-full rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-4 py-3 text-sm font-black text-white shadow-lg shadow-pink-500/20 transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                                {submitting ? 'Please wait...' : mode === 'signup' ? 'Create account' : 'Sign in'}
+                                {submitting ? tr.pleaseWait : mode === 'signup' ? tr.createAccount : tr.signIn}
                             </button>
                         </form>
 
                         <p className="mt-6 text-center text-sm text-slate-500">
-                            {mode === 'signin' ? "Don't have an account?" : 'Already have an account?'}{' '}
+                            {mode === 'signin' ? tr.dontHave : tr.haveAccount}{' '}
                             <button
                                 type="button"
                                 onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')}
                                 className="font-bold text-indigo-600 hover:text-indigo-700"
                             >
-                                {mode === 'signin' ? 'Create one' : 'Sign in'}
+                                {mode === 'signin' ? tr.createOne : tr.switchSignIn}
                             </button>
                         </p>
                     </div>
@@ -168,4 +250,3 @@ const Login = () => {
 };
 
 export default Login;
-

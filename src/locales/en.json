@@ -5,6 +5,7 @@
         "inventory": "Inventory",
         "productPicture": "Product Picture",
         "orders": "Orders",
+        "expenses": "Expenses",
         "customers": "Customers",
         "settings": "Settings",
         "logout": "Logout"
@@ -68,6 +69,7 @@
         "title": "Dashboard",
         "live": "Live Dashboard",
         "totalRevenue": "Total Revenue",
+        "totalExpenses": "Total Expenses",
         "revenueTrend": "Revenue Trend",
         "totalOrders": "Total Orders",
         "ordersPlaced": "Orders placed",
@@ -265,8 +267,23 @@
             "description": "Description",
             "enterDescription": "Enter product description...",
             "sellingPrice": "Selling Price",
-            "confirmDeleteImage": "Are you sure you want to delete this image?"
+            "confirmDeleteImage": "Are you sure you want to delete this image?",
+            "invalidImageFormat": "Only JPG, PNG, WEBP, or GIF images are allowed."
         }
+    },
+    "expenses": {
+        "title": "Expenses",
+        "newExpense": "New Expense",
+        "editExpense": "Edit Expense",
+        "createExpense": "Create Expense",
+        "updateExpense": "Update Expense",
+        "searchPlaceholder": "Search campaign, tags, notes...",
+        "totalSpend": "Total Spend",
+        "topType": "Top Type",
+        "topCampaign": "Top Campaign",
+        "addType": "Add Type",
+        "typePrompt": "Enter new expense type",
+        "noExpenses": "No expenses found"
     },
     "customers": {
         "title": "Customers",
@@ -343,6 +360,8 @@
         "removeLogo": "Remove Logo",
         "removeFavicon": "Remove Favicon",
         "themeOptions": "Theme Options",
+        "liquidBackground": "Liquid Glass Background",
+        "liquidBackgroundDesc": "Apply glass gradient background to the website only",
         "themes": {
             "liquid": "Liquid Glass",
             "liquidDesc": "Apple macOS style",

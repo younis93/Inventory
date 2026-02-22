@@ -4,8 +4,10 @@ import Header from './Header';
 import Toasts from './Toasts';
 import { useInventory } from '../context/InventoryContext';
 
-const Layout = ({ children, title }) => {
+const Layout = ({ children, title, hideHeader, fullWidth }) => {
     const { isSidebarCollapsed, isMobileMenuOpen, closeMobileMenu, brand } = useInventory();
+
+    const shouldHideHeader = hideHeader || brand.hideHeader;
 
     return (
         <div className="flex h-screen bg-transparent font-sans transition-colors duration-300">
@@ -19,10 +21,10 @@ const Layout = ({ children, title }) => {
 
             <Sidebar />
 
-            <div className="flex-1 flex flex-col min-h-screen transition-all duration-300">
-                <Header title={title || "Dashboard"} />
-                <main className={`flex-1 p-4 md:p-8 overflow-y-auto ${brand.hideHeader ? 'lg:pt-8' : ''} overflow-x-hidden`}>
-                    <div className="max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="flex-1 flex flex-col min-h-screen transition-all duration-300 overflow-hidden">
+                <Header title={title || "Dashboard"} isHiddenManual={hideHeader} />
+                <main className={`flex-1 ${fullWidth ? 'p-0' : 'p-4 md:p-8'} overflow-y-auto ${shouldHideHeader ? 'pt-0' : ''} overflow-x-hidden`}>
+                    <div className={`${fullWidth ? '' : 'max-w-7xl mx-auto'} animate-in fade-in slide-in-from-bottom-4 duration-500`}>
                         {children}
                     </div>
                 </main>

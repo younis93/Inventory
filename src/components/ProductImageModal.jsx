@@ -109,7 +109,7 @@ const ImageSlider = ({ images, currentIndex, onChange, onDelete, onDownload }) =
 
 const ProductImageModal = ({ product, onClose, onSave, onUpload }) => {
     const { t } = useTranslation();
-    const { formatCurrency, isSidebarCollapsed, language } = useInventory();
+    const { formatCurrency, isSidebarCollapsed, language, addToast } = useInventory();
     const isRTL = language === 'ar';
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [editedTitle, setEditedTitle] = useState(product.name || '');
@@ -117,6 +117,8 @@ const ProductImageModal = ({ product, onClose, onSave, onUpload }) => {
     const [images, setImages] = useState(product.images || []);
     const [isSaving, setIsSaving] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const supportedImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    const supportedImageExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
 
     useEffect(() => {
         // Esc key to close
@@ -157,6 +159,19 @@ const ProductImageModal = ({ product, onClose, onSave, onUpload }) => {
     const handleFileChange = async (e) => {
         if (e.target.files && e.target.files.length > 0) {
             const files = Array.from(e.target.files);
+            const validFiles = files.filter((file) => {
+                const extension = file.name?.split('.').pop()?.toLowerCase();
+                return supportedImageTypes.includes(file.type) || supportedImageExtensions.includes(extension);
+            });
+            const invalidFilesCount = files.length - validFiles.length;
+
+            if (invalidFilesCount > 0) {
+                addToast(t('productPicture.modal.invalidImageFormat'), 'warning');
+            }
+            if (validFiles.length === 0) {
+                e.target.value = '';
+                return;
+            }
 
             // Helper to compress and convert to base64
             const processFile = (file) => {
@@ -198,7 +213,7 @@ const ProductImageModal = ({ product, onClose, onSave, onUpload }) => {
             };
 
             try {
-                const processedImages = await Promise.all(files.map(processFile));
+                const processedImages = await Promise.all(validFiles.map(processFile));
 
                 if (onUpload) {
                     // onUpload handles persistence
@@ -214,6 +229,7 @@ const ProductImageModal = ({ product, onClose, onSave, onUpload }) => {
                 console.error("Image processing failed:", error);
             }
         }
+        e.target.value = '';
     };
 
     const confirmDeleteImage = () => {

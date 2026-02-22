@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { LayoutDashboard, Package, ShoppingCart, Settings, Users, Box, X, ChevronLeft, ChevronRight, Image as ImageIcon, LogOut, UserCog, ChevronUp } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, Settings, Users, Box, X, ChevronLeft, ChevronRight, Image as ImageIcon, LogOut, UserCog, ChevronUp, Receipt } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useInventory } from '../context/InventoryContext';
 import { useTranslation } from 'react-i18next';
@@ -31,6 +31,7 @@ const Sidebar = () => {
         { icon: Box, label: t('menu.inventory'), path: '/products' },
         { icon: ImageIcon, label: t('menu.productPicture'), path: '/product-picture' },
         { icon: ShoppingCart, label: t('menu.orders'), path: '/orders' },
+        { icon: Receipt, label: t('menu.expenses'), path: '/expenses' },
         { icon: Users, label: t('menu.customers'), path: '/customers' },
         { icon: Settings, label: t('menu.settings'), path: '/settings' },
     ];
@@ -39,7 +40,7 @@ const Sidebar = () => {
     const positionClass = isRTL ? 'right-0 left-auto' : 'left-0 right-auto';
     const widthClass = isSidebarCollapsed ? 'w-20' : 'w-56';
     const mobileHiddenTransform = isRTL ? 'translate-x-full' : '-translate-x-full';
-    const sidebarClasses = `fixed lg:static top-0 bottom-0 ${positionClass} border-e z-40 ${widthClass} bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 flex flex-col h-screen transition-all duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0 shadow-2xl' : mobileHiddenTransform + ' lg:translate-x-0'} glass-panel`;
+    const sidebarClasses = `fixed lg:static top-0 bottom-0 ${positionClass} border-e z-40 ${widthClass} bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 flex flex-col h-screen transition-all duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0 shadow-2xl' : mobileHiddenTransform + ' lg:translate-x-0'} glass-panel !bg-white dark:!bg-slate-900`;
 
     useEffect(() => {
         const onClickOutside = (event) => {
@@ -142,7 +143,7 @@ const Sidebar = () => {
                 <div className="relative" ref={profileMenuRef}>
                     <button
                         onClick={() => setIsProfileMenuOpen(prev => !prev)}
-                        className={`w-full bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 flex items-center shadow-sm glass-panel transition-all hover:border-slate-300 dark:hover:border-slate-600 ${isSidebarCollapsed ? 'p-2 justify-center' : 'p-4 gap-3'}`}
+                        className={`w-full bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 flex items-center shadow-sm glass-panel transition-all hover:border-slate-300 dark:hover:border-slate-600 !bg-white dark:!bg-slate-800 ${isSidebarCollapsed ? 'p-2 justify-center' : 'p-4 gap-3'}`}
                     >
                         <div className="relative shrink-0 w-10 h-10">
                             <div

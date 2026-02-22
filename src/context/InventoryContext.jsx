@@ -8,10 +8,12 @@ const PROFESSIONAL_FAVICON = '/brand-favicon.svg';
 const LEGACY_LOGO = 'https://i.imgur.com/9YXqZ5K.png';
 const DEFAULT_APPEARANCE = {
     theme: 'light',
+    glassBackground: false,
     accentType: 'gradient',
     accentColor: '#1e3a5f',
     accentGradient: { start: '#EC4899', end: '#8B5CF6' } // Vibrant
 };
+const DEFAULT_EXPENSE_TYPES = ['Social Media Post', 'Social Media Reels', 'Other'];
 
 export const useInventory = () => useContext(InventoryContext);
 
@@ -26,10 +28,14 @@ export const InventoryProvider = ({ children }) => {
         try {
             const saved = localStorage.getItem('appearance');
             const parsed = saved ? JSON.parse(saved) : null;
+            const rawTheme = parsed?.theme;
+            const isLegacyGlassTheme = rawTheme === 'liquid' || rawTheme === 'default_glass';
+            const normalizedTheme = isLegacyGlassTheme ? DEFAULT_APPEARANCE.theme : (rawTheme || DEFAULT_APPEARANCE.theme);
 
             // Comprehensive fallback to ensure all required properties exist
             return {
-                theme: parsed?.theme || DEFAULT_APPEARANCE.theme,
+                theme: normalizedTheme,
+                glassBackground: parsed?.glassBackground ?? isLegacyGlassTheme ?? DEFAULT_APPEARANCE.glassBackground,
                 accentType: parsed?.accentType || DEFAULT_APPEARANCE.accentType,
                 accentColor: parsed?.accentColor || DEFAULT_APPEARANCE.accentColor,
                 accentGradient: parsed?.accentGradient || DEFAULT_APPEARANCE.accentGradient
@@ -45,9 +51,12 @@ export const InventoryProvider = ({ children }) => {
         const root = document.documentElement;
 
         // Handle Theme Classes
-        root.classList.remove('theme-liquid', 'theme-light', 'theme-dark');
+        root.classList.remove('theme-light', 'theme-dark', 'bg-liquid-glass');
         if (appearance.theme !== 'default') {
             root.classList.add(`theme-${appearance.theme}`);
+        }
+        if (appearance.glassBackground) {
+            root.classList.add('bg-liquid-glass');
         }
 
         // Handle Accent Variables (Inject both for compatibility)
@@ -69,8 +78,8 @@ export const InventoryProvider = ({ children }) => {
         root.style.setProperty('--brand-color', primaryColor);
         setBrand(prev => ({ ...prev, color: primaryColor }));
 
-        // Liquid Glass specific variables
-        if (appearance.theme === 'liquid') {
+        // Glass background tint
+        if (appearance.glassBackground) {
             root.style.setProperty('--glass-tint', `${primaryColor}15`);
         }
 
@@ -89,9 +98,11 @@ export const InventoryProvider = ({ children }) => {
     // --- Data State ---
     const [products, setProducts] = useState([]);
     const [orders, setOrders] = useState([]);
+    const [expenses, setExpenses] = useState([]);
     const [customers, setCustomers] = useState([]);
     const [users, setUsers] = useState([]);
     const [categories, setCategories] = useState(['Electronics', 'Clothing', 'Home', 'Beauty', 'Sports']);
+    const [expenseTypes, setExpenseTypes] = useState(DEFAULT_EXPENSE_TYPES);
     const [loading, setLoading] = useState(true);
     const loadingRef = useRef(true);
     const [toasts, setToasts] = useState([]);
@@ -157,9 +168,27 @@ export const InventoryProvider = ({ children }) => {
 
     const syncNow = async () => {
         if (!isDesktop) return;
-        await dataClient.syncOnce();
-        setPendingSyncCount(await dataClient.getPendingSyncCount());
-        setConflicts(await dataClient.getConflicts());
+        try {
+            const result = await dataClient.syncOnce();
+            const pending = await dataClient.getPendingSyncCount();
+            setPendingSyncCount(pending);
+            setConflicts(await dataClient.getConflicts());
+
+            if (result?.rateLimited) {
+                const retrySec = Math.max(1, Math.ceil((result?.retryAfterMs || 0) / 1000));
+                addToast(`Sync paused due to quota limit. Retry in ~${retrySec}s.`, 'warning');
+                return;
+            }
+            if (result?.failed > 0) {
+                addToast(`Sync completed with ${result.failed} failed change(s).`, 'warning');
+            } else if (!result?.skipped) {
+                addToast('Sync completed successfully.', 'success');
+            }
+        } catch (error) {
+            addToast(`Sync failed: ${error?.message || 'Unknown error'}`, 'error');
+            setPendingSyncCount(await dataClient.getPendingSyncCount());
+            setConflicts(await dataClient.getConflicts());
+        }
     };
 
     const setDesktopOfflineModeEnabled = async (enabled) => {
@@ -234,6 +263,7 @@ export const InventoryProvider = ({ children }) => {
             products: false,
             categories: false,
             orders: false,
+            expenses: false,
             customers: false,
             users: false,
             settings: false
@@ -278,6 +308,12 @@ export const InventoryProvider = ({ children }) => {
             checkLoaded();
         }, "date", "desc", (err) => handleError('orders', err));
 
+        const unsubExpenses = dataClient.subscribeToCollection("expenses", (data) => {
+            setExpenses(data);
+            loaded.expenses = true;
+            checkLoaded();
+        }, "date", "desc", (err) => handleError('expenses', err));
+
         const unsubCustomers = dataClient.subscribeToCollection("customers", (data) => {
             setCustomers(data);
             loaded.customers = true;
@@ -292,6 +328,7 @@ export const InventoryProvider = ({ children }) => {
 
         const unsubBranding = dataClient.subscribeToCollection("settings", (data) => {
             const branding = data.find(d => d._id === "branding");
+            const expensesConfig = data.find(d => d._id === "expenses_config");
             if (branding) {
                 const { _id, ...brandData } = branding;
                 const sanitizedLogo = brandData.logo === LEGACY_LOGO
@@ -306,6 +343,12 @@ export const InventoryProvider = ({ children }) => {
                     logo: sanitizedLogo,
                     favicon: sanitizedFavicon
                 }));
+            }
+            if (expensesConfig?.types && Array.isArray(expensesConfig.types)) {
+                const mergedTypes = [...new Set([...DEFAULT_EXPENSE_TYPES, ...expensesConfig.types.filter(Boolean)])];
+                setExpenseTypes(mergedTypes);
+            } else {
+                setExpenseTypes(DEFAULT_EXPENSE_TYPES);
             }
             loaded.settings = true;
             checkLoaded();
@@ -324,6 +367,7 @@ export const InventoryProvider = ({ children }) => {
             unsubProducts();
             unsubCategories();
             unsubOrders();
+            unsubExpenses();
             unsubCustomers();
             unsubUsers();
             unsubBranding();
@@ -531,6 +575,66 @@ export const InventoryProvider = ({ children }) => {
         }
     };
 
+    const addExpense = async (newExpense) => {
+        try {
+            const payload = {
+                ...newExpense,
+                amountIQD: Number(newExpense.amountIQD || 0),
+                createdAt: newExpense.createdAt || new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+            const result = await dataClient.add("expenses", payload);
+            addToast('Expense added successfully', 'success');
+            return result;
+        } catch (error) {
+            addToast('Error adding expense', 'error');
+            console.error(error);
+            return null;
+        }
+    };
+
+    const updateExpense = async (updatedExpense) => {
+        const { _id, ...data } = updatedExpense;
+        try {
+            await dataClient.update("expenses", _id, {
+                ...data,
+                amountIQD: Number(data.amountIQD || 0),
+                updatedAt: new Date().toISOString()
+            });
+            addToast('Expense updated successfully', 'success');
+        } catch (error) {
+            addToast('Error updating expense', 'error');
+            console.error(error);
+        }
+    };
+
+    const deleteExpense = async (id) => {
+        try {
+            await dataClient.delete("expenses", id);
+            addToast('Expense deleted successfully', 'success');
+        } catch (error) {
+            addToast('Error deleting expense', 'error');
+            console.error(error);
+        }
+    };
+
+    const saveExpenseTypes = async (types) => {
+        const normalized = [...new Set((types || []).map(t => String(t || '').trim()).filter(Boolean))];
+        const merged = [...new Set([...DEFAULT_EXPENSE_TYPES, ...normalized])];
+        try {
+            await dataClient.set("settings", "expenses_config", {
+                name: 'expenses_config',
+                types: merged,
+                updatedAt: new Date().toISOString()
+            });
+            setExpenseTypes(merged);
+            addToast('Expense types saved', 'success');
+        } catch (error) {
+            addToast('Error saving expense types', 'error');
+            console.error(error);
+        }
+    };
+
     const deleteOrder = async (id) => {
         const order = orders.find(o => o._id === id);
         if (order) {
@@ -615,9 +719,11 @@ export const InventoryProvider = ({ children }) => {
         <InventoryContext.Provider value={{
             products, addProduct, updateProduct, deleteProduct,
             orders, addOrder, updateOrder, deleteOrder,
+            expenses, addExpense, updateExpense, deleteExpense,
             customers, addCustomer, updateCustomer,
             users, addUser, updateUser, deleteUser,
             categories, addCategory, updateCategory, deleteCategory,
+            expenseTypes, saveExpenseTypes,
             loading,
             theme, toggleTheme,
             brand, updateBrand,
