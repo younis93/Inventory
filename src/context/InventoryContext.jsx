@@ -418,6 +418,22 @@ export const InventoryProvider = ({ children }) => {
         if (users.length > 0 && authUser?.email) {
             const matchedUser = users.find(u => u.email?.toLowerCase() === authUser.email.toLowerCase());
             if (matchedUser) {
+                // Check if we need to sync metadata to Firestore
+                const needsSync = !matchedUser.uid ||
+                    matchedUser.uid !== authUser.uid ||
+                    !matchedUser.lastLogin;
+
+                if (needsSync) {
+                    const syncData = {
+                        uid: authUser.uid,
+                        lastLogin: new Date().toISOString(),
+                        // Sync display name or photo if empty in firestore
+                        photoURL: matchedUser.photoURL || authUser.photoURL || null
+                    };
+                    dataClient.update("users", matchedUser._id, syncData)
+                        .catch(err => console.error("Metadata sync failed:", err));
+                }
+
                 setCurrentUser(matchedUser);
             }
         } else if (!authUser) {
@@ -700,12 +716,38 @@ export const InventoryProvider = ({ children }) => {
     };
 
     const addUser = async (user) => {
-        await dataClient.add("users", { ...user, displayName: user.username });
+        const normalizedEmail = user.email.toLowerCase().trim();
+        await dataClient.set("users", normalizedEmail, {
+            ...user,
+            email: normalizedEmail,
+            displayName: user.displayName || user.username
+        });
     };
 
     const updateUser = async (updatedUser) => {
         const { _id, ...data } = updatedUser;
-        await dataClient.update("users", _id, data);
+        const normalizedEmail = data.email.toLowerCase().trim();
+
+        // If the ID is not the email, it's a legacy user.
+        // We should migrate them to use their email as the ID.
+        if (_id !== normalizedEmail) {
+            console.log(`Migrating legacy user ${_id} to ${normalizedEmail}`);
+            // 1. Create new record with email as ID
+            await dataClient.set("users", normalizedEmail, {
+                ...data,
+                email: normalizedEmail,
+                displayName: data.displayName || data.username
+            });
+            // 2. Delete old record
+            await dataClient.delete("users", _id);
+            addToast(`User migrated to optimized ID system.`, "info");
+        } else {
+            // Standard update for users who already have email as ID
+            await dataClient.update("users", _id, {
+                ...data,
+                email: normalizedEmail
+            });
+        }
     }
 
 

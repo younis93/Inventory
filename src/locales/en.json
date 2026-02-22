@@ -64,7 +64,9 @@
         "select": "Select...",
         "cashOnDelivery": "Cash on Delivery",
         "perUnit": "per unit",
-        "createdBy": "Created By"
+        "createdBy": "Created By",
+        "verified": "Linked",
+        "pending": "Pending"
     },
     "dashboard": {
         "title": "Dashboard",
@@ -411,7 +413,9 @@
         "table": {
             "user": "User",
             "email": "Email",
-            "role": "Role"
+            "role": "Role",
+            "authStatus": "Auth Status",
+            "lastLogin": "Last Login"
         },
         "placeholders": {
             "displayName": "Display Name",
@@ -431,6 +435,8 @@
             "userUpdated": "User updated successfully!",
             "userCreated": "User created successfully!",
             "passwordChanged": "Password changed successfully!"
-        }
+        },
+        "passwordHint": "Optional: Only needed for email/password login. Gmail users can leave this blank.",
+        "signupNotice": "Note: Adding a user only authorizes their email. They must still sign up using the 'Create Account' option on the login page to set their password or link their Google account."
     }
 }

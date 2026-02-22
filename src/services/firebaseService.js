@@ -6,6 +6,7 @@ import {
     setDoc,
     deleteDoc,
     doc,
+    getDoc,
     query,
     orderBy,
     getDocs,
@@ -22,20 +23,35 @@ export const firebaseService = {
      */
     getUserByEmail: async (email) => {
         if (!email) return null;
+        const normalizedEmail = email.toLowerCase().trim();
         try {
-            const q = query(collection(db, "users"), where("email", "==", email.toLowerCase().trim()));
-            const querySnapshot = await getDocs(q);
-            if (!querySnapshot.empty) {
-                const doc = querySnapshot.docs[0];
-                return { _id: doc.id, ...doc.data() };
+            // 1. Try direct ID lookup (Faster & works with 'get' rules)
+            const docRef = doc(db, "users", normalizedEmail);
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                return { _id: docSnap.id, ...docSnap.data() };
             }
+
+            // 2. Fallback to query (For legacy users with auto-generated IDs)
+            try {
+                const q = query(collection(db, "users"), where("email", "==", normalizedEmail));
+                const querySnapshot = await getDocs(q);
+                if (!querySnapshot.empty) {
+                    const d = querySnapshot.docs[0];
+                    return { _id: d.id, ...d.data() };
+                }
+            } catch (queryError) {
+                // If query fails (likely due to permissions for unauthenticated users),
+                // we just log it and move on. The direct lookup is the primary method anyway.
+                console.log("Fallback query permission denied or failed:", queryError.code);
+            }
+
             return null;
         } catch (error) {
             console.error("Error checking user existence:", error);
-            // If we can't check (e.g. permission denied), we should probably fail safe and say not found
-            // unless we want to allow login and then let InventoryContext handle it.
-            // But the requirement is to block login.
-            return null;
+            // Only throw if it's a critical error (not permission-denied for unauthenticated)
+            if (error.code === 'permission-denied') return null;
+            throw error;
         }
     },
     /**

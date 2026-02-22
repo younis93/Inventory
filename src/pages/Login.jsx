@@ -14,15 +14,40 @@ const GoogleIcon = () => (
     </svg>
 );
 
-const formatAuthError = (err) => {
+const formatAuthError = (err, lang = 'en') => {
     const code = err?.code || '';
-    if (code.includes('invalid-credential')) return 'Invalid email or password.';
-    if (code.includes('wrong-password')) return 'Invalid email or password.';
-    if (code.includes('user-not-found')) return 'No account found for this email.';
-    if (code.includes('email-already-in-use')) return 'This email is already in use.';
-    if (code.includes('weak-password')) return 'Password must be at least 6 characters.';
-    if (code.includes('popup-closed-by-user')) return 'Google sign-in was cancelled.';
-    return 'Authentication failed. Please try again.';
+    const isAr = lang === 'ar';
+
+    // Explicit mappings for common codes
+    if (code.includes('invalid-credential') || code.includes('wrong-password')) {
+        return isAr ? 'البريد الإلكتروني أو كلمة المرور غير صحيحة.' : 'Invalid email or password.';
+    }
+    if (code.includes('user-not-found')) {
+        return isAr ? 'لا يوجد حساب مسجل لهذا البريد الإلكتروني.' : 'No account found for this email.';
+    }
+    if (code.includes('email-already-in-use')) {
+        return isAr ? 'هذا البريد الإلكتروني مستخدم بالفعل.' : 'This email is already in use.';
+    }
+    if (code.includes('weak-password')) {
+        return isAr ? 'يجب أن تكون كلمة المرور 6 أحرف على الأقل.' : 'Password must be at least 6 characters.';
+    }
+    if (code.includes('popup-closed-by-user')) {
+        return isAr ? 'تم إلغاء تسجيل الدخول عبر Google.' : 'Google sign-in was cancelled.';
+    }
+    if (code.includes('network-request-failed')) {
+        return isAr ? 'فشل الاتصال بالشبكة. يرجى التحقق من الإنترنت.' : 'Network error. Please check your internet connection.';
+    }
+    if (code.includes('too-many-requests')) {
+        return isAr ? 'تم حظر الطلبات مؤقتاً بسبب كثرة المحاولات. يرجى المحاولة لاحقاً.' : 'Access temporarily blocked due to many failed attempts. Try again later.';
+    }
+    if (code.includes('operation-not-allowed')) {
+        return isAr ? 'طريقة تسجيل الدخول هذه غير مفعلة.' : 'This sign-in method is not enabled.';
+    }
+
+    // Generic fallback with code for debugging
+    console.error('Auth Error Details:', err);
+    const fallbackMsg = isAr ? 'فشل تسجيل الدخول. يرجى المحاولة مرة أخرى.' : 'Authentication failed. Please try again.';
+    return code ? `${fallbackMsg} (${code})` : fallbackMsg;
 };
 
 const copy = {
@@ -113,7 +138,22 @@ const Login = () => {
                 }
                 await signUpWithEmail(normalizedEmail, password);
             } else {
-                await signInWithEmail(normalizedEmail, password);
+                try {
+                    await signInWithEmail(normalizedEmail, password);
+                } catch (signinErr) {
+                    // Check if they are in the allowed list but haven't created an account yet
+                    if (signinErr.code === 'auth/user-not-found' || signinErr.code === 'auth/invalid-credential') {
+                        const isAllowed = await dataClient.getUserByEmail(normalizedEmail).catch(() => null);
+                        if (isAllowed) {
+                            setError(lang === 'ar' ? 'بريدك الإلكتروني معتمد، ولكن لم يتم إنشاء حسابك بعد. يرجى استخدام علامة تبويب "إنشاء حساب".' : 'Your email is authorized, but your account hasn\'t been created yet. Please use the "Create Account" tab.');
+                            setSubmitting(false);
+                            return;
+                        }
+                    }
+                    throw signinErr; // Fall through to standard error handling
+                }
+
+                // Double check allowed list after successful sign in for extra security
                 const allowedUser = await dataClient.getUserByEmail(normalizedEmail);
                 if (!allowedUser) {
                     await signOutUser();
@@ -124,7 +164,7 @@ const Login = () => {
             }
             navigate(from, { replace: true });
         } catch (err) {
-            setError(formatAuthError(err));
+            setError(formatAuthError(err, lang));
         } finally {
             setSubmitting(false);
         }
@@ -135,7 +175,13 @@ const Login = () => {
         setSubmitting(true);
         try {
             const result = await signInWithGoogle();
-            const userEmail = result.user.email;
+            const userEmail = result.user.email?.toLowerCase().trim();
+
+            if (!userEmail) {
+                setError(lang === 'ar' ? 'لم نتمكن من الحصول على بريدك الإلكتروني من Google.' : 'Failed to get email from Google.');
+                setSubmitting(false);
+                return;
+            }
 
             const allowedUser = await dataClient.getUserByEmail(userEmail);
             if (!allowedUser) {
@@ -147,7 +193,7 @@ const Login = () => {
 
             navigate(from, { replace: true });
         } catch (err) {
-            setError(formatAuthError(err));
+            setError(formatAuthError(err, lang));
         } finally {
             setSubmitting(false);
         }

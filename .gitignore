@@ -1,1 +1,9 @@
 node_modules
+Inventory Management.exe
+app.asar
+dist
+build
+.env
+build_log.txt
+release-builder
+out

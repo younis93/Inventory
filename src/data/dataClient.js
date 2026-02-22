@@ -117,8 +117,33 @@ export const dataClient = {
     return window.desktopAPI.onConflict(callback);
   },
   getUserByEmail: async (email) => {
-    if (!isDesktop()) return firebaseService.getUserByEmail(email);
-    const users = await desktopList('users');
-    return users.find(u => u.email?.toLowerCase() === email?.toLowerCase().trim()) || null;
+    if (!email) return null;
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // 1. If not desktop, just do the remote check
+    if (!isDesktop()) return firebaseService.getUserByEmail(normalizedEmail);
+
+    try {
+      // 2. On Desktop: Try LOCAL first (Fastest and handles unsynced newly added users)
+      const users = await desktopList('users');
+      const localUser = users.find(u => u.email?.toLowerCase() === normalizedEmail) ||
+        users.find(u => u._id?.toLowerCase() === normalizedEmail);
+
+      if (localUser) return localUser;
+
+      // 3. Fallback to remote if online and not found locally
+      if (navigator.onLine) {
+        return await firebaseService.getUserByEmail(normalizedEmail);
+      }
+
+      return null;
+    } catch (error) {
+      console.error("getUserByEmail Error:", error);
+      // Last resort fallback to a fresh remote check if we somehow failed local
+      if (navigator.onLine) {
+        return firebaseService.getUserByEmail(normalizedEmail).catch(() => null);
+      }
+      return null;
+    }
   }
 };

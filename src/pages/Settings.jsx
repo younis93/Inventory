@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'; // Added useEffect
 import Layout from '../components/Layout';
-import { Moon, Sun, Monitor, User, Trash2, Plus, CheckCircle, Settings as SettingsIcon, Users, Lock, Edit, Sparkles, Palette, Layout as LayoutIcon, AlertTriangle, ShieldAlert, Globe } from 'lucide-react';
+import { Moon, Sun, Monitor, User, Trash2, Plus, CheckCircle, Settings as SettingsIcon, Users, Lock, Edit, Sparkles, Palette, Layout as LayoutIcon, AlertTriangle, ShieldAlert, Globe, AlertCircle, X, Info } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
@@ -886,9 +886,10 @@ const Settings = () => {
                             {/* Filtered users based on role */}
                             {(() => {
                                 const role = currentUser?.role || 'Sales';
-                                const filteredUsers = role === 'Admin'
+                                // admins and managers see everyone
+                                const filteredUsers = (role === 'Admin' || role === 'Manager')
                                     ? users
-                                    : users.filter(u => u.role === 'Sales' || u.email === authUser?.email);
+                                    : users.filter(u => u.email === authUser?.email);
 
                                 return (
                                     <>
@@ -898,8 +899,9 @@ const Settings = () => {
                                                 <thead>
                                                     <tr>
                                                         <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">{t('settings.table.user')}</th>
-                                                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">{t('settings.table.email')}</th>
+                                                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">{t('settings.table.authStatus')}</th>
                                                         <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">{t('settings.table.role')}</th>
+                                                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">{t('settings.table.lastLogin')}</th>
                                                         <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">{t('common.actions')}</th>
                                                     </tr>
                                                 </thead>
@@ -923,15 +925,30 @@ const Settings = () => {
                                                                         </div>
                                                                         <div>
                                                                             <div className="text-sm font-bold text-slate-900 dark:text-white">{user.displayName}</div>
-                                                                            <div className="text-xs text-slate-500">@{user.username}</div>
+                                                                            <div className="text-[10px] text-slate-500">{user.email}</div>
                                                                         </div>
                                                                     </div>
                                                                 </td>
-                                                                <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-300">{user.email}</td>
+                                                                <td className="px-4 py-4 whitespace-nowrap">
+                                                                    {user.uid ? (
+                                                                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-full border border-emerald-100 dark:border-emerald-800/50">
+                                                                            <CheckCircle className="w-3 h-3" />
+                                                                            {t('common.verified')}
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 px-2 py-0.5 rounded-full border border-orange-100 dark:border-orange-800/50">
+                                                                            <AlertTriangle className="w-3 h-3" />
+                                                                            {t('common.pending')}
+                                                                        </span>
+                                                                    )}
+                                                                </td>
                                                                 <td className="px-4 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-300">
                                                                     <span className={`px-2 py-1 rounded-lg text-xs font-bold ${user.role === 'Admin' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'}`}>
                                                                         {user.role}
                                                                     </span>
+                                                                </td>
+                                                                <td className="px-4 py-4 whitespace-nowrap text-xs text-slate-500">
+                                                                    {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}
                                                                 </td>
                                                                 <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                                     <div className="flex items-center justify-end gap-2">
@@ -980,8 +997,11 @@ const Settings = () => {
                                                                     )}
                                                                 </div>
                                                                 <div>
-                                                                    <h4 className="font-bold text-slate-900 dark:text-white">{user.displayName}</h4>
-                                                                    <p className="text-xs text-slate-500">@{user.username}</p>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <h4 className="font-bold text-slate-900 dark:text-white">{user.displayName}</h4>
+                                                                        {user.uid && <CheckCircle className="w-3 h-3 text-emerald-500" />}
+                                                                    </div>
+                                                                    <p className="text-[10px] text-slate-500">{user.email}</p>
                                                                 </div>
                                                             </div>
                                                             <span className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${user.role === 'Admin' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'}`}>
@@ -990,7 +1010,9 @@ const Settings = () => {
                                                         </div>
 
                                                         <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800">
-                                                            <div className="text-xs text-slate-500 truncate max-w-[150px]">{user.email}</div>
+                                                            <div className="text-[10px] text-slate-400 italic">
+                                                                {user.lastLogin ? `${t('settings.table.lastLogin')}: ${new Date(user.lastLogin).toLocaleDateString()}` : t('common.noData')}
+                                                            </div>
                                                             <div className="flex items-center gap-2">
                                                                 {canManage && (
                                                                     <button
@@ -1026,33 +1048,71 @@ const Settings = () => {
             {
                 isAddUserModalOpen && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in zoom-in duration-200">
-                        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6">
-                            <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-4">
-                                {editingUser ? t('settings.editUser') : t('settings.addNewUser')}
-                            </h3>
+                        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6 overflow-hidden">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-xl font-bold text-slate-800 dark:text-white">
+                                    {editingUser ? t('settings.editUser') : t('settings.addNewUser')}
+                                </h3>
+                                <button onClick={() => setIsAddUserModalOpen(false)} className="p-2 -mr-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-all">
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+
                             <form onSubmit={handleUserSubmit} className="space-y-4">
-                                <input required placeholder={t('settings.placeholders.displayName')} value={userForm.displayName} onChange={e => setUserForm({ ...userForm, displayName: e.target.value })} className="w-full p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700 dark:text-white outline-none" />
-                                <input required placeholder={t('settings.placeholders.username')} value={userForm.username} onChange={e => setUserForm({ ...userForm, username: e.target.value })} className="w-full p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700 dark:text-white outline-none" />
-                                <input required placeholder={t('settings.placeholders.email')} type="email" value={userForm.email} onChange={e => setUserForm({ ...userForm, email: e.target.value })} className="w-full p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700 dark:text-white outline-none" />
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('settings.table.role')}</label>
-                                    <SearchableSelect
-                                        title={t('common.select')}
-                                        options={[
-                                            { value: 'Sales', label: 'Sales' },
-                                            ...(currentUser?.role === 'Admin' ? [{ value: 'Manager', label: 'Manager' }] : []),
-                                            ...(currentUser?.role === 'Admin' ? [{ value: 'Admin', label: 'Admin' }] : []),
-                                        ]}
-                                        selectedValue={userForm.role}
-                                        onChange={val => setUserForm({ ...userForm, role: val })}
-                                        icon={ShieldAlert}
-                                        showSearch={false}
-                                    />
+                                <div className="space-y-4 max-h-[60vh] overflow-y-auto px-1 custom-scrollbar">
+                                    <div>
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('settings.placeholders.displayName')}</label>
+                                        <input required placeholder={t('settings.placeholders.displayName')} value={userForm.displayName} onChange={e => setUserForm({ ...userForm, displayName: e.target.value })} className="w-full p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700 dark:text-white outline-none focus:ring-2 focus:ring-accent/20 transition-all font-medium" />
+                                    </div>
+
+                                    <div>
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('settings.placeholders.username')}</label>
+                                        <input required placeholder={t('settings.placeholders.username')} value={userForm.username} onChange={e => setUserForm({ ...userForm, username: e.target.value })} className="w-full p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700 dark:text-white outline-none focus:ring-2 focus:ring-accent/20 transition-all font-medium" />
+                                    </div>
+
+                                    <div>
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('settings.placeholders.email')}</label>
+                                        <input required placeholder={t('settings.placeholders.email')} type="email" value={userForm.email} onChange={e => setUserForm({ ...userForm, email: e.target.value })} className="w-full p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700 dark:text-white outline-none focus:ring-2 focus:ring-accent/20 transition-all font-medium" />
+                                    </div>
+
+                                    <div>
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('settings.table.role')}</label>
+                                        <SearchableSelect
+                                            title={t('common.select')}
+                                            options={[
+                                                { value: 'Sales', label: 'Sales' },
+                                                ...(currentUser?.role === 'Admin' ? [{ value: 'Manager', label: 'Manager' }] : []),
+                                                ...(currentUser?.role === 'Admin' ? [{ value: 'Admin', label: 'Admin' }] : []),
+                                            ]}
+                                            selectedValue={userForm.role}
+                                            onChange={val => setUserForm({ ...userForm, role: val })}
+                                            icon={ShieldAlert}
+                                            showSearch={false}
+                                        />
+                                    </div>
+
+                                    <div className="pt-2 border-t border-slate-100 dark:border-slate-700">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                                            {editingUser ? t('settings.placeholders.passwordKeep') : t('settings.placeholders.password')}
+                                        </label>
+                                        <input placeholder={editingUser ? t('settings.placeholders.passwordKeep') : t('settings.placeholders.password')} type="password" value={userForm.password} onChange={e => setUserForm({ ...userForm, password: e.target.value })} className="w-full p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700 dark:text-white outline-none focus:ring-2 focus:ring-accent/20 transition-all font-medium" required={false} />
+                                        <p className="mt-1.5 ml-1 flex items-start gap-1.5 text-[10px] text-slate-500 dark:text-slate-400 leading-tight">
+                                            <Info className="w-3 h-3 mt-0.5 shrink-0 text-accent/70" />
+                                            {t('settings.passwordHint')}
+                                        </p>
+                                    </div>
+
+                                    {!editingUser && (
+                                        <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800/50 flex gap-3">
+                                            <AlertCircle className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
+                                            <p className="text-[10px] leading-relaxed text-blue-700 dark:text-blue-300 font-medium">
+                                                {t('settings.signupNotice')}
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
 
-                                <input placeholder={editingUser ? t('settings.placeholders.passwordKeep') : t('settings.placeholders.password')} type="password" value={userForm.password} onChange={e => setUserForm({ ...userForm, password: e.target.value })} className="w-full p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700 dark:text-white outline-none" required={false} />
-
-                                <div className="flex gap-3 mt-6">
+                                <div className="flex gap-3 mt-2 pt-4 border-t border-slate-100 dark:border-slate-700">
                                     <button type="button" onClick={() => setIsAddUserModalOpen(false)} className="flex-1 py-3 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition-colors">{t('common.cancel')}</button>
                                     <button type="submit"
                                         className="flex-1 py-3 text-white font-bold rounded-xl transition-colors shadow-lg bg-accent"
