@@ -95,6 +95,7 @@ const Settings = () => {
         color: brand.color,
         logo: brand.logo,
         favicon: brand.favicon || null,
+        website: brand.website || '',
         hideHeader: brand.hideHeader || false
     });
 
@@ -104,6 +105,7 @@ const Settings = () => {
             color: brand.color,
             logo: brand.logo,
             favicon: brand.favicon || null,
+            website: brand.website || '',
             hideHeader: brand.hideHeader || false
         });
     }, [brand]);
@@ -428,6 +430,18 @@ const Settings = () => {
                                         type="text"
                                         value={brandForm.name}
                                         onChange={(e) => setBrandForm({ ...brandForm, name: e.target.value })}
+                                        className="w-full p-3 border border-slate-200 dark:border-slate-600 rounded-xl bg-slate-50 dark:bg-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20"
+                                    />
+                                </div>
+
+                                {/* Website URL */}
+                                <div className="max-w-md">
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Website URL</label>
+                                    <input
+                                        type="url"
+                                        placeholder="https://example.com"
+                                        value={brandForm.website}
+                                        onChange={(e) => setBrandForm({ ...brandForm, website: e.target.value })}
                                         className="w-full p-3 border border-slate-200 dark:border-slate-600 rounded-xl bg-slate-50 dark:bg-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20"
                                     />
                                 </div>

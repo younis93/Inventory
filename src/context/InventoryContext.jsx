@@ -220,6 +220,7 @@ export const InventoryProvider = ({ children }) => {
             logo: PROFESSIONAL_LOGO,
             favicon: PROFESSIONAL_FAVICON,
             color: initialColor,
+            website: '',
             hideHeader: false
         };
     });
