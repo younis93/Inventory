@@ -76,7 +76,10 @@ const Sidebar = () => {
                 <div className="flex items-center gap-3">
                     <div
                         className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg text-white overflow-hidden shrink-0"
-                        style={{ backgroundColor: brand.color, boxShadow: `0 10px 15px -3px ${brand.color}33` }}
+                        style={{
+                            backgroundColor: brand.logo ? 'transparent' : brand.color,
+                            boxShadow: brand.logo ? 'none' : `0 10px 15px -3px ${brand.color}33`
+                        }}
                     >
                         {brand.logo ? (
                             <img src={brand.logo} alt="Logo" className="w-full h-full object-cover" />
@@ -86,9 +89,12 @@ const Sidebar = () => {
                     </div>
                     {!isSidebarCollapsed && (
                         <div className="animate-in fade-in duration-300">
-                            <h1 className="font-bold text-slate-800 dark:text-white text-lg leading-tight tracking-tight">
+                            <h1
+                                className="font-bold text-lg leading-tight tracking-tight"
+                                style={{ color: brand.color }}
+                            >
                                 {brand.name.split(' ')[0]}<br />
-                                <span style={{ color: brand.color }} className="font-extrabold">
+                                <span className="font-extrabold opacity-95">
                                     {brand.name.split(' ').slice(1).join(' ') || 'APP'}
                                 </span>
                             </h1>

@@ -32,7 +32,8 @@ const writeStorageUploadDisabled = (disabled) => {
         else localStorage.removeItem(STORAGE_UPLOAD_DISABLED_KEY);
     } catch (_) { }
 };
-const resizeDataUrl = async (dataUrl, maxSize, quality = 0.82) => {
+const resizeDataUrl = async (dataUrl, maxSize, options = {}) => {
+    const { quality = 0.82, outputType = 'image/jpeg', circleMask = false } = options;
     const image = await new Promise((resolve, reject) => {
         const img = new Image();
         img.onload = () => resolve(img);
@@ -52,8 +53,17 @@ const resizeDataUrl = async (dataUrl, maxSize, quality = 0.82) => {
     const ctx = canvas.getContext('2d');
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
+
+    if (circleMask) {
+        const radius = Math.min(width, height) / 2;
+        ctx.beginPath();
+        ctx.arc(width / 2, height / 2, radius, 0, Math.PI * 2);
+        ctx.closePath();
+        ctx.clip();
+    }
+
     ctx.drawImage(image, 0, 0, width, height);
-    return canvas.toDataURL('image/jpeg', quality);
+    return canvas.toDataURL(outputType, quality);
 };
 
 const BrandingSettings = () => {
@@ -130,11 +140,18 @@ const BrandingSettings = () => {
         if (!value) return '';
         if (!isDataUrlImage(value)) return value;
 
-        const optimizedDataUrl = await resizeDataUrl(
-            value,
-            target === 'favicon' ? 128 : 512,
-            target === 'favicon' ? 0.8 : 0.82
-        );
+        // Keep logo as the original cropped PNG to avoid anti-alias halos from a second re-encode.
+        const optimizedDataUrl = target === 'logo'
+            ? value
+            : await resizeDataUrl(
+                value,
+                128,
+                {
+                    quality: 1,
+                    outputType: 'image/png',
+                    circleMask: true
+                }
+            );
 
         if (readStorageUploadDisabled()) {
             return optimizedDataUrl;
@@ -219,62 +236,97 @@ const BrandingSettings = () => {
                 </label>
             </div>
 
-            <div className="space-y-3">
-                <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">{t('settings.logoAndFavicon')}</h3>
-                <div className="flex flex-wrap items-start gap-8">
-                    <div className="space-y-2">
-                        <button
-                            type="button"
-                            onClick={() => logoInputRef.current?.click()}
-                            className="relative w-28 h-28 rounded-full overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 shadow"
-                        >
-                            <ImageWithFallback src={brandForm.logo} alt="Logo" className="w-full h-full" imageClassName="w-full h-full object-cover" />
-                            <span className="absolute inset-0 bg-black/0 hover:bg-black/30 transition-colors flex items-center justify-center text-white opacity-0 hover:opacity-100">
-                                <ImagePlus className="w-5 h-5" />
-                            </span>
-                        </button>
-                        <div className="flex items-center justify-center gap-1.5">
-                            <span className="text-[11px] font-black uppercase tracking-wide text-slate-400">{t('settings.logo')}</span>
+            <div className="space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">{t('settings.logoAndFavicon')}</h3>
+                    <p className="text-xs text-slate-500">{t('settings.logoSize')}</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-900/50 p-4">
+                        <div className="flex items-center justify-between mb-3">
+                            <span className="text-[11px] font-black uppercase tracking-wide text-slate-500">{t('settings.logo')}</span>
                             {brandForm.logo && (
                                 <button
                                     type="button"
                                     onClick={() => setBrandForm((prev) => ({ ...prev, logo: '' }))}
-                                    className="text-red-500 hover:text-red-600"
+                                    className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-bold text-red-600 bg-red-50 dark:bg-red-900/20 rounded-lg"
                                     aria-label={t('settings.removeLogo')}
                                 >
                                     <Trash2 className="w-3.5 h-3.5" />
+                                    Remove
                                 </button>
                             )}
                         </div>
-                    </div>
-
-                    <div className="space-y-2">
                         <button
                             type="button"
-                            onClick={() => faviconInputRef.current?.click()}
-                            className="relative w-20 h-20 rounded-full overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 shadow"
+                            onClick={() => logoInputRef.current?.click()}
+                            aria-label={t('settings.uploadLogo')}
+                            className="group w-full"
                         >
-                            <ImageWithFallback src={brandForm.favicon || brandForm.logo} alt="Favicon" className="w-full h-full" imageClassName="w-full h-full object-cover" />
-                            <span className="absolute inset-0 bg-black/0 hover:bg-black/30 transition-colors flex items-center justify-center text-white opacity-0 hover:opacity-100">
+                            <div className="relative mx-auto w-28 h-28 rounded-full overflow-hidden shadow-md bg-transparent">
+                                <ImageWithFallback src={brandForm.logo} alt="Logo" className="w-full h-full" imageClassName="w-full h-full object-cover" />
+                                <span className="absolute inset-0 bg-black/0 group-hover:bg-black/35 transition-colors flex items-center justify-center text-white opacity-0 group-hover:opacity-100">
+                                    <ImagePlus className="w-5 h-5" />
+                                </span>
+                            </div>
+                            <span className="mt-3 inline-flex items-center gap-1.5 text-sm font-bold text-slate-600 dark:text-slate-300">
                                 <ImagePlus className="w-4 h-4" />
+                                {t('settings.uploadLogo')}
                             </span>
                         </button>
-                        <div className="flex items-center justify-center gap-1.5">
-                            <span className="text-[11px] font-black uppercase tracking-wide text-slate-400">Favicon</span>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-900/50 p-4">
+                        <div className="flex items-center justify-between mb-3">
+                            <span className="text-[11px] font-black uppercase tracking-wide text-slate-500">Favicon</span>
                             {brandForm.favicon && (
                                 <button
                                     type="button"
                                     onClick={() => setBrandForm((prev) => ({ ...prev, favicon: '' }))}
-                                    className="text-red-500 hover:text-red-600"
+                                    className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-bold text-red-600 bg-red-50 dark:bg-red-900/20 rounded-lg"
                                     aria-label={t('settings.removeFavicon')}
                                 >
                                     <Trash2 className="w-3.5 h-3.5" />
+                                    Remove
                                 </button>
                             )}
                         </div>
+                        <button
+                            type="button"
+                            onClick={() => faviconInputRef.current?.click()}
+                            aria-label={t('settings.uploadFavicon')}
+                            className="group w-full"
+                        >
+                            <div className="relative mx-auto w-20 h-20 rounded-full overflow-hidden shadow-md bg-transparent">
+                                <ImageWithFallback src={brandForm.favicon || brandForm.logo} alt="Favicon" className="w-full h-full" imageClassName="w-full h-full object-cover" />
+                                <span className="absolute inset-0 bg-black/0 group-hover:bg-black/35 transition-colors flex items-center justify-center text-white opacity-0 group-hover:opacity-100">
+                                    <ImagePlus className="w-4 h-4" />
+                                </span>
+                            </div>
+                            <span className="mt-3 inline-flex items-center gap-1.5 text-sm font-bold text-slate-600 dark:text-slate-300">
+                                <ImagePlus className="w-4 h-4" />
+                                {t('settings.uploadFavicon')}
+                            </span>
+                        </button>
                     </div>
+                </div>
 
-                    <div className="text-sm text-slate-500">{t('settings.logoSize')}</div>
+                <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900/50 p-4">
+                    <p className="text-[11px] font-black uppercase tracking-wide text-slate-500">{t('settings.livePreview')}</p>
+                    <div className="mt-3 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden bg-white dark:bg-slate-900">
+                        <div className="h-12 px-4 flex items-center justify-between">
+                            <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-7 h-7 rounded-full overflow-hidden bg-transparent">
+                                    <ImageWithFallback src={brandForm.favicon || brandForm.logo} alt="Brand icon" className="w-full h-full" imageClassName="w-full h-full object-cover" />
+                                </div>
+                                <span className="font-bold truncate" style={{ color: brandForm.color || '#1e3a5f' }}>
+                                    {brandForm.name || t('settings.appName')}
+                                </span>
+                            </div>
+                            <div className="w-10 h-2 rounded-full bg-slate-200 dark:bg-slate-700" />
+                        </div>
+                    </div>
                 </div>
 
                 <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={(event) => handlePickFile(event, 'logo')} />

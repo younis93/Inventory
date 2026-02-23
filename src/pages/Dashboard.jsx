@@ -378,7 +378,7 @@ const Dashboard = () => {
                                     <span className="font-bold text-xs uppercase tracking-widest">{t('dashboard.totalRevenue')}</span>
                                     <DollarSign className="w-5 h-5" />
                                 </div>
-                                <h3 className="text-[clamp(0.95rem,2.6vw,1.85rem)] font-black mb-1 leading-tight whitespace-nowrap tracking-tight">{totalRevenueDisplay}</h3>
+                                <h3 className="max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-[clamp(0.85rem,1.9vw,1.55rem)] font-black mb-1 leading-tight tracking-tight">{totalRevenueDisplay}</h3>
                                 <div className="flex items-center gap-1 text-xs font-medium opacity-80">
                                     <TrendingUp className="w-3 h-3" />
                                     <span>{revenueTrendText}</span>

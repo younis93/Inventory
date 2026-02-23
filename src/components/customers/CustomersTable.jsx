@@ -2,6 +2,7 @@ import React from 'react';
 import { FixedSizeList as List } from 'react-window';
 import { format } from 'date-fns';
 import { Edit, ShoppingBag, User } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const headerColumns = [
     { key: 'name', labelKey: 'customers.name' },
@@ -26,6 +27,9 @@ const CustomersTable = ({
     columnSort,
     onColumnSort
 }) => {
+    const { i18n } = useTranslation();
+    const isRTL = i18n.dir() === 'rtl';
+
     if (loading) {
         return (
             <div className="p-4 hidden sm:block">
@@ -59,7 +63,7 @@ const CustomersTable = ({
     const listHeight = Math.min(560, Math.max(160, customersData.length * 86));
 
     return (
-        <div className="overflow-x-auto hidden sm:block">
+        <div className="overflow-x-auto hidden sm:block" dir={isRTL ? 'rtl' : 'ltr'}>
             <div className="min-w-[1040px]">
                 <div className={`${gridClass} gap-3 px-4 py-3 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-500 uppercase rounded-t-2xl`}>
                     {headerColumns.map((column) => {
@@ -95,6 +99,7 @@ const CustomersTable = ({
                     itemCount={customersData.length}
                     itemSize={86}
                     width="100%"
+                    direction={isRTL ? 'rtl' : 'ltr'}
                     className="custom-scrollbar"
                 >
                     {({ index, style }) => {

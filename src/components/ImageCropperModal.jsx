@@ -80,14 +80,6 @@ const ImageCropperModal = ({ image, onCrop, onClose, aspect = 1 }) => {
         // 1. Move to center of canvas
         ctx.translate(canvas.width / 2, canvas.height / 2);
 
-        if (isCircleSelection) {
-            const radius = Math.min(canvas.width, canvas.height) / 2;
-            ctx.beginPath();
-            ctx.arc(0, 0, radius, 0, Math.PI * 2);
-            ctx.closePath();
-            ctx.clip();
-        }
-
         // 2. Apply position offset (drag) - must be scaled to output
         ctx.translate(position.x * outputScale, position.y * outputScale);
 
@@ -115,6 +107,18 @@ const ImageCropperModal = ({ image, onCrop, onClose, aspect = 1 }) => {
         );
 
         ctx.restore();
+
+        // Apply a final circular alpha mask to avoid edge halo artifacts.
+        if (isCircleSelection) {
+            const radius = Math.max(1, Math.min(canvas.width, canvas.height) / 2 - 1);
+            ctx.globalCompositeOperation = 'destination-in';
+            ctx.beginPath();
+            ctx.arc(canvas.width / 2, canvas.height / 2, radius, 0, Math.PI * 2);
+            ctx.closePath();
+            ctx.fill();
+            ctx.globalCompositeOperation = 'source-over';
+        }
+
         return canvas.toDataURL('image/png', 1.0);
     };
 

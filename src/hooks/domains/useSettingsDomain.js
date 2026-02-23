@@ -142,7 +142,12 @@ export const useSettingsDomain = ({
                     link.rel = 'icon';
                     document.getElementsByTagName('head')[0].appendChild(link);
                 }
-                link.href = url;
+                if (String(url).startsWith('data:')) {
+                    link.href = url;
+                } else {
+                    const sep = String(url).includes('?') ? '&' : '?';
+                    link.href = `${url}${sep}v=${Date.now()}`;
+                }
             };
 
             if (brand?.favicon) setFavicon(brand.favicon);

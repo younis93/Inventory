@@ -4,6 +4,7 @@ import { format, parseISO } from 'date-fns';
 import { Download, Edit, Eye, Printer, ShoppingBag, Trash2 } from 'lucide-react';
 import Skeleton from '../common/Skeleton';
 import StatusCell from './StatusCell';
+import { useTranslation } from 'react-i18next';
 
 const headerColumns = [
     { key: 'orderId', labelKey: 'orders.table.orderId' },
@@ -43,6 +44,9 @@ const OrdersTable = ({
     canDeleteOrder,
     onRequestDelete
 }) => {
+    const { i18n } = useTranslation();
+    const isRTL = i18n.dir() === 'rtl';
+
     if (loading) {
         return (
             <div className="hidden sm:block p-4 space-y-2">
@@ -74,7 +78,7 @@ const OrdersTable = ({
     const listHeight = Math.min(560, Math.max(160, orders.length * 78));
 
     return (
-        <div className="hidden sm:block overflow-x-auto">
+        <div className="hidden sm:block overflow-x-auto" dir={isRTL ? 'rtl' : 'ltr'}>
             <div className="min-w-[1080px]">
                 <div className={`${gridClass} gap-3 px-4 py-3 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-500 uppercase rounded-t-2xl`}>
                     {headerColumns.map((column) => {
@@ -110,6 +114,7 @@ const OrdersTable = ({
                     itemCount={orders.length}
                     itemSize={78}
                     width="100%"
+                    direction={isRTL ? 'rtl' : 'ltr'}
                     className="custom-scrollbar"
                 >
                     {({ index, style }) => {
