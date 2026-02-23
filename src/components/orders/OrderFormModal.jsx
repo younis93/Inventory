@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, useRef } from 'react';
 import {
     Globe as GlobeIcon,
     Package,
@@ -13,6 +13,10 @@ import {
 import { GOVERNORATES, SOCIAL_PLATFORMS } from '../../constants/iraq';
 import ImageWithFallback from '../common/ImageWithFallback';
 import SearchableSelect from '../SearchableSelect';
+import { useModalA11y } from '../../hooks/useModalA11y';
+
+const normalizePhone = (value) => String(value || '').replace(/[^\d]/g, '');
+const isValidIraqPhone = (value) => /^07\d{9}$/.test(normalizePhone(value));
 
 const OrderFormModal = ({
     isOpen,
@@ -37,17 +41,74 @@ const OrderFormModal = ({
     onSubmit,
     onCustomerSelect,
     calculateSubtotal,
-    calculateTotal
+    calculateTotal,
+    getAvailableStock
 }) => {
+    const dialogRef = useRef(null);
+
+    useModalA11y({
+        isOpen,
+        onClose,
+        containerRef: dialogRef
+    });
+
+    const selectedProduct = useMemo(
+        () => products.find((product) => product._id === selectedProductId),
+        [products, selectedProductId]
+    );
+    const selectedQty = Number(qty);
+    const selectedAvailableStock = Math.max(0, getAvailableStock(selectedProductId));
+    const selectedQtyInvalid = !Number.isFinite(selectedQty) || selectedQty < 1;
+    const selectedQtyExceedsStock = Boolean(selectedProductId) && selectedQty > selectedAvailableStock;
+
+    const itemIssues = useMemo(
+        () => newOrder.items.map((item) => {
+            const quantity = Number(item.quantity);
+            const price = Number(item.price);
+            const available = Number(getAvailableStock(item.product?._id));
+            return {
+                quantityInvalid: !Number.isFinite(quantity) || quantity < 1,
+                priceInvalid: !Number.isFinite(price) || price <= 0,
+                exceedsStock: quantity > available,
+                stockAvailable: available
+            };
+        }),
+        [getAvailableStock, newOrder.items]
+    );
+    const hasItemValidationErrors = itemIssues.some((issue) => issue.quantityInvalid || issue.priceInvalid || issue.exceedsStock);
+
+    const customerValidationErrors = useMemo(() => {
+        if (newOrder.customerId !== 'new') return {};
+        const errors = {};
+        if (!String(newOrder.customerName || '').trim()) {
+            errors.customerName = 'Customer name is required.';
+        }
+        if (!String(newOrder.customerPhone || '').trim()) {
+            errors.customerPhone = 'Phone number is required.';
+        } else if (!isValidIraqPhone(newOrder.customerPhone)) {
+            errors.customerPhone = 'Use a valid Iraqi phone number (07XXXXXXXXX).';
+        }
+        return errors;
+    }, [newOrder.customerId, newOrder.customerName, newOrder.customerPhone]);
+    const hasCustomerValidationErrors = Object.keys(customerValidationErrors).length > 0;
+    const isLocalSubmitDisabled = hasItemValidationErrors || hasCustomerValidationErrors;
+
     if (!isOpen) return null;
 
     return (
         <div className="fixed inset-0 z-[100] flex items-start justify-center bg-slate-900/60 backdrop-blur-md p-2 md:p-4 overflow-hidden">
-            <div className="bg-white dark:bg-slate-800 rounded-[32px] shadow-2xl w-full max-w-5xl my-4 sm:my-8 min-h-0 flex flex-col overflow-hidden animate-in fade-in zoom-in duration-300 relative max-h-[90vh]">
+            <div
+                ref={dialogRef}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="order-form-title"
+                tabIndex={-1}
+                className="bg-white dark:bg-slate-800 rounded-[32px] shadow-2xl w-full max-w-5xl my-4 sm:my-8 min-h-0 flex flex-col overflow-hidden animate-in fade-in zoom-in duration-300 relative max-h-[90vh]"
+            >
                 <div className="flex-1 min-h-0 flex flex-col md:flex-row overflow-y-auto overflow-x-hidden md:overflow-hidden custom-scrollbar">
                     <div className="order-2 md:order-1 w-full shrink-0 md:shrink md:flex-1 p-4 md:p-6 border-t md:border-t-0 md:border-e border-slate-100 dark:border-slate-700 flex flex-col md:min-h-0 overflow-x-hidden overflow-visible md:overflow-visible relative z-20">
                         <div className="bg-white dark:bg-slate-800 pb-4 z-10 md:sticky md:top-0 lg:static">
-                            <h3 className="text-lg font-bold mb-4 text-slate-800 dark:text-white">Add Items</h3>
+                            <h3 id="order-form-title" className="text-lg font-bold mb-4 text-slate-800 dark:text-white">Add Items</h3>
                             <div className="space-y-4">
                                 <div className="grid grid-cols-[minmax(0,1fr)_68px_40px] sm:grid-cols-[minmax(0,1fr)_96px_52px] gap-2 items-end">
                                     <div className="min-w-0">
@@ -66,27 +127,44 @@ const OrderFormModal = ({
                                     </div>
                                     <div className="w-full">
                                         <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ms-1">{t('orders.qty')}</label>
-                                        <input
-                                            type="number"
-                                            min="1"
-                                            value={qty}
-                                            onChange={(e) => setQty(e.target.value)}
-                                            className={`w-full p-3 border-2 rounded-xl dark:bg-slate-900 dark:text-white outline-none text-center font-bold ${
-                                                selectedProductId && parseInt(qty) > (products.find((p) => p._id === selectedProductId)?.stock || 0)
-                                                    ? 'border-red-500 text-red-500 ring-4 ring-red-500/10'
-                                                    : 'border-slate-100 dark:border-slate-700 focus:border-[var(--brand-color)]'
-                                            }`}
-                                        />
+                                        <div className="relative">
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                max={selectedProduct ? selectedAvailableStock : undefined}
+                                                value={qty}
+                                                onChange={(e) => setQty(e.target.value)}
+                                                aria-invalid={selectedQtyInvalid || selectedQtyExceedsStock}
+                                                className={`w-full p-3 border-2 rounded-xl dark:bg-slate-900 dark:text-white outline-none text-center font-bold ${
+                                                    selectedQtyInvalid || selectedQtyExceedsStock
+                                                        ? 'border-red-500 text-red-500 ring-4 ring-red-500/10'
+                                                        : 'border-slate-100 dark:border-slate-700 focus:border-[var(--brand-color)]'
+                                                }`}
+                                            />
+                                            {selectedQtyExceedsStock && (
+                                                <span className="absolute -top-6 end-0 text-[10px] px-2 py-0.5 rounded-full bg-red-500 text-white font-bold whitespace-nowrap">
+                                                    {t('orders.onlyLeft', { count: selectedAvailableStock })}
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                     <button
                                         type="button"
                                         onClick={onAddToOrder}
-                                        disabled={!selectedProductId || !qty}
+                                        disabled={!selectedProductId || !qty || selectedQtyInvalid || selectedQtyExceedsStock}
+                                        aria-label={t('orders.addItem') || 'Add item'}
                                         className="h-11 sm:h-[52px] w-11 sm:w-[52px] text-white font-black rounded-xl transition-all bg-accent shadow-accent active:scale-95 disabled:opacity-50 flex items-center justify-center"
                                     >
                                         <Plus className="w-5 h-5 sm:w-6 sm:h-6" />
                                     </button>
                                 </div>
+                                {(selectedQtyInvalid || selectedQtyExceedsStock) && (
+                                    <p className="text-xs font-semibold text-red-500 ms-1">
+                                        {selectedQtyExceedsStock
+                                            ? t('orders.stockError', { available: selectedAvailableStock })
+                                            : 'Quantity must be at least 1.'}
+                                    </p>
+                                )}
                             </div>
                         </div>
 
@@ -98,8 +176,10 @@ const OrderFormModal = ({
                                     <p className="text-xs">{t('orders.cartEmptySub')}</p>
                                 </div>
                             ) : (
-                                newOrder.items.map((item, idx) => (
-                                    <div key={idx} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 bg-slate-50 dark:bg-slate-900/30 rounded-2xl border border-slate-100 dark:border-slate-700/50 group hover:border-indigo-500/50 transition-all overflow-hidden">
+                                newOrder.items.map((item, idx) => {
+                                    const issue = itemIssues[idx] || {};
+                                    return (
+                                    <div key={idx} className={`flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 bg-slate-50 dark:bg-slate-900/30 rounded-2xl border group transition-all overflow-hidden ${issue.exceedsStock ? 'border-red-300 dark:border-red-800/50' : 'border-slate-100 dark:border-slate-700/50 hover:border-indigo-500/50'}`}>
                                         <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
                                             <div className="w-12 h-12 rounded-lg overflow-hidden bg-white dark:bg-slate-800 border dark:border-slate-700 shrink-0">
                                                 <ImageWithFallback
@@ -118,7 +198,12 @@ const OrderFormModal = ({
                                                             type="number"
                                                             value={item.price}
                                                             onChange={(e) => onPriceChange(idx, e.target.value)}
-                                                            className="w-20 sm:w-24 p-1.5 text-xs font-black border-2 border-slate-100 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 dark:text-white transition-colors focus:border-[var(--brand-color)]"
+                                                            aria-invalid={issue.priceInvalid}
+                                                            className={`w-20 sm:w-24 p-1.5 text-xs font-black border-2 rounded-lg bg-white dark:bg-slate-800 dark:text-white transition-colors ${
+                                                                issue.priceInvalid
+                                                                    ? 'border-red-500 text-red-500 ring-4 ring-red-500/10'
+                                                                    : 'border-slate-100 dark:border-slate-700 focus:border-[var(--brand-color)]'
+                                                            }`}
                                                         />
                                                     </div>
                                                     <div className="flex items-center gap-2">
@@ -127,15 +212,17 @@ const OrderFormModal = ({
                                                             <input
                                                                 type="number"
                                                                 min="1"
+                                                                max={item.product.stock}
                                                                 value={item.quantity}
                                                                 onChange={(e) => onQtyChange(idx, e.target.value)}
+                                                                aria-invalid={issue.quantityInvalid || issue.exceedsStock}
                                                                 className={`w-14 sm:w-16 p-1.5 text-xs font-black border-2 rounded-lg bg-white dark:bg-slate-800 dark:text-white transition-all text-center ${
-                                                                    item.quantity > item.product.stock ? 'border-red-500 text-red-500 ring-4 ring-red-500/10' : 'border-slate-100 dark:border-slate-700 focus:border-indigo-500'
+                                                                    issue.quantityInvalid || issue.exceedsStock ? 'border-red-500 text-red-500 ring-4 ring-red-500/10' : 'border-slate-100 dark:border-slate-700 focus:border-indigo-500'
                                                                 }`}
                                                             />
-                                                            {item.quantity > item.product.stock && (
-                                                                <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-red-500 text-white text-[8px] px-1.5 py-0.5 rounded font-black whitespace-nowrap animate-bounce">
-                                                                    {t('orders.onlyLeft', { count: item.product.stock })}
+                                                            {issue.exceedsStock && (
+                                                                <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-red-500 text-white text-[8px] px-1.5 py-0.5 rounded font-black whitespace-nowrap">
+                                                                    {t('orders.stockError', { available: issue.stockAvailable })}
                                                                 </div>
                                                             )}
                                                         </div>
@@ -148,14 +235,20 @@ const OrderFormModal = ({
                                                 <p className="text-[10px] font-bold text-slate-400 uppercase">{t('orders.subtotal')}</p>
                                                 <span className="text-sm font-black dark:text-white break-words">{formatCurrency(item.price * item.quantity)}</span>
                                             </div>
-                                            <button onClick={() => onRemoveFromOrder(idx)} className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all">
+                                            <button type="button" onClick={() => onRemoveFromOrder(idx)} aria-label={`${t('common.delete') || 'Delete'} ${item.product.name}`} className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all">
                                                 <Trash2 className="w-4 h-4" />
                                             </button>
                                         </div>
                                     </div>
-                                ))
+                                );
+                                })
                             )}
                         </div>
+                        {hasItemValidationErrors && (
+                            <div className="mt-2 p-2.5 rounded-xl border border-red-200 bg-red-50 text-red-600 text-xs font-semibold">
+                                Quantity cannot exceed current stock, and prices/quantities must be valid numbers.
+                            </div>
+                        )}
 
                         <div className="mt-8 pt-6 pb-8 md:pb-8 border-t border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 md:sticky md:bottom-0">
                             <div className="flex flex-col gap-3">
@@ -192,7 +285,7 @@ const OrderFormModal = ({
                     <div className="order-1 md:order-2 w-full shrink-0 md:w-1/3 p-4 bg-slate-50 dark:bg-slate-900/50 md:flex md:flex-col md:min-h-0 border-b md:border-b-0 md:border-l border-slate-100 dark:border-slate-700 relative z-10">
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tighter">{t('orders.customerInfo')}</h3>
-                            <button onClick={onClose} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-lg hover:bg-white dark:hover:bg-slate-800 transition-colors">
+                            <button type="button" onClick={onClose} aria-label={t('common.close') || 'Close'} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-lg hover:bg-white dark:hover:bg-slate-800 transition-colors">
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
@@ -221,9 +314,17 @@ const OrderFormModal = ({
                                         placeholder="e.g. Ahmed Ali"
                                         value={newOrder.customerName}
                                         onChange={(e) => setNewOrder({ ...newOrder, customerName: e.target.value })}
-                                        className="w-full p-2 border-2 border-white dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl dark:text-white outline-none focus:border-[var(--brand-color)] transition-all font-bold shadow-sm text-sm"
+                                        aria-invalid={Boolean(customerValidationErrors.customerName)}
+                                        className={`w-full p-2 border-2 bg-white dark:bg-slate-900 rounded-xl dark:text-white outline-none focus:border-[var(--brand-color)] transition-all font-bold shadow-sm text-sm ${
+                                            customerValidationErrors.customerName
+                                                ? 'border-red-500 text-red-500 ring-4 ring-red-500/10'
+                                                : 'border-white dark:border-slate-800'
+                                        }`}
                                         disabled={newOrder.customerId !== 'new'}
                                     />
+                                    {customerValidationErrors.customerName && (
+                                        <p className="text-[10px] font-semibold text-red-500 ms-1">{customerValidationErrors.customerName}</p>
+                                    )}
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                     <div className="space-y-1.5">
@@ -232,9 +333,17 @@ const OrderFormModal = ({
                                             placeholder="07XX XXX XXXX"
                                             value={newOrder.customerPhone}
                                             onChange={(e) => setNewOrder({ ...newOrder, customerPhone: e.target.value })}
-                                            className="w-full p-2 border-2 border-white dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl dark:text-white outline-none focus:border-[var(--brand-color)] transition-all font-bold shadow-sm text-sm"
+                                            aria-invalid={Boolean(customerValidationErrors.customerPhone)}
+                                            className={`w-full p-2 border-2 bg-white dark:bg-slate-900 rounded-xl dark:text-white outline-none focus:border-[var(--brand-color)] transition-all font-bold shadow-sm text-sm ${
+                                                customerValidationErrors.customerPhone
+                                                    ? 'border-red-500 text-red-500 ring-4 ring-red-500/10'
+                                                    : 'border-white dark:border-slate-800'
+                                            }`}
                                             disabled={newOrder.customerId !== 'new'}
                                         />
+                                        {customerValidationErrors.customerPhone && (
+                                            <p className="text-[10px] font-semibold text-red-500 ms-1">{customerValidationErrors.customerPhone}</p>
+                                        )}
                                     </div>
                                     <div className="space-y-1.5">
                                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">{t('orders.gender')}</label>
@@ -299,11 +408,16 @@ const OrderFormModal = ({
                                     />
                                 </div>
                             </div>
+                            {hasCustomerValidationErrors && newOrder.customerId === 'new' && (
+                                <div className="p-2.5 rounded-xl border border-red-200 bg-red-50 text-red-600 text-xs font-semibold">
+                                    Please complete required customer information before saving.
+                                </div>
+                            )}
                         </div>
                         <div className="mt-auto pt-2 border-t border-slate-100 dark:border-slate-700 hidden md:block">
                             <button
                                 onClick={onSubmit}
-                                disabled={isSaveOrderDisabled}
+                                disabled={isSaveOrderDisabled || isLocalSubmitDisabled}
                                 className="w-full py-3 bg-accent text-white rounded-2xl font-black shadow-accent active:scale-[0.98] transition-all disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-3"
                             >
                                 {isSubmitting ? (
@@ -324,7 +438,7 @@ const OrderFormModal = ({
                     <div className="order-3 md:hidden mt-2 bg-white dark:bg-slate-800 border-t border-slate-100 dark:border-slate-700 p-4">
                         <button
                             onClick={onSubmit}
-                            disabled={isSaveOrderDisabled}
+                            disabled={isSaveOrderDisabled || isLocalSubmitDisabled}
                             className="w-full py-3 bg-accent text-white rounded-2xl font-black shadow-accent active:scale-[0.98] transition-all disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-3"
                         >
                             {isSubmitting ? (

@@ -139,14 +139,18 @@ const CustomersTable = ({
                                 <div className="text-xs font-medium text-slate-500 truncate">{customer.createdBy || 'System'}</div>
                                 <div className="flex items-center justify-end gap-2">
                                     <button
+                                        type="button"
                                         onClick={() => onOpenHistory(customer)}
+                                        aria-label="Open customer order history"
                                         className="p-2 text-slate-400 hover:text-[var(--brand-color)] hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all"
                                         title="Order History"
                                     >
                                         <ShoppingBag className="w-4 h-4" />
                                     </button>
                                     <button
+                                        type="button"
                                         onClick={() => onOpenEdit(customer)}
+                                        aria-label="Edit customer"
                                         className="p-2 text-slate-400 hover:text-[var(--brand-color)] hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all"
                                         title="Edit"
                                     >

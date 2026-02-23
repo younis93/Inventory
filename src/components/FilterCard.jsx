@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Check, Search, ChevronDown, ChevronUp } from 'lucide-react';
+import { Check, Search, ChevronDown, ChevronUp } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 
 const FilterCard = ({ title, options, selectedValues, onChange, onClear, showProductCount = false, productCount = 0, showSearch = true, collapsible = false }) => {
@@ -20,7 +20,7 @@ const FilterCard = ({ title, options, selectedValues, onChange, onClear, showPro
     ));
 
     return (
-        <div className={`rounded-2xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.1)] border border-slate-100 dark:border-slate-700 overflow-hidden flex flex-col w-full min-w-[240px] transition-all ${['liquid', 'default_glass'].includes(appearance?.theme) ? 'glass-panel' : 'bg-white dark:bg-slate-800'}`}>
+        <div role="listbox" aria-multiselectable="true" className={`rounded-2xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.1)] border border-slate-100 dark:border-slate-700 overflow-hidden flex flex-col w-full min-w-[240px] transition-all ${['liquid', 'default_glass'].includes(appearance?.theme) ? 'glass-panel' : 'bg-white dark:bg-slate-800'}`}>
             {/* Show product count OR title header (clickable when collapsible) */}
             {/* Header section removed as per request */}
             {title && title.length > 0 && (
@@ -29,7 +29,7 @@ const FilterCard = ({ title, options, selectedValues, onChange, onClear, showPro
                         <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">{title}</h3>
                     </div>
                     {collapsible && (
-                        <button onClick={() => setIsOpen(!isOpen)} className="p-1 rounded-full text-slate-400 hover:text-slate-600">
+                        <button type="button" onClick={() => setIsOpen(!isOpen)} aria-label={isOpen ? 'Collapse filter options' : 'Expand filter options'} className="p-1 rounded-full text-slate-400 hover:text-slate-600">
                             {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                         </button>
                     )}
@@ -56,9 +56,13 @@ const FilterCard = ({ title, options, selectedValues, onChange, onClear, showPro
                 {filteredOptions.map((option) => {
                     const isSelected = selectedValues.includes(option.value);
                     return (
-                        <div
+                        <button
+                            type="button"
+                            role="option"
+                            aria-selected={isSelected}
                             key={option.value}
                             onClick={() => handleToggle(option.value)}
+                            aria-label={`${option.label} ${isSelected ? 'selected' : 'not selected'}`}
                             className={`flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer transition-all group ${isSelected
                                 ? 'bg-accent/10'
                                 : (['liquid', 'default_glass'].includes(appearance?.theme) ? 'hover:bg-white/20 dark:hover:bg-slate-700/30' : 'hover:bg-slate-50 dark:hover:bg-slate-700/50')
@@ -78,7 +82,7 @@ const FilterCard = ({ title, options, selectedValues, onChange, onClear, showPro
                             <span className={`text-xs font-bold ${isSelected ? 'text-accent' : 'text-slate-400 group-hover:text-slate-500'}`}>
                                 {option.count}
                             </span>
-                        </div>
+                        </button>
                     );
                 })}
             </div>
@@ -86,7 +90,9 @@ const FilterCard = ({ title, options, selectedValues, onChange, onClear, showPro
             {selectedValues.length > 0 && (
                 <div className="px-4 py-3 border-t border-slate-50 dark:border-slate-700/50">
                     <button
+                        type="button"
                         onClick={onClear}
+                        aria-label="Clear selected filters"
                         className="text-xs font-bold text-accent hover:underline transition-colors flex items-center gap-1"
                     >
                         Clear All

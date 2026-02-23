@@ -1,7 +1,12 @@
-import React from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Globe, MapPin, X } from 'lucide-react';
 import { GOVERNORATES, SOCIAL_PLATFORMS } from '../../constants/iraq';
 import SearchableSelect from '../SearchableSelect';
+import { useModalA11y } from '../../hooks/useModalA11y';
+
+const normalizePhone = (value) => String(value || '').replace(/[^\d]/g, '');
+const isValidIraqPhone = (value) => /^07\d{9}$/.test(normalizePhone(value));
+const isValidEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
 
 const CustomerFormModal = ({
     isOpen,
@@ -13,22 +18,72 @@ const CustomerFormModal = ({
     onSubmit,
     onClose
 }) => {
+    const dialogRef = useRef(null);
+    const [showValidation, setShowValidation] = useState(false);
+
+    useModalA11y({
+        isOpen,
+        onClose,
+        containerRef: dialogRef
+    });
+
+    useEffect(() => {
+        if (isOpen) setShowValidation(false);
+    }, [isOpen]);
+
+    const validationErrors = useMemo(() => {
+        const errors = {};
+        if (!String(formData.name || '').trim()) {
+            errors.name = 'Full name is required.';
+        }
+        if (!String(formData.phone || '').trim()) {
+            errors.phone = 'Phone number is required.';
+        } else if (!isValidIraqPhone(formData.phone)) {
+            errors.phone = 'Use a valid Iraqi phone number (07XXXXXXXXX).';
+        }
+        if (String(formData.email || '').trim() && !isValidEmail(formData.email)) {
+            errors.email = 'Please enter a valid email address.';
+        }
+        return errors;
+    }, [formData.email, formData.name, formData.phone]);
+    const hasValidationErrors = Object.keys(validationErrors).length > 0;
+    const shouldShowError = (field) => showValidation || Boolean(formData[field]);
+
+    const handleFormSubmit = (event) => {
+        event.preventDefault();
+        setShowValidation(true);
+        if (hasValidationErrors) return;
+        onSubmit(event);
+    };
+
     if (!isOpen) return null;
 
     return (
         <div className="fixed inset-0 z-[100] flex items-start justify-center bg-slate-900/80 backdrop-blur-md p-2 sm:p-4 overflow-y-auto">
-            <div className={`rounded-[32px] shadow-2xl w-full max-w-md my-4 sm:my-8 flex flex-col overflow-hidden animate-in fade-in zoom-in duration-300 relative ${['liquid', 'default_glass'].includes(appearanceTheme) ? 'glass-panel' : 'bg-white dark:bg-slate-800'}`}>
+            <div
+                ref={dialogRef}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="customer-form-title"
+                tabIndex={-1}
+                className={`rounded-[32px] shadow-2xl w-full max-w-md my-4 sm:my-8 flex flex-col overflow-hidden animate-in fade-in zoom-in duration-300 relative ${['liquid', 'default_glass'].includes(appearanceTheme) ? 'glass-panel' : 'bg-white dark:bg-slate-800'}`}
+            >
                 <div className={`px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center sticky top-0 z-10 ${['liquid', 'default_glass'].includes(appearanceTheme) ? 'bg-white/20 dark:bg-slate-900/20 backdrop-blur-md' : 'bg-white dark:bg-slate-800'}`}>
                     <div>
-                        <h3 className="text-xl font-black text-slate-900 dark:text-white">{editingCustomer ? t('customers.form.edit') : t('customers.form.new')}</h3>
+                        <h3 id="customer-form-title" className="text-xl font-black text-slate-900 dark:text-white">{editingCustomer ? t('customers.form.edit') : t('customers.form.new')}</h3>
                         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">{t('customers.form.sub')}</p>
                     </div>
-                    <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                    <button type="button" onClick={onClose} aria-label={t('common.close') || 'Close'} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
                         <X className="w-5 h-5 text-slate-400" />
                     </button>
                 </div>
                 <div className="p-5 overflow-y-auto custom-scrollbar">
-                    <form id="customer-form" onSubmit={onSubmit} className="space-y-4">
+                    <form id="customer-form" onSubmit={handleFormSubmit} className="space-y-4">
+                        {showValidation && hasValidationErrors && (
+                            <div className="p-3 rounded-xl border border-red-200 bg-red-50 text-red-600 text-xs font-semibold">
+                                Please fix the highlighted fields before saving.
+                            </div>
+                        )}
                         <div className="space-y-3">
                             <div className="space-y-1.5">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ms-1">{t('customers.form.fullName')}</label>
@@ -37,8 +92,12 @@ const CustomerFormModal = ({
                                     placeholder="Ahmed Ali"
                                     value={formData.name}
                                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                    className={`w-full p-2.5 border-2 border-slate-100 dark:border-slate-800 rounded-2xl dark:text-white outline-none focus:border-[var(--brand-color)] transition-all font-bold placeholder:opacity-30 ${['liquid', 'default_glass'].includes(appearanceTheme) ? 'bg-white/40 dark:bg-slate-900/40 backdrop-blur-sm' : 'bg-slate-50 dark:bg-slate-900'}`}
+                                    aria-invalid={Boolean(validationErrors.name) && shouldShowError('name')}
+                                    className={`w-full p-2.5 border-2 rounded-2xl dark:text-white outline-none focus:border-[var(--brand-color)] transition-all font-bold placeholder:opacity-30 ${Boolean(validationErrors.name) && shouldShowError('name') ? 'border-red-500 text-red-500 ring-4 ring-red-500/10' : 'border-slate-100 dark:border-slate-800'} ${['liquid', 'default_glass'].includes(appearanceTheme) ? 'bg-white/40 dark:bg-slate-900/40 backdrop-blur-sm' : 'bg-slate-50 dark:bg-slate-900'}`}
                                 />
+                                {Boolean(validationErrors.name) && shouldShowError('name') && (
+                                    <p className="text-[10px] font-semibold text-red-500 ms-1">{validationErrors.name}</p>
+                                )}
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -49,8 +108,12 @@ const CustomerFormModal = ({
                                         placeholder="07XX XXX XXXX"
                                         value={formData.phone}
                                         onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                        className={`w-full p-2.5 border-2 border-slate-100 dark:border-slate-800 rounded-2xl dark:text-white outline-none focus:border-[var(--brand-color)] transition-all font-bold placeholder:opacity-30 ${['liquid', 'default_glass'].includes(appearanceTheme) ? 'bg-white/40 dark:bg-slate-900/40 backdrop-blur-sm' : 'bg-slate-50 dark:bg-slate-900'}`}
+                                        aria-invalid={Boolean(validationErrors.phone) && shouldShowError('phone')}
+                                        className={`w-full p-2.5 border-2 rounded-2xl dark:text-white outline-none focus:border-[var(--brand-color)] transition-all font-bold placeholder:opacity-30 ${Boolean(validationErrors.phone) && shouldShowError('phone') ? 'border-red-500 text-red-500 ring-4 ring-red-500/10' : 'border-slate-100 dark:border-slate-800'} ${['liquid', 'default_glass'].includes(appearanceTheme) ? 'bg-white/40 dark:bg-slate-900/40 backdrop-blur-sm' : 'bg-slate-50 dark:bg-slate-900'}`}
                                     />
+                                    {Boolean(validationErrors.phone) && shouldShowError('phone') && (
+                                        <p className="text-[10px] font-semibold text-red-500 ms-1">{validationErrors.phone}</p>
+                                    )}
                                 </div>
                                 <div className="space-y-1.5">
                                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ms-1">{t('customers.form.email')}</label>
@@ -59,8 +122,12 @@ const CustomerFormModal = ({
                                         type="email"
                                         value={formData.email}
                                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                        className={`w-full p-2.5 border-2 border-slate-100 dark:border-slate-800 rounded-2xl dark:text-white outline-none focus:border-[var(--brand-color)] transition-all font-bold placeholder:opacity-30 ${['liquid', 'default_glass'].includes(appearanceTheme) ? 'bg-white/40 dark:bg-slate-900/40 backdrop-blur-sm' : 'bg-slate-50 dark:bg-slate-900'}`}
+                                        aria-invalid={Boolean(validationErrors.email) && shouldShowError('email')}
+                                        className={`w-full p-2.5 border-2 rounded-2xl dark:text-white outline-none focus:border-[var(--brand-color)] transition-all font-bold placeholder:opacity-30 ${Boolean(validationErrors.email) && shouldShowError('email') ? 'border-red-500 text-red-500 ring-4 ring-red-500/10' : 'border-slate-100 dark:border-slate-800'} ${['liquid', 'default_glass'].includes(appearanceTheme) ? 'bg-white/40 dark:bg-slate-900/40 backdrop-blur-sm' : 'bg-slate-50 dark:bg-slate-900'}`}
                                     />
+                                    {Boolean(validationErrors.email) && shouldShowError('email') && (
+                                        <p className="text-[10px] font-semibold text-red-500 ms-1">{validationErrors.email}</p>
+                                    )}
                                 </div>
                             </div>
 
@@ -109,6 +176,7 @@ const CustomerFormModal = ({
                         </button>
                         <button
                             onClick={() => document.getElementById('customer-form').requestSubmit()}
+                            disabled={hasValidationErrors && showValidation}
                             className="flex-2 py-3 text-white rounded-2xl font-black transition-all active:scale-95 bg-accent shadow-accent hover:brightness-110 flex-[2]"
                         >
                             {editingCustomer ? t('customers.form.save') : t('customers.form.register')}

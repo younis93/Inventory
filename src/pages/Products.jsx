@@ -116,8 +116,6 @@ const Products = () => {
         totalProfitUSD: 0
     };
     const [formData, setFormData] = useState(initialFormState);
-    const [newCategoryName, setNewCategoryName] = useState('');
-    const [isAddingNewCategory, setIsAddingNewCategory] = useState(false);
 
     // Filter Options
     const categoryOptions = useMemo(() => {
@@ -294,10 +292,7 @@ const Products = () => {
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
-        if (name === 'category' && value === 'new') {
-            setIsAddingNewCategory(true);
-            setFormData(prev => ({ ...prev, category: '' }));
-        } else if (name === 'sellingPriceIQD') {
+        if (name === 'sellingPriceIQD') {
             // Keep raw value for typing, but set override flag
             const val = value === '' ? '' : parseFloat(value);
             setFormData(prev => ({
@@ -321,31 +316,6 @@ const Products = () => {
                 sellingPriceIQD: roundedVal,
                 marginPercent: newMargin.toFixed(2)
             };
-        });
-    };
-
-    const handleSaveNewCategory = () => {
-        if (newCategoryName.trim()) {
-            addCategory(newCategoryName);
-            setFormData(prev => ({ ...prev, category: newCategoryName }));
-            setNewCategoryName('');
-            setIsAddingNewCategory(false);
-        }
-    };
-
-    const handleImageUpload = (e) => {
-        const files = Array.from(e.target.files);
-        if (files.length === 0) return;
-
-        files.forEach(file => {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setFormData(prev => ({
-                    ...prev,
-                    images: [...prev.images, reader.result]
-                }));
-            };
-            reader.readAsDataURL(file);
         });
     };
 
@@ -693,13 +663,7 @@ const Products = () => {
                 handlePriceBlur={handlePriceBlur}
                 setFormData={setFormData}
                 categories={categories}
-                isAddingNewCategory={isAddingNewCategory}
-                setIsAddingNewCategory={setIsAddingNewCategory}
-                newCategoryName={newCategoryName}
-                setNewCategoryName={setNewCategoryName}
-                handleSaveNewCategory={handleSaveNewCategory}
                 fileInputRef={fileInputRef}
-                handleImageUpload={handleImageUpload}
                 removeImage={removeImage}
                 onOpenCategoryManager={() => setIsCategoryManagerOpen(true)}
                 onClose={() => setIsModalOpen(false)}

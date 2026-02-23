@@ -8,6 +8,7 @@ const DateRangePicker = ({ onChange, initialRange, range: controlledRange, onRan
     const [hoverDate, setHoverDate] = useState(null);
     const [viewDate, setViewDate] = useState(new Date()); // Left calendar month
     const containerRef = useRef(null);
+    const triggerRef = useRef(null);
 
     // Close on click outside
     useEffect(() => {
@@ -19,6 +20,21 @@ const DateRangePicker = ({ onChange, initialRange, range: controlledRange, onRan
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    useEffect(() => {
+        if (!isOpen) return undefined;
+
+        const onKeyDown = (event) => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                setIsOpen(false);
+                triggerRef.current?.focus();
+            }
+        };
+
+        document.addEventListener('keydown', onKeyDown);
+        return () => document.removeEventListener('keydown', onKeyDown);
+    }, [isOpen]);
 
     const handleDayClick = (day) => {
         const cb = onChange || onRangeChange;
@@ -209,6 +225,7 @@ const DateRangePicker = ({ onChange, initialRange, range: controlledRange, onRan
 
             {/* Input Field */}
             <div
+                ref={triggerRef}
                 className="relative flex items-center w-full outline-none focus-visible:outline-none"
                 onClick={() => setIsOpen(!isOpen)}
                 role="button"
@@ -218,7 +235,11 @@ const DateRangePicker = ({ onChange, initialRange, range: controlledRange, onRan
                 tabIndex={0}
                 onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
                         setIsOpen(!isOpen);
+                    } else if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        setIsOpen(true);
                     }
                 }}
             >
@@ -246,13 +267,13 @@ const DateRangePicker = ({ onChange, initialRange, range: controlledRange, onRan
                         {/* Left Calendar */}
                         <div className="p-3 sm:p-6 flex-1 min-w-0">
                             <div className="flex items-center justify-between mb-6">
-                                <button onClick={prevMonth} className="p-1 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full text-gray-500 dark:text-slate-400 transition-colors" aria-label="Previous month">
+                                <button type="button" onClick={prevMonth} className="p-1 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full text-gray-500 dark:text-slate-400 transition-colors" aria-label="Previous month">
                                     <ChevronLeft className="w-5 h-5" />
                                 </button>
                                 <h3 className="text-base font-bold text-gray-900 dark:text-white">
                                     {format(viewDate, 'MMMM yyyy')}
                                 </h3>
-                                <button onClick={nextMonth} className="p-1 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full text-gray-500 dark:text-slate-400 transition-colors md:hidden" aria-label="Next month">
+                                <button type="button" onClick={nextMonth} className="p-1 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full text-gray-500 dark:text-slate-400 transition-colors md:hidden" aria-label="Next month">
                                     <ChevronRight className="w-5 h-5" />
                                 </button>
                                 <div className="w-7 hidden md:block"></div>
@@ -274,7 +295,7 @@ const DateRangePicker = ({ onChange, initialRange, range: controlledRange, onRan
                                 <h3 className="text-base font-bold text-gray-900 dark:text-white">
                                     {format(addMonths(viewDate, 1), 'MMMM yyyy')}
                                 </h3>
-                                <button onClick={nextMonth} className="p-1 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full text-gray-500 dark:text-slate-400 transition-colors" aria-label="Next month">
+                                <button type="button" onClick={nextMonth} className="p-1 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full text-gray-500 dark:text-slate-400 transition-colors" aria-label="Next month">
                                     <ChevronRight className="w-5 h-5" />
                                 </button>
                             </div>
@@ -299,12 +320,14 @@ const DateRangePicker = ({ onChange, initialRange, range: controlledRange, onRan
                         </span>
                         <div className="flex gap-2 sm:gap-3 justify-end">
                             <button
+                                type="button"
                                 onClick={handleCancel}
                                 className="px-6 py-2.5 text-sm font-bold text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-gray-900 dark:hover:text-white transition-all font-sans"
                             >
                                 Cancel
                             </button>
                             <button
+                                type="button"
                                 onClick={handleDone}
                                 className="px-8 py-2.5 text-sm font-bold text-white bg-accent rounded-lg shadow-accent transition-all transform active:scale-95 font-sans"
                             >

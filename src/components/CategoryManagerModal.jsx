@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Plus, Edit2, Trash2, Save, Ban } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 import DeleteConfirmModal from './common/DeleteConfirmModal';
+import { useModalA11y } from '../hooks/useModalA11y';
 
 const CategoryManagerModal = ({ categories, products, onClose, onAdd, onUpdate, onDelete }) => {
     const { addToast } = useInventory();
@@ -13,6 +14,13 @@ const CategoryManagerModal = ({ categories, products, onClose, onAdd, onUpdate, 
     // New delete confirmation state
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [categoryToDelete, setCategoryToDelete] = useState(null);
+    const dialogRef = useRef(null);
+
+    useModalA11y({
+        isOpen: true,
+        onClose,
+        containerRef: dialogRef
+    });
 
     // Calculate usage counts
     useEffect(() => {
@@ -57,12 +65,19 @@ const CategoryManagerModal = ({ categories, products, onClose, onAdd, onUpdate, 
 
     return (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[80vh]">
+            <div
+                ref={dialogRef}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="category-manager-title"
+                tabIndex={-1}
+                className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[80vh]"
+            >
 
                 {/* Header */}
                 <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
-                    <h3 className="text-lg font-bold text-slate-800 dark:text-white">Manage Categories</h3>
-                    <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+                    <h3 id="category-manager-title" className="text-lg font-bold text-slate-800 dark:text-white">Manage Categories</h3>
+                    <button type="button" onClick={onClose} aria-label="Close category manager" className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
@@ -79,8 +94,10 @@ const CategoryManagerModal = ({ categories, products, onClose, onAdd, onUpdate, 
                             onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
                         />
                         <button
+                            type="button"
                             onClick={handleAdd}
                             disabled={!newCategoryName.trim()}
+                            aria-label="Add category"
                             className="px-4 py-2 bg-accent disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl shadow-lg shadow-accent/20 transition-all flex items-center justify-center"
                         >
                             <Plus className="w-5 h-5" />
@@ -106,8 +123,8 @@ const CategoryManagerModal = ({ categories, products, onClose, onAdd, onUpdate, 
                                             if (e.key === 'Escape') setEditingCategory(null);
                                         }}
                                     />
-                                    <button onClick={handleUpdate} className="text-emerald-500 hover:bg-emerald-50 rounded p-1"><Save className="w-4 h-4" /></button>
-                                    <button onClick={() => setEditingCategory(null)} className="text-red-400 hover:bg-red-50 rounded p-1"><X className="w-4 h-4" /></button>
+                                    <button type="button" onClick={handleUpdate} aria-label={`Save ${cat} rename`} className="text-emerald-500 hover:bg-emerald-50 rounded p-1"><Save className="w-4 h-4" /></button>
+                                    <button type="button" onClick={() => setEditingCategory(null)} aria-label={`Cancel ${cat} rename`} className="text-red-400 hover:bg-red-50 rounded p-1"><X className="w-4 h-4" /></button>
                                 </div>
                             ) : (
                                 <>
@@ -119,14 +136,18 @@ const CategoryManagerModal = ({ categories, products, onClose, onAdd, onUpdate, 
                                     </div>
                                     <div className="flex gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
                                         <button
+                                            type="button"
                                             onClick={() => { setEditingCategory(cat); setEditName(cat); }}
+                                            aria-label={`Rename ${cat}`}
                                             className="p-2 text-slate-400 hover:text-accent hover:bg-accent/10 rounded-lg transition-colors"
                                             title="Rename"
                                         >
                                             <Edit2 className="w-4 h-4" />
                                         </button>
                                         <button
+                                            type="button"
                                             onClick={() => handleDelete(cat)}
+                                            aria-label={categoryCounts[cat] > 0 ? `Cannot delete ${cat}` : `Delete ${cat}`}
                                             className={`p-2 rounded-lg transition-colors ${categoryCounts[cat] > 0
                                                 ? 'text-slate-300 cursor-not-allowed'
                                                 : 'text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30'

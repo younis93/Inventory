@@ -13,7 +13,7 @@ import {
     Tag,
     Trash2
 } from 'lucide-react';
-import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
+import { getDownloadURL, ref, uploadBytesResumable } from 'firebase/storage';
 import Layout from '../components/Layout';
 import DateRangePicker from '../components/DateRangePicker';
 import FilterDropdown from '../components/FilterDropdown';
@@ -26,6 +26,7 @@ import { useExpenses, useInventory } from '../context/InventoryContext';
 import { useTranslation } from 'react-i18next';
 import { exportExpensesToCSV } from '../utils/CSVExportUtil';
 import { DayPicker } from 'react-day-picker';
+import { useModalA11y } from '../hooks/useModalA11y';
 
 const defaultForm = {
     date: format(new Date(), 'yyyy-MM-dd'),
@@ -56,6 +57,78 @@ const isValidUrl = (value) => {
     } catch {
         return false;
     }
+};
+
+const MAX_ATTACHMENT_BYTES = 6 * 1024 * 1024;
+const SUPPORTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+const SUPPORTED_ATTACHMENT_TYPES = [...SUPPORTED_IMAGE_TYPES, 'application/pdf'];
+
+const formatBytes = (bytes) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
+const readFileAsDataUrl = (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error || new Error('Failed to read file.'));
+    reader.readAsDataURL(file);
+});
+
+const loadImage = (src) => new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error('Failed to load image.'));
+    image.src = src;
+});
+
+const canvasToBlob = (canvas, type, quality) => new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error('Failed to compress image.'));
+    }, type, quality);
+});
+
+const compressImageIfNeeded = async (file) => {
+    if (file.size <= MAX_ATTACHMENT_BYTES) return file;
+    if (file.type === 'image/gif') {
+        throw new Error(`${file.name} is larger than 6MB.`);
+    }
+
+    const source = await readFileAsDataUrl(file);
+    const image = await loadImage(source);
+    const maxDimension = 1600;
+    const scale = Math.min(1, maxDimension / Math.max(image.width, image.height));
+    const width = Math.max(1, Math.round(image.width * scale));
+    const height = Math.max(1, Math.round(image.height * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext('2d');
+    context.drawImage(image, 0, 0, width, height);
+
+    let quality = 0.86;
+    let outputType = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+    let blob = await canvasToBlob(canvas, outputType, quality);
+
+    while (blob.size > MAX_ATTACHMENT_BYTES && quality > 0.35) {
+        quality -= 0.08;
+        outputType = 'image/jpeg';
+        blob = await canvasToBlob(canvas, outputType, quality);
+    }
+
+    if (blob.size > MAX_ATTACHMENT_BYTES) {
+        throw new Error(`${file.name} is larger than 6MB after compression.`);
+    }
+
+    const nextName = outputType === 'image/jpeg'
+        ? file.name.replace(/\.[^.]+$/, '.jpg')
+        : file.name;
+    return new File([blob], nextName, {
+        type: outputType,
+        lastModified: Date.now()
+    });
 };
 
 const Expenses = () => {
@@ -103,8 +176,21 @@ const Expenses = () => {
     const [editingExpenseId, setEditingExpenseId] = useState(null);
     const [form, setForm] = useState(defaultForm);
     const [newFiles, setNewFiles] = useState([]);
+    const [uploadQueue, setUploadQueue] = useState([]);
+    const [uploadError, setUploadError] = useState('');
+    const [dragActive, setDragActive] = useState(false);
     const [saving, setSaving] = useState(false);
     const datePickerRef = useRef(null);
+    const expenseDialogRef = useRef(null);
+
+    useModalA11y({
+        isOpen: isModalOpen,
+        onClose: () => {
+            setIsDateOpen(false);
+            setIsModalOpen(false);
+        },
+        containerRef: expenseDialogRef
+    });
 
     useEffect(() => {
         if (!loading && expenses.length > 0 && !hasInitializedDate) {
@@ -128,6 +214,104 @@ const Expenses = () => {
         document.addEventListener('mousedown', onOutside);
         return () => document.removeEventListener('mousedown', onOutside);
     }, [isDateOpen]);
+
+    const formErrors = useMemo(() => {
+        const errors = {};
+        if (!form.date) errors.date = 'Date is required.';
+        if (!String(form.type || '').trim()) errors.type = 'Type is required.';
+
+        const amount = Number(form.amountIQD);
+        if (!Number.isFinite(amount) || amount <= 0) {
+            errors.amountIQD = 'Amount must be greater than 0.';
+        } else if (amount > 1000000000) {
+            errors.amountIQD = 'Amount is too large.';
+        }
+
+        const link = String(form.link || '').trim();
+        if (!link) {
+            errors.link = 'Link URL is required.';
+        } else if (!isValidUrl(link)) {
+            errors.link = 'Please enter a valid URL (http/https).';
+        }
+        return errors;
+    }, [form.amountIQD, form.date, form.link, form.type]);
+    const hasFormErrors = Object.keys(formErrors).length > 0;
+
+    const setQueueItem = (id, next) => {
+        setUploadQueue((prev) => prev.map((item) => (item.id === id ? { ...item, ...next } : item)));
+    };
+
+    const prepareFiles = async (files) => {
+        if (!files.length) return;
+
+        setUploadError('');
+        const queueItems = files.map((rawFile) => ({
+            id: `${rawFile.name}-${rawFile.size}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            name: rawFile.name,
+            size: rawFile.size,
+            progress: 0,
+            status: 'queued',
+            message: ''
+        }));
+        setUploadQueue((prev) => [...prev, ...queueItems]);
+
+        const prepared = [];
+
+        for (const [index, rawFile] of files.entries()) {
+            const id = queueItems[index].id;
+
+            try {
+                if (!SUPPORTED_ATTACHMENT_TYPES.includes(rawFile.type)) {
+                    throw new Error('Only JPG, PNG, WEBP, GIF, or PDF files are allowed.');
+                }
+                if (rawFile.type === 'application/pdf' && rawFile.size > MAX_ATTACHMENT_BYTES) {
+                    throw new Error(`${rawFile.name} is larger than 6MB.`);
+                }
+
+                setQueueItem(id, { status: 'processing', progress: 20 });
+                const file = rawFile.type.startsWith('image/')
+                    ? await compressImageIfNeeded(rawFile)
+                    : rawFile;
+                if (file.size > MAX_ATTACHMENT_BYTES) {
+                    throw new Error(`${file.name} is larger than 6MB.`);
+                }
+
+                prepared.push({
+                    id,
+                    file,
+                    name: file.name,
+                    size: file.size
+                });
+                setQueueItem(id, { status: 'ready', progress: 35, name: file.name, size: file.size });
+            } catch (error) {
+                const message = error?.message || 'Failed to process file.';
+                setUploadError(message);
+                setQueueItem(id, { status: 'error', message, progress: 100 });
+            }
+        }
+
+        if (prepared.length) {
+            setNewFiles((prev) => [...prev, ...prepared]);
+        }
+    };
+
+    const handleFileInputChange = async (event) => {
+        const files = Array.from(event.target.files || []);
+        await prepareFiles(files);
+        event.target.value = '';
+    };
+
+    const handleFileDrop = async (event) => {
+        event.preventDefault();
+        setDragActive(false);
+        const files = Array.from(event.dataTransfer.files || []);
+        await prepareFiles(files);
+    };
+
+    const removeQueuedFile = (id) => {
+        setUploadQueue((prev) => prev.filter((item) => item.id !== id));
+        setNewFiles((prev) => prev.filter((item) => item.id !== id));
+    };
 
     const expensesInDateRange = useMemo(() => {
         return expenses.filter((expense) => {
@@ -216,6 +400,8 @@ const Expenses = () => {
     const resetForm = () => {
         setForm(defaultForm);
         setNewFiles([]);
+        setUploadQueue([]);
+        setUploadError('');
         setEditingExpenseId(null);
     };
 
@@ -238,6 +424,8 @@ const Expenses = () => {
             attachments: Array.isArray(expense.attachments) ? expense.attachments : []
         });
         setNewFiles([]);
+        setUploadQueue([]);
+        setUploadError('');
         setIsModalOpen(true);
     };
 
@@ -260,16 +448,49 @@ const Expenses = () => {
         const uid = authUser?.uid || 'anonymous';
         const uploads = [];
 
-        for (const file of files) {
-            const validMime = file.type.startsWith('image/') || file.type === 'application/pdf';
-            if (!validMime) {
-                throw new Error('Only images and PDFs are allowed.');
+        for (const fileEntry of files) {
+            const file = fileEntry.file;
+            const queueId = fileEntry.id;
+            if (!file || !SUPPORTED_ATTACHMENT_TYPES.includes(file.type)) {
+                setQueueItem(queueId, { status: 'error', message: 'Unsupported file type.', progress: 100 });
+                throw new Error('Only JPG, PNG, WEBP, GIF, or PDF files are allowed.');
             }
+            if (file.size > MAX_ATTACHMENT_BYTES) {
+                setQueueItem(queueId, { status: 'error', message: 'File exceeds 6MB.', progress: 100 });
+                throw new Error(`${file.name} is larger than 6MB.`);
+            }
+
+            setQueueItem(queueId, { status: 'uploading', progress: 40, message: '' });
             const safeName = file.name.replace(/[^\w.\-]/g, '_');
             const path = `expenses/${uid}/${Date.now()}_${safeName}`;
             const storageRef = ref(storage, path);
-            await uploadBytes(storageRef, file, { contentType: file.type });
-            const url = await getDownloadURL(storageRef);
+            const uploadTask = uploadBytesResumable(storageRef, file, { contentType: file.type });
+
+            const url = await new Promise((resolve, reject) => {
+                uploadTask.on(
+                    'state_changed',
+                    (snapshot) => {
+                        const ratio = snapshot.totalBytes > 0 ? snapshot.bytesTransferred / snapshot.totalBytes : 0;
+                        const progress = 40 + Math.round(ratio * 60);
+                        setQueueItem(queueId, { progress: Math.min(100, progress) });
+                    },
+                    (error) => {
+                        setQueueItem(queueId, { status: 'error', message: error?.message || 'Upload failed.', progress: 100 });
+                        reject(error);
+                    },
+                    async () => {
+                        try {
+                            const uploadedUrl = await getDownloadURL(uploadTask.snapshot.ref);
+                            setQueueItem(queueId, { status: 'done', progress: 100 });
+                            resolve(uploadedUrl);
+                        } catch (error) {
+                            setQueueItem(queueId, { status: 'error', message: 'Failed to finalize upload.', progress: 100 });
+                            reject(error);
+                        }
+                    }
+                );
+            });
+
             uploads.push({
                 name: file.name,
                 url,
@@ -283,22 +504,19 @@ const Expenses = () => {
 
     const handleSaveExpense = async (e) => {
         e.preventDefault();
-        if (!form.date) {
-            addToast('Date is required', 'error');
+        if (hasFormErrors) {
+            addToast(Object.values(formErrors)[0], 'error');
             return;
         }
-        const amount = Number(form.amountIQD);
-        if (!Number.isFinite(amount) || amount <= 0) {
-            addToast('Amount must be greater than 0', 'error');
-            return;
-        }
-        if (!isValidUrl(form.link.trim())) {
-            addToast('Please enter a valid URL (http/https)', 'error');
+        if (uploadQueue.some((item) => item.status === 'error')) {
+            addToast('Please remove failed attachments and re-upload.', 'error');
             return;
         }
 
+        setUploadError('');
         setSaving(true);
         try {
+            const amount = Number(form.amountIQD);
             const uploaded = await uploadNewFiles(newFiles);
             const payload = {
                 date: new Date(`${form.date}T12:00:00`).toISOString(),
@@ -320,6 +538,7 @@ const Expenses = () => {
             setIsModalOpen(false);
             resetForm();
         } catch (error) {
+            setUploadError(error?.message || 'Failed to upload attachments.');
             addToast(error?.message || 'Failed to save expense', 'error');
         } finally {
             setSaving(false);
@@ -606,14 +825,26 @@ const Expenses = () => {
 
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
-                    <div className="w-full max-w-xl bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-700">
+                    <div
+                        ref={expenseDialogRef}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="expense-modal-title"
+                        tabIndex={-1}
+                        className="w-full max-w-xl bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-700"
+                    >
                         <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
-                            <h3 className="text-xl font-black text-slate-800 dark:text-white">
+                            <h3 id="expense-modal-title" className="text-xl font-black text-slate-800 dark:text-white">
                                 {editingExpenseId ? t('expenses.editExpense') : t('expenses.newExpense')}
                             </h3>
-                            <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">X</button>
+                            <button type="button" aria-label={t('common.close') || 'Close'} onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">X</button>
                         </div>
                         <form onSubmit={handleSaveExpense} className="p-6 space-y-4">
+                            {(hasFormErrors || uploadError) && (
+                                <div className="p-3 rounded-xl border border-red-200 bg-red-50 text-red-600 text-xs font-semibold">
+                                    {uploadError || Object.values(formErrors)[0]}
+                                </div>
+                            )}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="space-y-2" ref={datePickerRef}>
                                     <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Date</span>
@@ -621,7 +852,9 @@ const Expenses = () => {
                                         <button
                                             type="button"
                                             onClick={() => setIsDateOpen((prev) => !prev)}
-                                            className="w-full h-12 px-3 rounded-2xl border-2 border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-bold flex items-center justify-between gap-2"
+                                            className={`w-full h-12 px-3 rounded-2xl border-2 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-bold flex items-center justify-between gap-2 ${
+                                                formErrors.date ? 'border-red-500 ring-4 ring-red-500/10 text-red-500' : 'border-slate-100 dark:border-slate-800'
+                                            }`}
                                         >
                                             <span className="inline-flex items-center gap-2 truncate">
                                                 <CalendarDays className="w-4 h-4 text-slate-400" />
@@ -688,6 +921,7 @@ const Expenses = () => {
                                         )}
                                         <input type="hidden" value={form.date} required readOnly />
                                     </div>
+                                    {formErrors.date && <p className="text-[10px] font-semibold text-red-500">{formErrors.date}</p>}
                                 </div>
 
                                 <div className="space-y-2">
@@ -700,8 +934,24 @@ const Expenses = () => {
                                         icon={Tag}
                                         showSearch={false}
                                     />
+                                    {formErrors.type && <p className="text-[10px] font-semibold text-red-500">{formErrors.type}</p>}
                                 </div>
-                                <input type="number" min="1" step="1" value={form.amountIQD} onChange={(e) => setForm((prev) => ({ ...prev, amountIQD: e.target.value }))} className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900" placeholder="Amount in IQD" required />
+                                <div className="space-y-1">
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        step="1"
+                                        value={form.amountIQD}
+                                        onChange={(e) => setForm((prev) => ({ ...prev, amountIQD: e.target.value }))}
+                                        aria-invalid={Boolean(formErrors.amountIQD)}
+                                        className={`w-full px-3 py-2.5 rounded-xl border bg-white dark:bg-slate-900 ${
+                                            formErrors.amountIQD ? 'border-red-500 text-red-500 ring-4 ring-red-500/10' : 'border-slate-200 dark:border-slate-700'
+                                        }`}
+                                        placeholder="Amount in IQD"
+                                        required
+                                    />
+                                    {formErrors.amountIQD && <p className="text-[10px] font-semibold text-red-500">{formErrors.amountIQD}</p>}
+                                </div>
                                 <input type="text" value={form.campaign} onChange={(e) => setForm((prev) => ({ ...prev, campaign: e.target.value }))} className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900" placeholder="Campaign" />
                                 <div className="space-y-2">
                                     <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Platform</span>
@@ -719,23 +969,86 @@ const Expenses = () => {
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">URL</span>
+                                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Link URL</span>
                                     <div className="relative">
                                         <Link2 className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                        <input type="url" value={form.link} onChange={(e) => setForm((prev) => ({ ...prev, link: e.target.value }))} className="w-full ps-9 pe-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900" placeholder="https://..." required />
+                                        <input
+                                            type="url"
+                                            value={form.link}
+                                            onChange={(e) => setForm((prev) => ({ ...prev, link: e.target.value }))}
+                                            aria-invalid={Boolean(formErrors.link)}
+                                            className={`w-full ps-9 pe-3 py-2.5 rounded-xl border bg-white dark:bg-slate-900 ${
+                                                formErrors.link ? 'border-red-500 text-red-500 ring-4 ring-red-500/10' : 'border-slate-200 dark:border-slate-700'
+                                            }`}
+                                            placeholder="https://..."
+                                            required
+                                        />
                                     </div>
+                                    {formErrors.link && <p className="text-[10px] font-semibold text-red-500">{formErrors.link}</p>}
                                 </div>
                             </div>
                             <input type="text" value={form.tags} onChange={(e) => setForm((prev) => ({ ...prev, tags: e.target.value }))} className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900" placeholder="Tags separated by comma" />
                             <div className="space-y-2">
                                 <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">Choose Files</label>
-                                <label className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 cursor-pointer">
+                                <label
+                                    onDragEnter={(event) => {
+                                        event.preventDefault();
+                                        setDragActive(true);
+                                    }}
+                                    onDragOver={(event) => {
+                                        event.preventDefault();
+                                        setDragActive(true);
+                                    }}
+                                    onDragLeave={(event) => {
+                                        event.preventDefault();
+                                        if (event.currentTarget.contains(event.relatedTarget)) return;
+                                        setDragActive(false);
+                                    }}
+                                    onDrop={handleFileDrop}
+                                    className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl border cursor-pointer transition-colors ${
+                                        dragActive
+                                            ? 'border-accent bg-accent/5'
+                                            : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900'
+                                    }`}
+                                >
                                     <span className="text-sm text-slate-600 dark:text-slate-300 truncate">
-                                        {newFiles.length > 0 ? `${newFiles.length} file(s) selected` : 'Upload receipts or invoices (image/PDF)'}
+                                        {newFiles.length > 0 ? `${newFiles.length} file(s) ready` : 'Upload receipts or invoices (image/PDF)'}
                                     </span>
                                     <span className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-xs font-bold text-slate-600 dark:text-slate-200">Browse</span>
-                                    <input type="file" accept="image/*,application/pdf" multiple onChange={(e) => setNewFiles(Array.from(e.target.files || []))} className="hidden" />
+                                    <input type="file" accept={SUPPORTED_ATTACHMENT_TYPES.join(',')} multiple onChange={handleFileInputChange} className="hidden" />
                                 </label>
+                                <p className="text-[11px] text-slate-500 dark:text-slate-400">Drag & drop supported. Max 6MB per file. Large images are compressed automatically.</p>
+
+                                {uploadQueue.length > 0 && (
+                                    <div className="space-y-2 max-h-32 overflow-y-auto pe-1 custom-scrollbar">
+                                        {uploadQueue.map((item) => (
+                                            <div key={item.id} className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-2">
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate">{item.name}</span>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-[10px] text-slate-400">{formatBytes(item.size)}</span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeQueuedFile(item.id)}
+                                                            className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-red-500"
+                                                        >
+                                                            x
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <div className="mt-1 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                                                    <div
+                                                        className={`h-full transition-all ${item.status === 'error' ? 'bg-red-500' : 'bg-accent'}`}
+                                                        style={{ width: `${item.progress || 0}%` }}
+                                                    />
+                                                </div>
+                                                {item.message && (
+                                                    <p className="mt-1 text-[10px] font-semibold text-red-500">{item.message}</p>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                                 {form.attachments.length > 0 && (
                                     <div className="flex flex-wrap gap-2">
                                         {form.attachments.map((attachment, idx) => (
@@ -750,7 +1063,7 @@ const Expenses = () => {
                             <textarea rows={4} value={form.notes} onChange={(e) => setForm((prev) => ({ ...prev, notes: e.target.value }))} className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 resize-none" placeholder="Notes" />
                             <div className="pt-2 flex justify-end gap-3">
                                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-bold">Cancel</button>
-                                <button type="submit" disabled={saving} className="px-5 py-2.5 rounded-xl text-white font-bold bg-accent shadow-accent disabled:opacity-60">{saving ? 'Saving...' : (editingExpenseId ? t('expenses.updateExpense') : t('expenses.createExpense'))}</button>
+                                <button type="submit" disabled={saving || hasFormErrors || uploadQueue.some((item) => item.status === 'error')} className="px-5 py-2.5 rounded-xl text-white font-bold bg-accent shadow-accent disabled:opacity-60">{saving ? 'Saving...' : (editingExpenseId ? t('expenses.updateExpense') : t('expenses.createExpense'))}</button>
                             </div>
                         </form>
                     </div>

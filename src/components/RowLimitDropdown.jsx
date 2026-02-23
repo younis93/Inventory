@@ -10,6 +10,7 @@ const RowLimitDropdown = ({ limit, onChange }) => {
     const [isCustom, setIsCustom] = useState(![50, 100, 500, 1000].includes(limit));
     const containerRef = useRef(null);
     const inputRef = useRef(null);
+    const triggerRef = useRef(null);
 
     const options = [50, 100, 500, 1000];
 
@@ -22,6 +23,19 @@ const RowLimitDropdown = ({ limit, onChange }) => {
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    useEffect(() => {
+        if (!isOpen) return undefined;
+        const onKeyDown = (event) => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                setIsOpen(false);
+                triggerRef.current?.focus();
+            }
+        };
+        document.addEventListener('keydown', onKeyDown);
+        return () => document.removeEventListener('keydown', onKeyDown);
+    }, [isOpen]);
 
     const handleSelect = (val) => {
         if (val === 'custom') {
@@ -44,7 +58,21 @@ const RowLimitDropdown = ({ limit, onChange }) => {
     return (
         <div className="relative" ref={containerRef}>
             <button
+                ref={triggerRef}
+                type="button"
                 onClick={() => setIsOpen(!isOpen)}
+                onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        setIsOpen((prev) => !prev);
+                    } else if (event.key === 'ArrowDown') {
+                        event.preventDefault();
+                        setIsOpen(true);
+                    }
+                }}
+                aria-label={t('common.showRows') || 'Rows'}
+                aria-haspopup="listbox"
+                aria-expanded={isOpen}
                 className={`shrink-0 flex items-center gap-1.5 px-3 h-[44px] rounded-2xl border-2 transition-all font-bold text-[11px] outline-none ${isOpen
                     ? 'bg-accent/10 border-accent/30 text-accent shadow-[0_0_15px_-3px_rgba(0,0,0,0.1)]'
                     : (['liquid', 'default_glass'].includes(appearance?.theme)
@@ -61,11 +89,14 @@ const RowLimitDropdown = ({ limit, onChange }) => {
 
             {isOpen && (
                 <div className="absolute top-full start-0 sm:start-auto sm:end-0 mt-2 z-50 w-48 max-w-[calc(100vw-1rem)] animate-in fade-in zoom-in-95 duration-200">
-                    <div className={`bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 overflow-hidden py-2 ${['liquid', 'default_glass'].includes(appearance?.theme) ? 'glass-panel' : ''}`}>
+                    <div role="listbox" className={`bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 overflow-hidden py-2 ${['liquid', 'default_glass'].includes(appearance?.theme) ? 'glass-panel' : ''}`}>
                         {options.map((opt) => (
                             <button
                                 key={opt}
+                                type="button"
                                 onClick={() => handleSelect(opt)}
+                                role="option"
+                                aria-selected={limit === opt && !isCustom}
                                 className={`w-full text-start px-4 py-2 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors ${limit === opt && !isCustom ? 'text-accent bg-accent/5' : 'text-slate-600 dark:text-slate-300'}`}
                             >
                                 {opt}
@@ -73,7 +104,9 @@ const RowLimitDropdown = ({ limit, onChange }) => {
                         ))}
                         <div className="px-2 pt-2 mt-2 border-t border-slate-100 dark:border-slate-700">
                             <button
+                                type="button"
                                 onClick={() => handleSelect('custom')}
+                                aria-label={t('common.custom') || 'Custom rows'}
                                 className={`w-full text-start px-2 py-1.5 text-xs font-black uppercase tracking-widest ${isCustom ? 'text-accent' : 'text-slate-400'}`}
                             >
                                 {t('common.custom') || 'Custom'}

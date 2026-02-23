@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { X, Crop, RotateCcw, Save, ZoomIn, ZoomOut, Check, Image as ImageIcon } from 'lucide-react';
+import { useModalA11y } from '../hooks/useModalA11y';
 
 const ImageCropperModal = ({ image, onCrop, onClose, aspect = 1 }) => {
     const [zoom, setZoom] = useState(1);
@@ -16,6 +17,13 @@ const ImageCropperModal = ({ image, onCrop, onClose, aspect = 1 }) => {
 
     const imageRef = useRef(null);
     const containerRef = useRef(null);
+    const dialogRef = useRef(null);
+
+    useModalA11y({
+        isOpen: Boolean(image),
+        onClose,
+        containerRef: dialogRef
+    });
 
     // Reset state when image changes
     useEffect(() => {
@@ -113,16 +121,23 @@ const ImageCropperModal = ({ image, onCrop, onClose, aspect = 1 }) => {
 
     return (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/95 backdrop-blur-md p-4 animate-in fade-in duration-300">
-            <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-5xl h-[85vh] flex flex-col overflow-hidden border border-slate-200 dark:border-slate-800">
+            <div
+                ref={dialogRef}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="image-cropper-title"
+                tabIndex={-1}
+                className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-5xl h-[85vh] flex flex-col overflow-hidden border border-slate-200 dark:border-slate-800"
+            >
                 {/* Header */}
                 <div className="px-8 py-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900 z-20">
                     <div>
-                        <h3 className="text-xl font-black text-slate-800 dark:text-white flex items-center gap-2">
+                        <h3 id="image-cropper-title" className="text-xl font-black text-slate-800 dark:text-white flex items-center gap-2">
                             <ImageIcon className="w-6 h-6 text-accent" /> Editor Studio
                         </h3>
                         <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-wider">Customize your brand identity</p>
                     </div>
-                    <button onClick={onClose} className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                    <button type="button" onClick={onClose} aria-label="Close image editor" className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                         <X className="w-6 h-6" />
                     </button>
                 </div>
@@ -197,7 +212,7 @@ const ImageCropperModal = ({ image, onCrop, onClose, aspect = 1 }) => {
                                 </div>
                                 <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700">
                                     <div className="flex items-center gap-3">
-                                        <button onClick={() => setZoom(z => Math.max(0.1, z - 0.1))} className="p-1 hover:text-accent transition-colors"><ZoomOut className="w-5 h-5 text-slate-400" /></button>
+                                        <button type="button" onClick={() => setZoom(z => Math.max(0.1, z - 0.1))} aria-label="Zoom out" className="p-1 hover:text-accent transition-colors"><ZoomOut className="w-5 h-5 text-slate-400" /></button>
                                         <input
                                             type="range"
                                             min="0.1"
@@ -207,7 +222,7 @@ const ImageCropperModal = ({ image, onCrop, onClose, aspect = 1 }) => {
                                             onChange={(e) => setZoom(parseFloat(e.target.value))}
                                             className="flex-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-accent"
                                         />
-                                        <button onClick={() => setZoom(z => Math.min(3, z + 0.1))} className="p-1 hover:text-accent transition-colors"><ZoomIn className="w-5 h-5 text-slate-400" /></button>
+                                        <button type="button" onClick={() => setZoom(z => Math.min(3, z + 0.1))} aria-label="Zoom in" className="p-1 hover:text-accent transition-colors"><ZoomIn className="w-5 h-5 text-slate-400" /></button>
                                     </div>
                                 </div>
                             </div>
@@ -217,14 +232,18 @@ const ImageCropperModal = ({ image, onCrop, onClose, aspect = 1 }) => {
                                 <span className="text-sm font-bold text-slate-700 dark:text-slate-300">Orientation</span>
                                 <div className="grid grid-cols-2 gap-3">
                                     <button
+                                        type="button"
                                         onClick={() => setRotation(prev => prev - 90)}
+                                        aria-label="Rotate left"
                                         className="flex items-center gap-2 px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-accent hover:text-accent transition-all group"
                                     >
                                         <RotateCcw className="w-4 h-4 text-slate-500 group-hover:text-accent transition-colors" />
                                         <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400 group-hover:text-accent">-90°</span>
                                     </button>
                                     <button
+                                        type="button"
                                         onClick={() => setRotation(prev => prev + 90)}
+                                        aria-label="Rotate right"
                                         className="flex items-center gap-2 px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-accent hover:text-accent transition-all group"
                                     >
                                         <RotateCcw className="w-4 h-4 text-slate-500 group-hover:text-accent transition-colors scale-x-[-1]" />
@@ -240,14 +259,18 @@ const ImageCropperModal = ({ image, onCrop, onClose, aspect = 1 }) => {
                         {/* Footer Actions */}
                         <div className="pt-6 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-3">
                             <button
+                                type="button"
                                 onClick={handleSave}
+                                aria-label="Apply image changes"
                                 className="w-full py-4 bg-accent text-white font-black rounded-2xl shadow-accent shadow-lg active:scale-[0.98] transition-all flex items-center justify-center gap-3 hover:brightness-110"
                             >
                                 <Check className="w-5 h-5" />
                                 Apply Changes
                             </button>
                             <button
+                                type="button"
                                 onClick={onClose}
+                                aria-label="Cancel image editing"
                                 className="w-full py-3 text-slate-500 hover:text-slate-800 dark:hover:text-white font-bold transition-colors"
                             >
                                 Cancel

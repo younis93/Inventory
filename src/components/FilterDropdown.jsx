@@ -7,6 +7,7 @@ const FilterDropdown = ({ title, options, selectedValues, onChange, icon: Icon, 
     const { appearance } = useInventory();
     const [isOpen, setIsOpen] = useState(false);
     const containerRef = useRef(null);
+    const triggerRef = useRef(null);
 
     // Close on click outside
     useEffect(() => {
@@ -21,6 +22,21 @@ const FilterDropdown = ({ title, options, selectedValues, onChange, icon: Icon, 
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, []);
+
+    useEffect(() => {
+        if (!isOpen) return undefined;
+
+        const onKeyDown = (event) => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                setIsOpen(false);
+                triggerRef.current?.focus();
+            }
+        };
+
+        document.addEventListener('keydown', onKeyDown);
+        return () => document.removeEventListener('keydown', onKeyDown);
+    }, [isOpen]);
 
     const handleClear = () => {
         onChange([]);
@@ -37,8 +53,21 @@ const FilterDropdown = ({ title, options, selectedValues, onChange, icon: Icon, 
     return (
         <div className="relative" ref={containerRef}>
             <button
+                ref={triggerRef}
+                type="button"
                 onClick={() => setIsOpen(!isOpen)}
+                onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        setIsOpen((prev) => !prev);
+                    } else if (event.key === 'ArrowDown') {
+                        event.preventDefault();
+                        setIsOpen(true);
+                    }
+                }}
                 aria-label={ariaLabel || title || 'Filter'}
+                aria-haspopup="listbox"
+                aria-expanded={isOpen}
                 className={`flex items-center gap-1.5 px-3 h-[44px] rounded-2xl border-2 transition-all font-bold text-[11px] outline-none ${isOpen || hasSelection
                     ? 'bg-accent/10 border-accent/30 dark:border-slate-500 text-accent shadow-[0_0_15px_-3px_rgba(0,0,0,0.1)]'
                     : (['liquid', 'default_glass'].includes(appearance?.theme)

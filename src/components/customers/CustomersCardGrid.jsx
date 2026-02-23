@@ -55,10 +55,10 @@ const CustomersCardGrid = ({
                             </div>
                         </div>
                         <div className="flex gap-2">
-                            <button onClick={() => onOpenHistory(customer)} className="p-2 text-slate-400 hover:text-[var(--brand-color)] bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 transition-colors" title="Order History">
+                            <button type="button" aria-label="Open customer order history" onClick={() => onOpenHistory(customer)} className="p-2 text-slate-400 hover:text-[var(--brand-color)] bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 transition-colors" title="Order History">
                                 <ShoppingBag className="w-4 h-4" />
                             </button>
-                            <button onClick={() => onOpenEdit(customer)} className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 transition-colors" title="Edit Profile">
+                            <button type="button" aria-label="Edit customer profile" onClick={() => onOpenEdit(customer)} className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 transition-colors" title="Edit Profile">
                                 <Edit className="w-4 h-4" />
                             </button>
                         </div>

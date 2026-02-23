@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Ban, Edit2, Plus, Save, Trash2, X } from 'lucide-react';
 import DeleteConfirmModal from './common/DeleteConfirmModal';
 import { useInventory } from '../context/InventoryContext';
+import { useModalA11y } from '../hooks/useModalA11y';
 
 const DEFAULT_TYPES = ['Social Media Post', 'Social Media Reels', 'Other'];
 
@@ -13,6 +14,13 @@ const ExpenseTypeManagerModal = ({ expenseTypes, expenses, onClose, onSaveTypes 
     const [typeCounts, setTypeCounts] = useState({});
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [typeToDelete, setTypeToDelete] = useState(null);
+    const dialogRef = useRef(null);
+
+    useModalA11y({
+        isOpen: true,
+        onClose,
+        containerRef: dialogRef
+    });
 
     useEffect(() => {
         const counts = {};
@@ -78,10 +86,17 @@ const ExpenseTypeManagerModal = ({ expenseTypes, expenses, onClose, onSaveTypes 
 
     return (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[80vh]">
+            <div
+                ref={dialogRef}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="expense-type-manager-title"
+                tabIndex={-1}
+                className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[80vh]"
+            >
                 <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
-                    <h3 className="text-lg font-bold text-slate-800 dark:text-white">Manage Expense Types</h3>
-                    <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+                    <h3 id="expense-type-manager-title" className="text-lg font-bold text-slate-800 dark:text-white">Manage Expense Types</h3>
+                    <button type="button" onClick={onClose} aria-label="Close expense type manager" className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
@@ -97,8 +112,10 @@ const ExpenseTypeManagerModal = ({ expenseTypes, expenses, onClose, onSaveTypes 
                             onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
                         />
                         <button
+                            type="button"
                             onClick={handleAdd}
                             disabled={!newTypeName.trim()}
+                            aria-label="Add expense type"
                             className="px-4 py-2 bg-accent disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl shadow-lg shadow-accent/20 transition-all flex items-center justify-center"
                         >
                             <Plus className="w-5 h-5" />
@@ -125,8 +142,8 @@ const ExpenseTypeManagerModal = ({ expenseTypes, expenses, onClose, onSaveTypes 
                                             }
                                         }}
                                     />
-                                    <button onClick={handleUpdate} className="text-emerald-500 hover:bg-emerald-50 rounded p-1"><Save className="w-4 h-4" /></button>
-                                    <button onClick={() => { setEditingType(null); setEditName(''); }} className="text-red-400 hover:bg-red-50 rounded p-1"><X className="w-4 h-4" /></button>
+                                    <button type="button" onClick={handleUpdate} aria-label={`Save ${type} rename`} className="text-emerald-500 hover:bg-emerald-50 rounded p-1"><Save className="w-4 h-4" /></button>
+                                    <button type="button" onClick={() => { setEditingType(null); setEditName(''); }} aria-label={`Cancel ${type} rename`} className="text-red-400 hover:bg-red-50 rounded p-1"><X className="w-4 h-4" /></button>
                                 </div>
                             ) : (
                                 <>
@@ -138,14 +155,18 @@ const ExpenseTypeManagerModal = ({ expenseTypes, expenses, onClose, onSaveTypes 
                                     </div>
                                     <div className="flex gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
                                         <button
+                                            type="button"
                                             onClick={() => { setEditingType(type); setEditName(type); }}
+                                            aria-label={`Rename ${type}`}
                                             className="p-2 text-slate-400 hover:text-accent hover:bg-accent/10 rounded-lg transition-colors"
                                             title="Rename"
                                         >
                                             <Edit2 className="w-4 h-4" />
                                         </button>
                                         <button
+                                            type="button"
                                             onClick={() => handleDelete(type)}
+                                            aria-label={DEFAULT_TYPES.includes(type) ? `Cannot delete ${type}` : `Delete ${type}`}
                                             className={`p-2 rounded-lg transition-colors ${DEFAULT_TYPES.includes(type) || (typeCounts[type] || 0) > 0
                                                 ? 'text-slate-300 cursor-not-allowed'
                                                 : 'text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30'

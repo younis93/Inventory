@@ -71,20 +71,20 @@ const OrdersListCard = ({
                                         </div>
 
                                         <div className="flex items-center justify-end gap-1 mt-3 pt-3 border-t border-slate-50 dark:border-slate-700/50">
-                                            <button onClick={() => onViewOrder(order)} className="p-2 text-slate-400 hover:text-[var(--brand-color)] hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded-lg transition-all" title="View Order">
+                                            <button type="button" aria-label="View order details" onClick={() => onViewOrder(order)} className="p-2 text-slate-400 hover:text-[var(--brand-color)] hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded-lg transition-all" title="View Order">
                                                 <Eye className="w-5 h-5" />
                                             </button>
-                                            <button onClick={() => onEditOrder(order)} className="p-2 text-slate-400 hover:text-[var(--brand-color)] hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded-lg transition-all" title="Edit Order">
+                                            <button type="button" aria-label="Edit order" onClick={() => onEditOrder(order)} className="p-2 text-slate-400 hover:text-[var(--brand-color)] hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded-lg transition-all" title="Edit Order">
                                                 <Edit className="w-5 h-5" />
                                             </button>
-                                            <button onClick={() => onPDFInvoice(order)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all" title="PDF Invoice">
+                                            <button type="button" aria-label="Download PDF invoice" onClick={() => onPDFInvoice(order)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all" title="PDF Invoice">
                                                 <Download className="w-5 h-5" />
                                             </button>
-                                            <button onClick={() => onThermalPrint(order)} className="p-2 text-slate-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-all" title="Thermal Print">
+                                            <button type="button" aria-label="Print thermal receipt" onClick={() => onThermalPrint(order)} className="p-2 text-slate-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-all" title="Thermal Print">
                                                 <Printer className="w-5 h-5" />
                                             </button>
                                             {canDeleteOrder(order) && (
-                                                <button onClick={() => onRequestDelete(order)} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-all" title="Delete Order">
+                                                <button type="button" aria-label="Delete order" onClick={() => onRequestDelete(order)} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-all" title="Delete Order">
                                                     <Trash2 className="w-5 h-5" />
                                                 </button>
                                             )}

@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Plus, Upload, Download, Save, ZoomIn, ChevronLeft, ChevronRight, Image as ImageIcon, Trash2, Tag } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 import { useTranslation } from 'react-i18next';
 import DeleteConfirmModal from './common/DeleteConfirmModal';
 import ImageWithFallback from './common/ImageWithFallback';
+import { useModalA11y } from '../hooks/useModalA11y';
 
 const ImageSlider = ({ images, currentIndex, onChange, onDelete, onDownload }) => {
     const { t } = useTranslation();
@@ -50,14 +51,18 @@ const ImageSlider = ({ images, currentIndex, onChange, onDelete, onDownload }) =
                 {/* Overlay Controls */}
                 <div className={`absolute top-4 ${isRTL ? 'right-4' : 'left-4'} flex gap-2 z-30`}>
                     <button
+                        type="button"
                         onClick={onDownload}
+                        aria-label={t('common.download')}
                         className="p-2 bg-white/90 dark:bg-slate-800/90 hover:bg-white dark:hover:bg-slate-700 text-slate-800 dark:text-white rounded-lg backdrop-blur transition-all shadow-md border border-slate-200/50 dark:border-slate-700/50"
                         title={t('common.download')}
                     >
                         <Download className="w-4 h-4" />
                     </button>
                     <button
+                        type="button"
                         onClick={() => onDelete(safeIndex)}
+                        aria-label={t('common.delete')}
                         className="p-2 bg-red-500/90 hover:bg-red-600 text-white rounded-lg backdrop-blur transition-all shadow-md border border-red-400/20"
                         title={t('common.delete')}
                     >
@@ -69,13 +74,17 @@ const ImageSlider = ({ images, currentIndex, onChange, onDelete, onDownload }) =
                 {images.length > 1 && (
                     <>
                         <button
+                            type="button"
                             onClick={() => onChange((safeIndex - 1 + images.length) % images.length)}
+                            aria-label={t('common.previous') || 'Previous'}
                             className={`absolute ${isRTL ? 'right-4' : 'left-4'} top-[55%] md:top-1/2 -translate-y-1/2 p-2.5 md:p-3 bg-slate-900/40 hover:bg-slate-900/60 text-white rounded-full backdrop-blur-md transition-all z-20 shadow-lg border border-white/10`}
                         >
                             {isRTL ? <ChevronRight className="w-5 h-5 md:w-6 md:h-6" /> : <ChevronLeft className="w-5 h-5 md:w-6 md:h-6" />}
                         </button>
                         <button
+                            type="button"
                             onClick={() => onChange((safeIndex + 1) % images.length)}
+                            aria-label={t('common.next') || 'Next'}
                             className={`absolute ${isRTL ? 'left-4' : 'right-4'} top-[55%] md:top-1/2 -translate-y-1/2 p-2.5 md:p-3 bg-slate-900/40 hover:bg-slate-900/60 text-white rounded-full backdrop-blur-md transition-all z-20 shadow-lg border border-white/10`}
                         >
                             {isRTL ? <ChevronLeft className="w-5 h-5 md:w-6 md:h-6" /> : <ChevronRight className="w-5 h-5 md:w-6 md:h-6" />}
@@ -89,8 +98,10 @@ const ImageSlider = ({ images, currentIndex, onChange, onDelete, onDownload }) =
                 <div className="flex gap-2 mt-6 px-2 overflow-x-auto py-2 hide-scrollbar">
                     {images.map((img, idx) => (
                         <button
+                            type="button"
                             key={idx}
                             onClick={() => onChange(idx)}
+                            aria-label={`${t('common.image') || 'Image'} ${idx + 1}`}
                             className={`w-12 h-12 rounded-xl border-2 transition-all flex-shrink-0 bg-white dark:bg-slate-900 shadow-sm overflow-hidden ${idx === safeIndex ? 'border-accent ring-2 ring-accent/20' : 'border-transparent opacity-60 hover:opacity-100'}`}
                         >
                             <ImageWithFallback
@@ -117,17 +128,15 @@ const ProductImageModal = ({ product, onClose, onSave, onUpload }) => {
     const [images, setImages] = useState(product.images || []);
     const [isSaving, setIsSaving] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const dialogRef = useRef(null);
     const supportedImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
     const supportedImageExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
 
-    useEffect(() => {
-        // Esc key to close
-        const handleEsc = (e) => {
-            if (e.key === 'Escape') onClose();
-        };
-        window.addEventListener('keydown', handleEsc);
-        return () => window.removeEventListener('keydown', handleEsc);
-    }, [onClose]);
+    useModalA11y({
+        isOpen: Boolean(product),
+        onClose,
+        containerRef: dialogRef
+    });
 
     useEffect(() => {
         // Sync state if product changes (e.g. switching between products)
@@ -275,11 +284,20 @@ const ProductImageModal = ({ product, onClose, onSave, onUpload }) => {
             {/* Click outside to close - only active on desktop for safety */}
             <div className="absolute inset-0" onClick={onClose}></div>
 
-            <div className="relative w-full h-full md:h-auto md:max-h-[95vh] md:max-w-6xl bg-white dark:bg-slate-800 md:rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row animate-in zoom-in slide-in-from-bottom-10 duration-500">
+            <div
+                ref={dialogRef}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="product-image-modal-title"
+                tabIndex={-1}
+                className="relative w-full h-full md:h-auto md:max-h-[95vh] md:max-w-6xl bg-white dark:bg-slate-800 md:rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row animate-in zoom-in slide-in-from-bottom-10 duration-500"
+            >
 
                 {/* Floating Close Button */}
                 <button
+                    type="button"
                     onClick={onClose}
+                    aria-label={t('common.close') || 'Close'}
                     className={`absolute top-16 ${isRTL ? 'left-8' : 'right-8'} md:top-4 ${isRTL ? 'md:left-4' : 'md:right-4'} z-[150] p-2 bg-slate-100/80 dark:bg-slate-900/80 hover:bg-slate-200 text-slate-500 dark:text-slate-400 rounded-lg transition-all active:scale-95 border border-slate-200/50 dark:border-slate-700/50 backdrop-blur shadow-sm`}
                 >
                     <X className="w-4 h-4" />
@@ -347,8 +365,10 @@ const ProductImageModal = ({ product, onClose, onSave, onUpload }) => {
 
                         <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-700">
                             <button
+                                type="button"
                                 onClick={handleSave}
                                 disabled={isSaving || !editedTitle.trim()}
+                                aria-label={t('settings.saveChanges')}
                                 className="w-full py-3.5 bg-accent text-white font-bold rounded-xl shadow-accent transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
                             >
                                 {isSaving ? (

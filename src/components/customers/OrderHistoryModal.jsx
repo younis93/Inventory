@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { ChevronDown, Printer, ShoppingBag, X } from 'lucide-react';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 const OrderHistoryModal = ({
     isOpen,
@@ -13,13 +14,28 @@ const OrderHistoryModal = ({
     onClose,
     onPrintOrder
 }) => {
+    const dialogRef = useRef(null);
+
+    useModalA11y({
+        isOpen: isOpen && Boolean(selectedCustomer),
+        onClose,
+        containerRef: dialogRef
+    });
+
     if (!isOpen || !selectedCustomer) return null;
 
     const customerOrders = getCustomerOrders(selectedCustomer._id);
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/90 backdrop-blur-md p-4">
-            <div className={`rounded-[32px] shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in slide-in-from-bottom-8 duration-500 ${['liquid', 'default_glass'].includes(appearanceTheme) ? 'glass-panel' : 'bg-white dark:bg-slate-800'}`}>
+            <div
+                ref={dialogRef}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="order-history-title"
+                tabIndex={-1}
+                className={`rounded-[32px] shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in slide-in-from-bottom-8 duration-500 ${['liquid', 'default_glass'].includes(appearanceTheme) ? 'glass-panel' : 'bg-white dark:bg-slate-800'}`}
+            >
                 <div className={`px-10 py-8 border-b border-slate-100 dark:border-slate-700 ${['liquid', 'default_glass'].includes(appearanceTheme) ? 'bg-white/20 dark:bg-slate-900/20 backdrop-blur-md' : 'bg-white dark:bg-slate-800'}`}>
                     <div className="flex justify-between items-start">
                         <div>
@@ -33,13 +49,13 @@ const OrderHistoryModal = ({
                                 >
                                     <ShoppingBag className="w-6 h-6" />
                                 </div>
-                                <h3 className="text-2xl font-black text-slate-900 dark:text-white">{t('customers.history.title')}</h3>
+                                <h3 id="order-history-title" className="text-2xl font-black text-slate-900 dark:text-white">{t('customers.history.title')}</h3>
                             </div>
                             <p className="text-slate-500 font-bold uppercase text-[10px] tracking-[0.2em] ms-13">
                                 {t('customers.receipt.customer')}: <span className="text-[var(--brand-color)]">{selectedCustomer.name}</span>
                             </p>
                         </div>
-                        <button onClick={onClose} className="w-12 h-12 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                        <button type="button" onClick={onClose} aria-label={t('common.close') || 'Close'} className="w-12 h-12 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
                             <X className="w-8 h-8 text-slate-400" />
                         </button>
                     </div>
@@ -60,6 +76,15 @@ const OrderHistoryModal = ({
                                     <div
                                         className="p-4 sm:p-6 flex items-center justify-between cursor-pointer"
                                         onClick={() => setExpandedOrderId(expandedOrderId === order._id ? null : order._id)}
+                                        role="button"
+                                        tabIndex={0}
+                                        aria-label={`Toggle details for ${order.orderId}`}
+                                        onKeyDown={(event) => {
+                                            if (event.key === 'Enter' || event.key === ' ') {
+                                                event.preventDefault();
+                                                setExpandedOrderId(expandedOrderId === order._id ? null : order._id);
+                                            }
+                                        }}
                                     >
                                         <div className="flex items-center gap-4 sm:gap-6">
                                             <div className="w-12 h-12 sm:w-14 sm:h-14 bg-slate-50 dark:bg-slate-900 rounded-xl sm:rounded-2xl flex items-center justify-center text-[var(--brand-color)] group-hover:bg-[var(--brand-color)] group-hover:text-white transition-all">

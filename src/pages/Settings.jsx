@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'; // Added useEffect
+import React, { useState, useEffect, useRef } from 'react'; // Added useEffect
 import Layout from '../components/Layout';
 import { Moon, Sun, Monitor, User, Trash2, Plus, CheckCircle, Settings as SettingsIcon, Users, Lock, Edit, Sparkles, Palette, Layout as LayoutIcon, AlertTriangle, ShieldAlert, Globe, AlertCircle, X, Info } from 'lucide-react';
 import { useInventory, useSettings } from '../context/InventoryContext';
@@ -9,6 +9,7 @@ import ImageWithFallback from '../components/common/ImageWithFallback';
 import DeleteConfirmModal from '../components/common/DeleteConfirmModal';
 import SearchableSelect from '../components/SearchableSelect';
 import { useSearchParams } from 'react-router-dom';
+import { useModalA11y } from '../hooks/useModalA11y';
 
 const Settings = () => {
     const { t } = useTranslation();
@@ -32,10 +33,27 @@ const Settings = () => {
     const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
     const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
+    const addUserDialogRef = useRef(null);
+    const changePasswordDialogRef = useRef(null);
 
     // New delete confirmation state
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [userToDelete, setUserToDelete] = useState(null);
+
+    useModalA11y({
+        isOpen: isAddUserModalOpen,
+        onClose: () => setIsAddUserModalOpen(false),
+        containerRef: addUserDialogRef
+    });
+
+    useModalA11y({
+        isOpen: isChangePasswordOpen,
+        onClose: () => {
+            setIsChangePasswordOpen(false);
+            setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+        },
+        containerRef: changePasswordDialogRef
+    });
 
     // Image Cropping State
     const [croppingImage, setCroppingImage] = useState(null);
@@ -1057,12 +1075,19 @@ const Settings = () => {
             {
                 isAddUserModalOpen && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in zoom-in duration-200">
-                        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6 overflow-hidden">
+                        <div
+                            ref={addUserDialogRef}
+                            role="dialog"
+                            aria-modal="true"
+                            aria-labelledby="add-user-title"
+                            tabIndex={-1}
+                            className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6 overflow-hidden"
+                        >
                             <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-xl font-bold text-slate-800 dark:text-white">
+                                <h3 id="add-user-title" className="text-xl font-bold text-slate-800 dark:text-white">
                                     {editingUser ? t('settings.editUser') : t('settings.addNewUser')}
                                 </h3>
-                                <button onClick={() => setIsAddUserModalOpen(false)} className="p-2 -mr-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-all">
+                                <button type="button" aria-label={t('common.close') || 'Close'} onClick={() => setIsAddUserModalOpen(false)} className="p-2 -mr-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-all">
                                     <X className="w-5 h-5" />
                                 </button>
                             </div>
@@ -1140,8 +1165,15 @@ const Settings = () => {
             {
                 isChangePasswordOpen && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in zoom-in duration-200">
-                        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6">
-                            <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-4">{t('settings.changePassword')}</h3>
+                        <div
+                            ref={changePasswordDialogRef}
+                            role="dialog"
+                            aria-modal="true"
+                            aria-labelledby="change-password-title"
+                            tabIndex={-1}
+                            className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6"
+                        >
+                            <h3 id="change-password-title" className="text-xl font-bold text-slate-800 dark:text-white mb-4">{t('settings.changePassword')}</h3>
                             <form onSubmit={handleChangePassword} className="space-y-4">
                                 <input required placeholder={t('settings.placeholders.currentPassword')} type="password" value={passwordForm.currentPassword} onChange={(e) => handlePasswordFormChange('currentPassword', e.target.value)} className="w-full p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700 dark:text-white outline-none" />
                                 <input required placeholder={t('settings.placeholders.newPassword')} type="password" value={passwordForm.newPassword} onChange={(e) => handlePasswordFormChange('newPassword', e.target.value)} className="w-full p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700 dark:text-white outline-none" />

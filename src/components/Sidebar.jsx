@@ -99,6 +99,7 @@ const Sidebar = () => {
                 {/* Mobile Close Button */}
                 <button
                     onClick={closeMobileMenu}
+                    aria-label={t('common.close') || 'Close menu'}
                     className={`lg:hidden absolute top-6 ${isRTL ? 'left-4' : 'right-4'} p-2 text-slate-400 hover:text-red-500 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors`}
                 >
                     <X className="w-5 h-5" />
@@ -119,6 +120,7 @@ const Sidebar = () => {
                         <Link
                             key={item.path}
                             to={item.path}
+                            aria-label={item.label}
                             title={isSidebarCollapsed ? item.label : ''}
                             onClick={closeMobileMenu}
                             className={`flex items-center gap-3 rounded-xl transition-all duration-200 group relative overflow-hidden ${isSidebarCollapsed ? 'justify-center p-3' : 'px-4 py-3.5'
@@ -133,6 +135,11 @@ const Sidebar = () => {
                                     {item.label}
                                 </span>
                             )}
+                            {isSidebarCollapsed && (
+                                <span className={`pointer-events-none absolute top-1/2 -translate-y-1/2 ${isRTL ? 'right-[calc(100%+12px)]' : 'left-[calc(100%+12px)]'} whitespace-nowrap rounded-lg bg-slate-900 text-white text-[11px] font-bold px-2.5 py-1.5 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity shadow-lg z-30`}>
+                                    {item.label}
+                                </span>
+                            )}
                         </Link>
                     )
                 })}
@@ -142,7 +149,11 @@ const Sidebar = () => {
             <div className="p-4 mt-auto border-t border-slate-100 dark:border-slate-800/50">
                 <div className="relative" ref={profileMenuRef}>
                     <button
+                        type="button"
                         onClick={() => setIsProfileMenuOpen(prev => !prev)}
+                        aria-label={t('settings.accountSettings') || 'Account settings'}
+                        aria-haspopup="menu"
+                        aria-expanded={isProfileMenuOpen}
                         className={`w-full bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 flex items-center shadow-sm glass-panel transition-all hover:border-slate-300 dark:hover:border-slate-600 !bg-white dark:!bg-slate-800 ${isSidebarCollapsed ? 'p-2 justify-center' : 'p-4 gap-3'}`}
                     >
                         <div className="relative shrink-0 w-10 h-10">
@@ -170,14 +181,18 @@ const Sidebar = () => {
                     {isProfileMenuOpen && !isSidebarCollapsed && (
                         <div className="absolute bottom-full mb-2 left-0 right-0 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-2xl overflow-hidden z-50">
                             <button
+                                type="button"
                                 onClick={handleAccountSettings}
+                                aria-label={t('settings.accountSettings') || 'Account settings'}
                                 className="w-full flex items-center gap-2 px-4 py-3 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-colors"
                             >
                                 <UserCog className="w-4 h-4" />
                                 <span>{t('settings.accountSettings') || 'Account Settings'}</span>
                             </button>
                             <button
+                                type="button"
                                 onClick={handleLogout}
+                                aria-label={t('menu.logout') || 'Log out'}
                                 className="w-full flex items-center gap-2 px-4 py-3 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-colors border-t border-slate-100 dark:border-slate-700"
                             >
                                 <LogOut className="w-4 h-4" />
@@ -190,7 +205,9 @@ const Sidebar = () => {
 
             {/* Desktop Collapse Toggle Button (Fixed at bottom right of sidebar) */}
             <button
+                type="button"
                 onClick={toggleSidebar}
+                aria-label={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                 className={`hidden lg:flex absolute bottom-24 ${isRTL ? '-left-3' : '-right-3'} w-6 h-6 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full items-center justify-center text-slate-400 shadow-sm z-50 transition-all hover:scale-110`}
                 style={{ color: brand.color }}
             >

@@ -210,16 +210,22 @@ const Orders = () => {
         return Math.ceil(discounted / 500) * 500;
     };
 
+    const getAvailableStock = (productId) => {
+        if (!productId) return 0;
+        const product = products.find((p) => p._id === productId);
+        const oldOrder = orders.find((order) => order._id === editingOrderId);
+        const oldItem = oldOrder?.items.find((item) => item.product._id === productId);
+        const oldQty = oldItem ? oldItem.quantity : 0;
+        return (product?.stock || 0) + oldQty;
+    };
+
     const handleAddToOrder = () => {
         if (!selectedProductId) return;
         const latestProduct = products.find((product) => product._id === selectedProductId);
         if (!latestProduct) return;
 
         const requestedQty = parseInt(qty);
-        const currentOrder = orders.find((order) => order._id === editingOrderId);
-        const oldOrderItem = currentOrder?.items.find((item) => item.product._id === latestProduct._id);
-        const stockInHand = oldOrderItem ? oldOrderItem.quantity : 0;
-        const totalAvailable = latestProduct.stock + stockInHand;
+        const totalAvailable = getAvailableStock(latestProduct._id);
 
         if (requestedQty > totalAvailable) {
             addToast(t('orders.stockError', { available: totalAvailable }), 'error');
@@ -344,10 +350,7 @@ const Orders = () => {
 
         const currentOrder = orders.find((order) => order._id === editingOrderId);
         for (const item of newOrder.items) {
-            const product = products.find((p) => p._id === item.product._id);
-            const oldItem = currentOrder?.items.find((originalItem) => originalItem.product._id === item.product._id);
-            const oldQty = oldItem ? oldItem.quantity : 0;
-            const available = (product?.stock || 0) + oldQty;
+            const available = getAvailableStock(item.product._id);
 
             if (item.quantity > available) {
                 addToast(t('orders.stockErrorWithName', { name: item.product.name, available }), 'error');
@@ -409,11 +412,7 @@ const Orders = () => {
     };
 
     const isSaveOrderDisabled = isSubmitting || newOrder.items.length === 0 || newOrder.items.some((item) => {
-        const product = products.find((p) => p._id === item.product._id);
-        const oldOrder = orders.find((order) => order._id === editingOrderId);
-        const oldItem = oldOrder?.items.find((originalItem) => originalItem.product._id === item.product._id);
-        const oldQty = oldItem ? oldItem.quantity : 0;
-        return item.quantity > ((product?.stock || 0) + oldQty);
+        return item.quantity > getAvailableStock(item.product._id);
     });
 
     const saveOrderLabel = editingOrderId ? t('orders.updateOrder') : t('orders.saveOrder');
@@ -537,6 +536,7 @@ const Orders = () => {
                 onCustomerSelect={handleCustomerSelectValue}
                 calculateSubtotal={calculateSubtotal}
                 calculateTotal={calculateTotal}
+                getAvailableStock={getAvailableStock}
             />
 
             <OrderDetailsModal

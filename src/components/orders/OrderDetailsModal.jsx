@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Download, Edit, Globe, MapPin, Package, Printer, User, X } from 'lucide-react';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 const OrderDetailsModal = ({
     isOpen,
@@ -10,17 +11,32 @@ const OrderDetailsModal = ({
     onPDFInvoice,
     onThermalPrint
 }) => {
+    const dialogRef = useRef(null);
+
+    useModalA11y({
+        isOpen: isOpen && Boolean(order),
+        onClose,
+        containerRef: dialogRef
+    });
+
     if (!isOpen || !order) return null;
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-md p-4 animate-in fade-in duration-300">
-            <div className="bg-white dark:bg-slate-800 rounded-[32px] shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col relative">
+            <div
+                ref={dialogRef}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="order-details-title"
+                tabIndex={-1}
+                className="bg-white dark:bg-slate-800 rounded-[32px] shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col relative"
+            >
                 <div className="px-8 py-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center sticky top-0 bg-white dark:bg-slate-800 z-10">
                     <div>
-                        <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Order Details</h3>
+                        <h3 id="order-details-title" className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Order Details</h3>
                         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">{order.orderId} • {order.date}</p>
                     </div>
-                    <button onClick={onClose} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                    <button type="button" onClick={onClose} aria-label="Close order details" className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
                         <X className="w-6 h-6 text-slate-400" />
                     </button>
                 </div>
@@ -135,3 +151,4 @@ const OrderDetailsModal = ({
 };
 
 export default OrderDetailsModal;
+
