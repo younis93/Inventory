@@ -516,10 +516,10 @@ const Products = () => {
                         <thead>
                             <tr className="bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                                 <SortableHeader column="name" label={t('products.table.product')} />
-                                <SortableHeader column="category" label={t('products.table.category')} />
-                                <SortableHeader column="stock" label={t('products.table.stock')} border={true} />
+                                <SortableHeader column="costPriceIQD_perUnit" label={t('products.form.costPerUnit')} border={true} />
                                 <SortableHeader column="sellingPriceIQD" label={t('products.table.price')} border={true} />
                                 <SortableHeader column="status" label={t('products.table.status')} border={true} />
+                                <SortableHeader column="stock" label={t('products.table.stock')} border={true} />
                                 <th className="px-6 py-4 text-end border-s dark:border-slate-700">{t('common.actions')}</th>
                             </tr>
                         </thead>
@@ -567,17 +567,17 @@ const Products = () => {
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4">
-                                        <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-xs font-bold">{product.category}</span>
-                                    </td>
                                     <td className="px-6 py-4 border-s dark:border-slate-700">
-                                        <span className="text-sm font-bold text-slate-800 dark:text-white">{product.stock}</span>
+                                        <span className="text-sm font-black text-slate-800 dark:text-white">{formatCurrency(product.costPriceIQD_perUnit || 0)}</span>
                                     </td>
                                     <td className="px-6 py-4 border-s dark:border-slate-700">
                                         <span className="text-sm font-black text-slate-800 dark:text-white">{formatCurrency(product.sellingPriceIQD || product.price || 0)}</span>
                                     </td>
                                     <td className="px-6 py-4 border-s dark:border-slate-700">
                                         <StatusBadge status={getAutoStatus(product.stock)} />
+                                    </td>
+                                    <td className="px-6 py-4 border-s dark:border-slate-700">
+                                        <span className="text-sm font-bold text-slate-800 dark:text-white">{product.stock}</span>
                                     </td>
                                     <td className="px-6 py-4 text-end border-s dark:border-slate-700">
                                         <div className="flex items-center justify-end gap-1">

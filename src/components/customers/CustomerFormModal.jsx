@@ -44,8 +44,17 @@ const CustomerFormModal = ({
         if (String(formData.email || '').trim() && !isValidEmail(formData.email)) {
             errors.email = 'Please enter a valid email address.';
         }
+        if (!String(formData.governorate || '').trim()) {
+            errors.governorate = 'Governorate is required.';
+        }
+        if (!String(formData.social || '').trim()) {
+            errors.social = 'Channel is required.';
+        }
+        if (!String(formData.address || '').trim()) {
+            errors.address = 'Shipping address is required.';
+        }
         return errors;
-    }, [formData.email, formData.name, formData.phone]);
+    }, [formData.address, formData.email, formData.governorate, formData.name, formData.phone, formData.social]);
     const hasValidationErrors = Object.keys(validationErrors).length > 0;
     const shouldShowError = (field) => showValidation || Boolean(formData[field]);
 
@@ -142,6 +151,9 @@ const CustomerFormModal = ({
                                         icon={MapPin}
                                         showSearch={false}
                                     />
+                                    {Boolean(validationErrors.governorate) && shouldShowError('governorate') && (
+                                        <p className="text-[10px] font-semibold text-red-500 ms-1">{validationErrors.governorate}</p>
+                                    )}
                                 </div>
                                 <div className="space-y-1.5">
                                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ms-1">{t('customers.form.channel')}</label>
@@ -153,6 +165,9 @@ const CustomerFormModal = ({
                                         icon={Globe}
                                         showSearch={false}
                                     />
+                                    {Boolean(validationErrors.social) && shouldShowError('social') && (
+                                        <p className="text-[10px] font-semibold text-red-500 ms-1">{validationErrors.social}</p>
+                                    )}
                                 </div>
                             </div>
 
@@ -163,8 +178,12 @@ const CustomerFormModal = ({
                                     placeholder="Street name, landmark, house number..."
                                     value={formData.address}
                                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                                    className={`w-full p-2.5 border-2 border-slate-100 dark:border-slate-800 rounded-2xl dark:text-white outline-none focus:border-[var(--brand-color)] transition-all font-bold resize-none placeholder:opacity-30 ${['liquid', 'default_glass'].includes(appearanceTheme) ? 'bg-white/40 dark:bg-slate-900/40 backdrop-blur-sm' : 'bg-slate-50 dark:bg-slate-900'}`}
+                                    aria-invalid={Boolean(validationErrors.address) && shouldShowError('address')}
+                                    className={`w-full p-2.5 border-2 rounded-2xl dark:text-white outline-none focus:border-[var(--brand-color)] transition-all font-bold resize-none placeholder:opacity-30 ${Boolean(validationErrors.address) && shouldShowError('address') ? 'border-red-500 text-red-500 ring-4 ring-red-500/10' : 'border-slate-100 dark:border-slate-800'} ${['liquid', 'default_glass'].includes(appearanceTheme) ? 'bg-white/40 dark:bg-slate-900/40 backdrop-blur-sm' : 'bg-slate-50 dark:bg-slate-900'}`}
                                 />
+                                {Boolean(validationErrors.address) && shouldShowError('address') && (
+                                    <p className="text-[10px] font-semibold text-red-500 ms-1">{validationErrors.address}</p>
+                                )}
                             </div>
                         </div>
                     </form>

@@ -6,14 +6,13 @@ import { Edit, ShoppingBag, User } from 'lucide-react';
 const headerColumns = [
     { key: 'name', labelKey: 'customers.name' },
     { key: 'governorate', labelKey: 'customers.location' },
-    { key: 'orders', labelKey: 'customers.orders' },
     { key: 'spent', labelKey: 'customers.totalSpent' },
     { key: 'createdOn', labelKey: 'customers.createdOn' },
     { key: 'createdBy', labelKey: 'common.createdBy' },
     { key: 'actions', labelKey: 'customers.actions' }
 ];
 
-const gridClass = 'grid grid-cols-[1.5fr_1.4fr_0.9fr_1fr_1fr_1fr_0.9fr]';
+const gridClass = 'grid grid-cols-[1.7fr_1.6fr_1fr_1fr_1fr_1.1fr]';
 
 const CustomersTable = ({
     t,
@@ -38,7 +37,7 @@ const CustomersTable = ({
                     </div>
                     {Array.from({ length: 5 }).map((_, idx) => (
                         <div key={idx} className={`${gridClass} gap-3 px-4 py-4 border-b border-slate-100 dark:border-slate-700`}>
-                            {Array.from({ length: 7 }).map((__, cellIdx) => (
+                            {Array.from({ length: headerColumns.length }).map((__, cellIdx) => (
                                 <div key={cellIdx} className="h-4 w-24 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
                             ))}
                         </div>
@@ -61,7 +60,7 @@ const CustomersTable = ({
 
     return (
         <div className="overflow-x-auto hidden sm:block">
-            <div className="min-w-[1120px]">
+            <div className="min-w-[1040px]">
                 <div className={`${gridClass} gap-3 px-4 py-3 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-500 uppercase rounded-t-2xl`}>
                     {headerColumns.map((column) => {
                         if (column.key === 'createdOn' || column.key === 'createdBy' || column.key === 'actions') {
@@ -120,21 +119,9 @@ const CustomersTable = ({
                                     <div className="text-sm font-bold text-slate-700 dark:text-slate-300 truncate">{customer.governorate}</div>
                                     <div className="text-[11px] text-slate-400 truncate">{customer.address}</div>
                                 </div>
-                                <div>
-                                    <div
-                                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-black"
-                                        style={{
-                                            backgroundColor: 'color-mix(in srgb, var(--accent-color), transparent 90%)',
-                                            color: 'var(--accent-color)'
-                                        }}
-                                    >
-                                        <ShoppingBag className="w-3.5 h-3.5" />
-                                        {customerOrders.length}
-                                    </div>
-                                </div>
                                 <div className="text-sm font-black text-slate-800 dark:text-white truncate">{formatCurrency(totalSpent)}</div>
                                 <div className="text-xs font-bold text-slate-500 truncate">
-                                    {getValidDate(customer) ? format(getValidDate(customer), 'MMM dd, yyyy') : t('orders.receipt.na')}
+                                    {getValidDate(customer) ? format(getValidDate(customer), 'yyyy MMM dd') : t('orders.receipt.na')}
                                 </div>
                                 <div className="text-xs font-medium text-slate-500 truncate">{customer.createdBy || 'System'}</div>
                                 <div className="flex items-center justify-end gap-2">
@@ -142,10 +129,11 @@ const CustomersTable = ({
                                         type="button"
                                         onClick={() => onOpenHistory(customer)}
                                         aria-label="Open customer order history"
-                                        className="p-2 text-slate-400 hover:text-[var(--brand-color)] hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all"
+                                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-black text-slate-500 hover:text-[var(--brand-color)] hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all"
                                         title="Order History"
                                     >
                                         <ShoppingBag className="w-4 h-4" />
+                                        {customerOrders.length}
                                     </button>
                                     <button
                                         type="button"

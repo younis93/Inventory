@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 const FOCUSABLE_SELECTOR = [
     'a[href]',
@@ -23,6 +23,12 @@ const getFocusableElements = (root) => {
 };
 
 export const useModalA11y = ({ isOpen, onClose, containerRef }) => {
+    const onCloseRef = useRef(onClose);
+
+    useEffect(() => {
+        onCloseRef.current = onClose;
+    }, [onClose]);
+
     useEffect(() => {
         if (!isOpen || !containerRef?.current) return undefined;
 
@@ -41,7 +47,7 @@ export const useModalA11y = ({ isOpen, onClose, containerRef }) => {
         const onKeyDown = (event) => {
             if (event.key === 'Escape') {
                 event.preventDefault();
-                onClose?.();
+                onCloseRef.current?.();
                 return;
             }
 
@@ -81,6 +87,5 @@ export const useModalA11y = ({ isOpen, onClose, containerRef }) => {
                 previousActiveElement.focus();
             }
         };
-    }, [isOpen, onClose, containerRef]);
+    }, [isOpen, containerRef]);
 };
-

@@ -55,8 +55,15 @@ const CustomersCardGrid = ({
                             </div>
                         </div>
                         <div className="flex gap-2">
-                            <button type="button" aria-label="Open customer order history" onClick={() => onOpenHistory(customer)} className="p-2 text-slate-400 hover:text-[var(--brand-color)] bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 transition-colors" title="Order History">
+                            <button
+                                type="button"
+                                aria-label="Open customer order history"
+                                onClick={() => onOpenHistory(customer)}
+                                className="inline-flex items-center gap-1.5 px-2.5 py-2 text-slate-500 hover:text-[var(--brand-color)] bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 transition-colors font-black text-xs"
+                                title="Order History"
+                            >
                                 <ShoppingBag className="w-4 h-4" />
+                                <span>{customerOrders.length}</span>
                             </button>
                             <button type="button" aria-label="Edit customer profile" onClick={() => onOpenEdit(customer)} className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 transition-colors" title="Edit Profile">
                                 <Edit className="w-4 h-4" />
@@ -67,10 +74,6 @@ const CustomersCardGrid = ({
                     <div className="mb-6">
                         <h3 className="font-bold text-slate-900 dark:text-white text-lg mb-2 truncate">{customer.name}</h3>
                         <div className="flex flex-wrap gap-2">
-                            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg text-[10px] font-black uppercase tracking-wider">
-                                <ShoppingBag className="w-3 h-3" />
-                                {customerOrders.length} {customerOrders.length === 1 ? t('customers.receipt.order') : t('customers.orders')}
-                            </div>
                             <div className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-lg text-[10px] font-black uppercase tracking-wider">
                                 {formatCurrency(totalSpent)}
                             </div>

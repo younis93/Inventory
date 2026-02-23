@@ -694,7 +694,7 @@ const Expenses = () => {
                             {visibleExpenses.map((expense) => (
                                 <tr key={expense._id} className="hover:bg-slate-50/60 dark:hover:bg-slate-700/40">
                                     <td className="px-6 py-4 text-sm font-semibold text-slate-700 dark:text-slate-200">
-                                        {parseDateSafe(expense.date) ? format(parseDateSafe(expense.date), 'dd MMM yyyy') : '-'}
+                                        {parseDateSafe(expense.date) ? format(parseDateSafe(expense.date), 'yyyy MMM dd') : '-'}
                                     </td>
                                     <td className="px-6 py-4 text-sm text-slate-700 dark:text-slate-200">{expense.type || '-'}</td>
                                     <td className="px-6 py-4 text-sm text-slate-700 dark:text-slate-200">{expense.campaign || '-'}</td>
@@ -763,7 +763,7 @@ const Expenses = () => {
                             <div className="flex items-start justify-between gap-3">
                                 <div>
                                     <p className="text-xs uppercase tracking-wider text-slate-400 font-bold">
-                                        {parseDateSafe(expense.date) ? format(parseDateSafe(expense.date), 'dd MMM yyyy') : '-'}
+                                        {parseDateSafe(expense.date) ? format(parseDateSafe(expense.date), 'yyyy MMM dd') : '-'}
                                     </p>
                                     <p className="text-base font-black text-slate-900 dark:text-white">{expense.type || 'Other'}</p>
                                     <p className="text-sm text-slate-500">{expense.campaign || 'No campaign'}</p>

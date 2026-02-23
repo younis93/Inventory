@@ -1,4 +1,4 @@
-import React, { useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
     Globe as GlobeIcon,
     Package,
@@ -45,6 +45,7 @@ const OrderFormModal = ({
     getAvailableStock
 }) => {
     const dialogRef = useRef(null);
+    const [showValidationErrors, setShowValidationErrors] = useState(false);
 
     useModalA11y({
         isOpen,
@@ -92,6 +93,17 @@ const OrderFormModal = ({
     }, [newOrder.customerId, newOrder.customerName, newOrder.customerPhone]);
     const hasCustomerValidationErrors = Object.keys(customerValidationErrors).length > 0;
     const isLocalSubmitDisabled = hasItemValidationErrors || hasCustomerValidationErrors;
+    const shouldShowValidation = showValidationErrors;
+
+    useEffect(() => {
+        if (isOpen) setShowValidationErrors(false);
+    }, [isOpen]);
+
+    const handleSubmitAttempt = () => {
+        setShowValidationErrors(true);
+        if (isLocalSubmitDisabled) return;
+        onSubmit();
+    };
 
     if (!isOpen) return null;
 
@@ -244,7 +256,7 @@ const OrderFormModal = ({
                                 })
                             )}
                         </div>
-                        {hasItemValidationErrors && (
+                        {shouldShowValidation && hasItemValidationErrors && (
                             <div className="mt-2 p-2.5 rounded-xl border border-red-200 bg-red-50 text-red-600 text-xs font-semibold">
                                 Quantity cannot exceed current stock, and prices/quantities must be valid numbers.
                             </div>
@@ -314,15 +326,15 @@ const OrderFormModal = ({
                                         placeholder="e.g. Ahmed Ali"
                                         value={newOrder.customerName}
                                         onChange={(e) => setNewOrder({ ...newOrder, customerName: e.target.value })}
-                                        aria-invalid={Boolean(customerValidationErrors.customerName)}
+                                        aria-invalid={shouldShowValidation && Boolean(customerValidationErrors.customerName)}
                                         className={`w-full p-2 border-2 bg-white dark:bg-slate-900 rounded-xl dark:text-white outline-none focus:border-[var(--brand-color)] transition-all font-bold shadow-sm text-sm ${
-                                            customerValidationErrors.customerName
+                                            shouldShowValidation && customerValidationErrors.customerName
                                                 ? 'border-red-500 text-red-500 ring-4 ring-red-500/10'
                                                 : 'border-white dark:border-slate-800'
                                         }`}
                                         disabled={newOrder.customerId !== 'new'}
                                     />
-                                    {customerValidationErrors.customerName && (
+                                    {shouldShowValidation && customerValidationErrors.customerName && (
                                         <p className="text-[10px] font-semibold text-red-500 ms-1">{customerValidationErrors.customerName}</p>
                                     )}
                                 </div>
@@ -333,15 +345,15 @@ const OrderFormModal = ({
                                             placeholder="07XX XXX XXXX"
                                             value={newOrder.customerPhone}
                                             onChange={(e) => setNewOrder({ ...newOrder, customerPhone: e.target.value })}
-                                            aria-invalid={Boolean(customerValidationErrors.customerPhone)}
+                                            aria-invalid={shouldShowValidation && Boolean(customerValidationErrors.customerPhone)}
                                             className={`w-full p-2 border-2 bg-white dark:bg-slate-900 rounded-xl dark:text-white outline-none focus:border-[var(--brand-color)] transition-all font-bold shadow-sm text-sm ${
-                                                customerValidationErrors.customerPhone
+                                                shouldShowValidation && customerValidationErrors.customerPhone
                                                     ? 'border-red-500 text-red-500 ring-4 ring-red-500/10'
                                                     : 'border-white dark:border-slate-800'
                                             }`}
                                             disabled={newOrder.customerId !== 'new'}
                                         />
-                                        {customerValidationErrors.customerPhone && (
+                                        {shouldShowValidation && customerValidationErrors.customerPhone && (
                                             <p className="text-[10px] font-semibold text-red-500 ms-1">{customerValidationErrors.customerPhone}</p>
                                         )}
                                     </div>
@@ -408,7 +420,7 @@ const OrderFormModal = ({
                                     />
                                 </div>
                             </div>
-                            {hasCustomerValidationErrors && newOrder.customerId === 'new' && (
+                            {shouldShowValidation && hasCustomerValidationErrors && newOrder.customerId === 'new' && (
                                 <div className="p-2.5 rounded-xl border border-red-200 bg-red-50 text-red-600 text-xs font-semibold">
                                     Please complete required customer information before saving.
                                 </div>
@@ -416,8 +428,8 @@ const OrderFormModal = ({
                         </div>
                         <div className="mt-auto pt-2 border-t border-slate-100 dark:border-slate-700 hidden md:block">
                             <button
-                                onClick={onSubmit}
-                                disabled={isSaveOrderDisabled || isLocalSubmitDisabled}
+                                onClick={handleSubmitAttempt}
+                                disabled={isSubmitting}
                                 className="w-full py-3 bg-accent text-white rounded-2xl font-black shadow-accent active:scale-[0.98] transition-all disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-3"
                             >
                                 {isSubmitting ? (
@@ -437,8 +449,8 @@ const OrderFormModal = ({
 
                     <div className="order-3 md:hidden mt-2 bg-white dark:bg-slate-800 border-t border-slate-100 dark:border-slate-700 p-4">
                         <button
-                            onClick={onSubmit}
-                            disabled={isSaveOrderDisabled || isLocalSubmitDisabled}
+                            onClick={handleSubmitAttempt}
+                            disabled={isSubmitting}
                             className="w-full py-3 bg-accent text-white rounded-2xl font-black shadow-accent active:scale-[0.98] transition-all disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-3"
                         >
                             {isSubmitting ? (

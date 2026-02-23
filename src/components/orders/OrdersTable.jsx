@@ -1,5 +1,6 @@
 import React from 'react';
 import { FixedSizeList as List } from 'react-window';
+import { format, parseISO } from 'date-fns';
 import { Download, Edit, Eye, Printer, ShoppingBag, Trash2 } from 'lucide-react';
 import Skeleton from '../common/Skeleton';
 import StatusCell from './StatusCell';
@@ -15,6 +16,17 @@ const headerColumns = [
 ];
 
 const gridClass = 'grid grid-cols-[1.2fr_1.8fr_1fr_1fr_1fr_1fr_1.5fr]';
+
+const formatOrderDate = (value) => {
+    if (!value) return '-';
+    try {
+        const parsed = typeof value === 'string' ? parseISO(value) : new Date(value);
+        if (Number.isNaN(parsed.getTime())) return String(value);
+        return format(parsed, 'yyyy MMM dd');
+    } catch {
+        return String(value);
+    }
+};
 
 const OrdersTable = ({
     t,
@@ -112,7 +124,7 @@ const OrdersTable = ({
                                     <div className="text-sm font-medium text-slate-800 dark:text-white truncate">{order.customer.name}</div>
                                     <div className="text-xs text-slate-500 truncate">{order.customer.phone}</div>
                                 </div>
-                                <div className="text-sm text-slate-600 dark:text-slate-400 truncate">{order.date}</div>
+                                <div className="text-sm text-slate-600 dark:text-slate-400 truncate">{formatOrderDate(order.date)}</div>
                                 <div className="text-sm font-bold text-slate-800 dark:text-white truncate">{formatCurrency(order.total)}</div>
                                 <div>
                                     <StatusCell order={order} onUpdate={onUpdateStatus} />
