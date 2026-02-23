@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Crop, RotateCcw, Save, ZoomIn, ZoomOut, Check, Image as ImageIcon } from 'lucide-react';
+import { X, RotateCcw, ZoomIn, ZoomOut, Check, Image as ImageIcon } from 'lucide-react';
 import { useModalA11y } from '../hooks/useModalA11y';
 
 const ImageCropperModal = ({ image, onCrop, onClose, aspect = 1 }) => {
@@ -9,6 +9,8 @@ const ImageCropperModal = ({ image, onCrop, onClose, aspect = 1 }) => {
     const [isDragging, setIsDragging] = useState(false);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
     const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
+    const [isSaving, setIsSaving] = useState(false);
+    const [saveError, setSaveError] = useState('');
 
     // Config
     const CROP_SIZE = 320; // 320px square
@@ -30,6 +32,8 @@ const ImageCropperModal = ({ image, onCrop, onClose, aspect = 1 }) => {
         setZoom(1);
         setRotation(0);
         setPosition({ x: 0, y: 0 });
+        setSaveError('');
+        setIsSaving(false);
     }, [image]);
 
     const handleImageLoad = (e) => {
@@ -114,9 +118,23 @@ const ImageCropperModal = ({ image, onCrop, onClose, aspect = 1 }) => {
         return canvas.toDataURL('image/png', 1.0);
     };
 
-    const handleSave = () => {
-        const croppedData = getCroppedImg();
-        onCrop(croppedData);
+    const handleSave = async () => {
+        if (!imageRef.current?.naturalWidth) {
+            setSaveError('Image is still loading. Try again in a moment.');
+            return;
+        }
+
+        try {
+            setIsSaving(true);
+            setSaveError('');
+            const croppedData = getCroppedImg();
+            await Promise.resolve(onCrop(croppedData));
+        } catch (error) {
+            console.error('Crop apply failed:', error);
+            setSaveError('Failed to apply changes. Please try another image or zoom level.');
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     return (
@@ -191,6 +209,7 @@ const ImageCropperModal = ({ image, onCrop, onClose, aspect = 1 }) => {
                                 src={image}
                                 alt="To crop"
                                 onLoad={handleImageLoad}
+                                crossOrigin="anonymous"
                                 draggable={false}
                                 className="max-none transition-transform duration-75 origin-center will-change-transform"
                                 style={{
@@ -258,14 +277,18 @@ const ImageCropperModal = ({ image, onCrop, onClose, aspect = 1 }) => {
 
                         {/* Footer Actions */}
                         <div className="pt-6 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-3">
+                            {saveError && (
+                                <p className="text-xs font-semibold text-red-500 text-center">{saveError}</p>
+                            )}
                             <button
                                 type="button"
                                 onClick={handleSave}
                                 aria-label="Apply image changes"
-                                className="w-full py-4 bg-accent text-white font-black rounded-2xl shadow-accent shadow-lg active:scale-[0.98] transition-all flex items-center justify-center gap-3 hover:brightness-110"
+                                disabled={isSaving}
+                                className="w-full py-4 bg-accent text-white font-black rounded-2xl shadow-accent shadow-lg active:scale-[0.98] transition-all flex items-center justify-center gap-3 hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed"
                             >
                                 <Check className="w-5 h-5" />
-                                Apply Changes
+                                {isSaving ? 'Applying...' : 'Apply Changes'}
                             </button>
                             <button
                                 type="button"

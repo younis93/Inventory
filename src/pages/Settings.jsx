@@ -11,29 +11,52 @@ import { useSettings } from '../context/InventoryContext';
 import { useTranslation } from 'react-i18next';
 
 const allTabs = ['general', 'appearance', 'branding', 'account', 'users'];
+const SETTINGS_TAB_STORAGE_KEY = 'inventory.settings.tab';
+
+const getPersistedRole = () => {
+    try {
+        return localStorage.getItem('inventory.userRole') || 'Sales';
+    } catch (_) {
+        return 'Sales';
+    }
+};
 
 const Settings = () => {
     const { t } = useTranslation();
     const { currentUser } = useSettings();
     const [searchParams, setSearchParams] = useSearchParams();
     const [activeTab, setActiveTab] = useState('general');
+    const tabParam = searchParams.get('tab');
 
     const restrictedTabs = useMemo(() => {
-        const role = currentUser?.role || 'Sales';
+        const role = currentUser?.role || getPersistedRole();
         if (role === 'Sales') return ['branding', 'users'];
         if (role === 'Manager') return ['branding'];
         return [];
     }, [currentUser?.role]);
 
     useEffect(() => {
-        const tab = searchParams.get('tab');
-        if (!tab || !allTabs.includes(tab) || restrictedTabs.includes(tab)) {
-            setActiveTab('general');
-            setSearchParams({ tab: 'general' }, { replace: true });
-            return;
+        let persistedTab = 'general';
+        try {
+            const saved = localStorage.getItem(SETTINGS_TAB_STORAGE_KEY);
+            if (saved && allTabs.includes(saved)) persistedTab = saved;
+        } catch (_) { }
+
+        const requestedTab = tabParam || persistedTab;
+        const nextTab = allTabs.includes(requestedTab) && !restrictedTabs.includes(requestedTab)
+            ? requestedTab
+            : 'general';
+
+        if (activeTab !== nextTab) {
+            setActiveTab(nextTab);
         }
-        setActiveTab(tab);
-    }, [restrictedTabs, searchParams, setSearchParams]);
+        if (tabParam !== nextTab) {
+            setSearchParams({ tab: nextTab }, { replace: true });
+        }
+        try {
+            localStorage.setItem(SETTINGS_TAB_STORAGE_KEY, nextTab);
+        } catch (_) { }
+    }, [activeTab, restrictedTabs, tabParam, setSearchParams]);
 
     const tabs = useMemo(() => ([
         { id: 'general', label: t('settings.general'), icon: SettingsIcon, hidden: false },
@@ -46,6 +69,9 @@ const Settings = () => {
     const handleTabChange = (tab) => {
         setActiveTab(tab);
         setSearchParams({ tab }, { replace: true });
+        try {
+            localStorage.setItem(SETTINGS_TAB_STORAGE_KEY, tab);
+        } catch (_) { }
     };
 
     const renderTabContent = () => {

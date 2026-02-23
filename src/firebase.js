@@ -16,13 +16,16 @@ const firebaseConfig = {
     measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
+const normalizedStorageBucket = String(import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || '')
+    .replace('.firebasestorage.app', '.appspot.com');
+
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
 // Initialize services
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-export const storage = getStorage(app, `gs://${import.meta.env.VITE_FIREBASE_STORAGE_BUCKET}`);
+export const storage = getStorage(app, `gs://${normalizedStorageBucket}`);
 export const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;
 
 export default app;

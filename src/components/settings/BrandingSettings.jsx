@@ -12,6 +12,49 @@ const dataUrlToBlob = async (dataUrl) => {
     const response = await fetch(dataUrl);
     return response.blob();
 };
+const isDataUrlImage = (value) => /^data:image\/[a-zA-Z]+;base64,/.test(String(value || ''));
+const withTimeout = (promise, timeoutMs = 20000) =>
+    Promise.race([
+        promise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('upload-timeout')), timeoutMs))
+    ]);
+const STORAGE_UPLOAD_DISABLED_KEY = 'inventory.branding.storageUploadDisabled';
+const readStorageUploadDisabled = () => {
+    try {
+        return localStorage.getItem(STORAGE_UPLOAD_DISABLED_KEY) === '1';
+    } catch (_) {
+        return false;
+    }
+};
+const writeStorageUploadDisabled = (disabled) => {
+    try {
+        if (disabled) localStorage.setItem(STORAGE_UPLOAD_DISABLED_KEY, '1');
+        else localStorage.removeItem(STORAGE_UPLOAD_DISABLED_KEY);
+    } catch (_) { }
+};
+const resizeDataUrl = async (dataUrl, maxSize, quality = 0.82) => {
+    const image = await new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error('image-load-failed'));
+        img.src = dataUrl;
+    });
+
+    const sourceWidth = image.naturalWidth || image.width || maxSize;
+    const sourceHeight = image.naturalHeight || image.height || maxSize;
+    const scale = Math.min(1, maxSize / Math.max(sourceWidth, sourceHeight));
+    const width = Math.max(1, Math.round(sourceWidth * scale));
+    const height = Math.max(1, Math.round(sourceHeight * scale));
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(image, 0, 0, width, height);
+    return canvas.toDataURL('image/jpeg', quality);
+};
 
 const BrandingSettings = () => {
     const { t } = useTranslation();
@@ -74,18 +117,37 @@ const BrandingSettings = () => {
         return getDownloadURL(storageRef);
     };
 
-    const handleCropComplete = async (croppedDataUrl) => {
+    const handleCropComplete = (croppedDataUrl) => {
         if (!cropType) return;
+        // Keep Apply Changes instant; upload happens on Save Branding.
+        setBrandForm((prev) => ({ ...prev, [cropType]: croppedDataUrl }));
+        addToast(`${cropType === 'logo' ? 'Logo' : 'Favicon'} updated. Click Save Branding to persist.`, 'success');
+        setCropType(null);
+        setCroppingImage(null);
+    };
+
+    const uploadAssetIfNeeded = async (value, target) => {
+        if (!value) return '';
+        if (!isDataUrlImage(value)) return value;
+
+        const optimizedDataUrl = await resizeDataUrl(
+            value,
+            target === 'favicon' ? 128 : 512,
+            target === 'favicon' ? 0.8 : 0.82
+        );
+
+        if (readStorageUploadDisabled()) {
+            return optimizedDataUrl;
+        }
+
         try {
-            const uploadedUrl = await uploadCroppedAsset(croppedDataUrl, cropType);
-            setBrandForm((prev) => ({ ...prev, [cropType]: uploadedUrl }));
-            addToast(`${cropType === 'logo' ? 'Logo' : 'Favicon'} uploaded successfully.`, 'success');
+            const uploadedUrl = await withTimeout(uploadCroppedAsset(optimizedDataUrl, target), 2000);
+            writeStorageUploadDisabled(false);
+            return uploadedUrl;
         } catch (error) {
-            console.error(error);
-            addToast('Failed to upload image to storage.', 'error');
-        } finally {
-            setCropType(null);
-            setCroppingImage(null);
+            // If storage is blocked in this environment, skip retries in next saves.
+            writeStorageUploadDisabled(true);
+            return optimizedDataUrl;
         }
     };
 
@@ -97,15 +159,21 @@ const BrandingSettings = () => {
 
         setSaving(true);
         try {
+            const logo = await uploadAssetIfNeeded(brandForm.logo, 'logo');
+            const favicon = await uploadAssetIfNeeded(brandForm.favicon, 'favicon');
+
             await updateBrand({
                 ...brandForm,
+                logo,
+                favicon,
                 name: brandForm.name.trim(),
                 website: brandForm.website.trim()
             });
+            setBrandForm((prev) => ({ ...prev, logo, favicon }));
             addToast(t('settings.toasts.brandingSaved'), 'success');
         } catch (error) {
             console.error(error);
-            addToast('Failed to save branding settings.', 'error');
+            addToast(`Failed to save branding settings (${error?.code || error?.message || 'unknown'}).`, 'error');
         } finally {
             setSaving(false);
         }

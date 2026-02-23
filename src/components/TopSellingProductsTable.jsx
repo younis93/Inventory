@@ -34,8 +34,13 @@ const TopSellingProductsTable = ({ products, orders, formatCurrency }) => {
 
         return Object.values(salesMap)
             .sort((a, b) => b.orderCount - a.orderCount)
-            .slice(0, 10); // Limit to top 10 products
+            .slice(0, 50);
     }, [products, orders]);
+
+    const soldProducts = React.useMemo(
+        () => productSales.filter((p) => p.orderCount > 0),
+        [productSales]
+    );
 
     const [expandedProductId, setExpandedProductId] = useState(null);
 
@@ -49,24 +54,17 @@ const TopSellingProductsTable = ({ products, orders, formatCurrency }) => {
                 <Package className="w-5 h-5 text-accent" /> Top Selling Products
             </h3>
 
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto max-h-[420px] overflow-y-auto custom-scrollbar">
                 <table className="w-full text-start border-collapse">
-                    <thead>
-                        <tr className="text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-700">
-                            <th className="py-3 ps-2">Product Name</th>
-                            <th className="py-3 text-center">Sales</th>
-                            <th className="py-3 text-end pe-2">Total Revenue</th>
-                            <th className="py-3 w-10"></th>
-                        </tr>
-                    </thead>
                     <tbody className="text-sm">
-                        {productSales.filter(p => p.orderCount > 0).map((product) => (
+                        {soldProducts.map((product, index) => (
                             <React.Fragment key={product._id}>
                                 <tr
                                     onClick={() => toggleExpand(product._id)}
                                     className={`group cursor-pointer transition-colors border-b border-slate-50 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/50 ${expandedProductId === product._id ? 'bg-slate-50 dark:bg-slate-800' : ''}`}
                                 >
                                     <td className="py-4 ps-2 font-bold text-slate-700 dark:text-slate-200 flex items-center gap-3">
+                                        <span className="w-6 text-xs font-black text-slate-400 shrink-0">{index + 1}</span>
                                         <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-700 overflow-hidden shrink-0">
                                             <img src={product.images?.[0] || 'https://via.placeholder.com/40'} alt={product.name || 'Product image'} className="w-full h-full object-cover" />
                                         </div>
@@ -131,7 +129,7 @@ const TopSellingProductsTable = ({ products, orders, formatCurrency }) => {
                                 )}
                             </React.Fragment>
                         ))}
-                        {productSales.filter(p => p.orderCount > 0).length === 0 && (
+                        {soldProducts.length === 0 && (
                             <tr>
                                 <td colSpan="4" className="text-center py-8 text-slate-400">No sales data matches current filters</td>
                             </tr>

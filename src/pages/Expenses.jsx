@@ -180,6 +180,7 @@ const Expenses = () => {
     const [uploadError, setUploadError] = useState('');
     const [dragActive, setDragActive] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [showValidationErrors, setShowValidationErrors] = useState(false);
     const datePickerRef = useRef(null);
     const expenseDialogRef = useRef(null);
 
@@ -402,6 +403,7 @@ const Expenses = () => {
         setNewFiles([]);
         setUploadQueue([]);
         setUploadError('');
+        setShowValidationErrors(false);
         setEditingExpenseId(null);
     };
 
@@ -412,6 +414,7 @@ const Expenses = () => {
 
     const openEditModal = (expense) => {
         setEditingExpenseId(expense._id);
+        setShowValidationErrors(false);
         setForm({
             date: format(parseDateSafe(expense.date) || new Date(), 'yyyy-MM-dd'),
             type: expense.type || 'Other',
@@ -504,6 +507,7 @@ const Expenses = () => {
 
     const handleSaveExpense = async (e) => {
         e.preventDefault();
+        setShowValidationErrors(true);
         if (hasFormErrors) {
             addToast(Object.values(formErrors)[0], 'error');
             return;
@@ -824,14 +828,14 @@ const Expenses = () => {
             )}
 
             {isModalOpen && (
-                <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+                <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-start sm:items-center justify-center p-3 sm:p-4">
                     <div
                         ref={expenseDialogRef}
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="expense-modal-title"
                         tabIndex={-1}
-                        className="w-full max-w-xl bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-700"
+                        className="w-full max-w-[980px] my-2 sm:my-0 max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-3rem)] overflow-hidden bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-700 flex flex-col"
                     >
                         <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
                             <h3 id="expense-modal-title" className="text-xl font-black text-slate-800 dark:text-white">
@@ -839,21 +843,23 @@ const Expenses = () => {
                             </h3>
                             <button type="button" aria-label={t('common.close') || 'Close'} onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">X</button>
                         </div>
-                        <form onSubmit={handleSaveExpense} className="p-6 space-y-4">
-                            {(hasFormErrors || uploadError) && (
+                        <form onSubmit={handleSaveExpense} className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 pt-7 sm:pt-8 pb-6 sm:pb-8 space-y-5 sm:space-y-6">
+                            {((showValidationErrors && hasFormErrors) || uploadError) && (
                                 <div className="p-3 rounded-xl border border-red-200 bg-red-50 text-red-600 text-xs font-semibold">
                                     {uploadError || Object.values(formErrors)[0]}
                                 </div>
                             )}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
                                 <div className="space-y-2" ref={datePickerRef}>
-                                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Date</span>
                                     <div className="relative">
                                         <button
                                             type="button"
                                             onClick={() => setIsDateOpen((prev) => !prev)}
+                                            aria-label="Date"
                                             className={`w-full h-12 px-3 rounded-2xl border-2 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-bold flex items-center justify-between gap-2 ${
-                                                formErrors.date ? 'border-red-500 ring-4 ring-red-500/10 text-red-500' : 'border-slate-100 dark:border-slate-800'
+                                                showValidationErrors && formErrors.date
+                                                    ? 'border-red-500 ring-4 ring-red-500/10 text-red-500'
+                                                    : 'border-slate-100 dark:border-slate-800'
                                             }`}
                                         >
                                             <span className="inline-flex items-center gap-2 truncate">
@@ -863,7 +869,7 @@ const Expenses = () => {
                                             <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isDateOpen ? 'rotate-180' : ''}`} />
                                         </button>
                                         {isDateOpen && (
-                                            <div className="absolute start-0 top-full mt-2 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-4 w-[340px]">
+                                            <div className="absolute start-0 top-full mt-2 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-4 w-[min(340px,calc(100vw-2.5rem))] sm:w-[340px]">
                                                 <DayPicker
                                                     mode="single"
                                                     selected={form.date ? parseDateSafe(form.date) : undefined}
@@ -921,20 +927,19 @@ const Expenses = () => {
                                         )}
                                         <input type="hidden" value={form.date} required readOnly />
                                     </div>
-                                    {formErrors.date && <p className="text-[10px] font-semibold text-red-500">{formErrors.date}</p>}
+                                    {showValidationErrors && formErrors.date && <p className="text-[10px] font-semibold text-red-500">{formErrors.date}</p>}
                                 </div>
 
                                 <div className="space-y-2">
-                                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Type</span>
                                     <SearchableSelect
-                                        title={t('common.select')}
+                                        title="Type"
                                         options={expenseTypes.map((type) => ({ value: type, label: type }))}
                                         selectedValue={form.type}
                                         onChange={(value) => setForm((prev) => ({ ...prev, type: value }))}
                                         icon={Tag}
                                         showSearch={false}
                                     />
-                                    {formErrors.type && <p className="text-[10px] font-semibold text-red-500">{formErrors.type}</p>}
+                                    {showValidationErrors && formErrors.type && <p className="text-[10px] font-semibold text-red-500">{formErrors.type}</p>}
                                 </div>
                                 <div className="space-y-1">
                                     <input
@@ -943,20 +948,24 @@ const Expenses = () => {
                                         step="1"
                                         value={form.amountIQD}
                                         onChange={(e) => setForm((prev) => ({ ...prev, amountIQD: e.target.value }))}
-                                        aria-invalid={Boolean(formErrors.amountIQD)}
+                                        aria-invalid={Boolean(showValidationErrors && formErrors.amountIQD)}
+                                        aria-label="Amount in IQD"
                                         className={`w-full px-3 py-2.5 rounded-xl border bg-white dark:bg-slate-900 ${
-                                            formErrors.amountIQD ? 'border-red-500 text-red-500 ring-4 ring-red-500/10' : 'border-slate-200 dark:border-slate-700'
+                                            showValidationErrors && formErrors.amountIQD
+                                                ? 'border-red-500 text-red-500 ring-4 ring-red-500/10'
+                                                : 'border-slate-200 dark:border-slate-700'
                                         }`}
                                         placeholder="Amount in IQD"
                                         required
                                     />
-                                    {formErrors.amountIQD && <p className="text-[10px] font-semibold text-red-500">{formErrors.amountIQD}</p>}
+                                    {showValidationErrors && formErrors.amountIQD && <p className="text-[10px] font-semibold text-red-500">{formErrors.amountIQD}</p>}
                                 </div>
-                                <input type="text" value={form.campaign} onChange={(e) => setForm((prev) => ({ ...prev, campaign: e.target.value }))} className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900" placeholder="Campaign" />
+                                <div className="space-y-1">
+                                    <input type="text" value={form.campaign} onChange={(e) => setForm((prev) => ({ ...prev, campaign: e.target.value }))} aria-label="Campaign" className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900" placeholder="Campaign" />
+                                </div>
                                 <div className="space-y-2">
-                                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Platform</span>
                                     <SearchableSelect
-                                        title={t('common.select')}
+                                        title="Platform"
                                         options={[
                                             { value: 'Facebook', label: 'Facebook' },
                                             { value: 'Instagram', label: 'Instagram' },
@@ -969,27 +978,27 @@ const Expenses = () => {
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Link URL</span>
                                     <div className="relative">
                                         <Link2 className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                         <input
                                             type="url"
                                             value={form.link}
                                             onChange={(e) => setForm((prev) => ({ ...prev, link: e.target.value }))}
-                                            aria-invalid={Boolean(formErrors.link)}
+                                            aria-invalid={Boolean(showValidationErrors && formErrors.link)}
+                                            aria-label="Link URL"
                                             className={`w-full ps-9 pe-3 py-2.5 rounded-xl border bg-white dark:bg-slate-900 ${
-                                                formErrors.link ? 'border-red-500 text-red-500 ring-4 ring-red-500/10' : 'border-slate-200 dark:border-slate-700'
+                                                showValidationErrors && formErrors.link
+                                                    ? 'border-red-500 text-red-500 ring-4 ring-red-500/10'
+                                                    : 'border-slate-200 dark:border-slate-700'
                                             }`}
                                             placeholder="https://..."
                                             required
                                         />
                                     </div>
-                                    {formErrors.link && <p className="text-[10px] font-semibold text-red-500">{formErrors.link}</p>}
+                                    {showValidationErrors && formErrors.link && <p className="text-[10px] font-semibold text-red-500">{formErrors.link}</p>}
                                 </div>
                             </div>
-                            <input type="text" value={form.tags} onChange={(e) => setForm((prev) => ({ ...prev, tags: e.target.value }))} className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900" placeholder="Tags separated by comma" />
                             <div className="space-y-2">
-                                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">Choose Files</label>
                                 <label
                                     onDragEnter={(event) => {
                                         event.preventDefault();
@@ -1015,7 +1024,7 @@ const Expenses = () => {
                                         {newFiles.length > 0 ? `${newFiles.length} file(s) ready` : 'Upload receipts or invoices (image/PDF)'}
                                     </span>
                                     <span className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-xs font-bold text-slate-600 dark:text-slate-200">Browse</span>
-                                    <input type="file" accept={SUPPORTED_ATTACHMENT_TYPES.join(',')} multiple onChange={handleFileInputChange} className="hidden" />
+                                    <input type="file" accept={SUPPORTED_ATTACHMENT_TYPES.join(',')} multiple onChange={handleFileInputChange} aria-label="Choose files" className="hidden" />
                                 </label>
                                 <p className="text-[11px] text-slate-500 dark:text-slate-400">Drag & drop supported. Max 6MB per file. Large images are compressed automatically.</p>
 
@@ -1060,10 +1069,9 @@ const Expenses = () => {
                                     </div>
                                 )}
                             </div>
-                            <textarea rows={4} value={form.notes} onChange={(e) => setForm((prev) => ({ ...prev, notes: e.target.value }))} className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 resize-none" placeholder="Notes" />
-                            <div className="pt-2 flex justify-end gap-3">
-                                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-bold">Cancel</button>
-                                <button type="submit" disabled={saving || hasFormErrors || uploadQueue.some((item) => item.status === 'error')} className="px-5 py-2.5 rounded-xl text-white font-bold bg-accent shadow-accent disabled:opacity-60">{saving ? 'Saving...' : (editingExpenseId ? t('expenses.updateExpense') : t('expenses.createExpense'))}</button>
+                            <textarea rows={3} value={form.notes} onChange={(e) => setForm((prev) => ({ ...prev, notes: e.target.value }))} aria-label="Notes" className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 resize-none" placeholder="Notes" />
+                            <div className="sticky bottom-0 pt-4 pb-2 border-t border-slate-100 dark:border-slate-700 bg-white/95 dark:bg-slate-800/95 backdrop-blur -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8">
+                                <button type="submit" disabled={saving || uploadQueue.some((item) => item.status === 'error')} className="w-full px-5 py-3 rounded-xl text-white font-bold bg-accent shadow-accent disabled:opacity-60">{saving ? 'Saving...' : (editingExpenseId ? t('expenses.updateExpense') : t('expenses.createExpense'))}</button>
                             </div>
                         </form>
                     </div>

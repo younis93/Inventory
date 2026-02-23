@@ -14,11 +14,14 @@ export const useSettingsDomain = ({
     const [users, setUsers] = useState([]);
     const [brand, setBrand] = useState(defaultBrand);
     const [expenseTypes, setExpenseTypes] = useState(defaultExpenseTypes);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [currentUser, setCurrentUser] = useState(null);
 
     useEffect(() => {
-        if (!enabled) return undefined;
+        if (!enabled) {
+            setLoading(false);
+            return undefined;
+        }
 
         setLoading(true);
         let loadedUsers = false;
@@ -114,9 +117,15 @@ export const useSettingsDomain = ({
                         console.error('Metadata sync failed:', error);
                     });
                 }
+                try {
+                    localStorage.setItem('inventory.userRole', matchedUser.role || 'Sales');
+                } catch (_) { }
                 setCurrentUser(matchedUser);
             }
         } else if (!authUser) {
+            try {
+                localStorage.removeItem('inventory.userRole');
+            } catch (_) { }
             setCurrentUser(null);
         }
     }, [users, authUser]);
