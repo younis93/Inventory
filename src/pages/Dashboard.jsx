@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import Layout from '../components/Layout';
-import { useInventory } from '../context/InventoryContext';
+import { useCustomers, useExpenses, useInventory, useOrders, useProducts } from '../context/InventoryContext';
 import { DollarSign, ShoppingCart, TrendingUp, Users, MapPin, Package, AlertCircle, Globe, ShoppingBag } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import DateRangePicker from '../components/DateRangePicker';
@@ -15,7 +15,11 @@ import Skeleton from '../components/common/Skeleton';
 
 const Dashboard = () => {
     const { t } = useTranslation();
-    const { orders, expenses, products, customers, loading, formatCurrency, brand, categories, theme, appearance } = useInventory();
+    const { orders } = useOrders();
+    const { expenses } = useExpenses();
+    const { products, categories } = useProducts();
+    const { customers } = useCustomers();
+    const { loading, formatCurrency, brand, theme, appearance } = useInventory();
 
     // Filters State
     const minDate = useMemo(() => {

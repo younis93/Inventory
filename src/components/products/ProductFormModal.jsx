@@ -1,7 +1,28 @@
 import React from 'react';
-import { Info, MessageSquare, Save, ShoppingBag, Upload, X } from 'lucide-react';
+import { Info, MessageSquare, Package, Plus, Save, ShoppingBag, Upload, X } from 'lucide-react';
 import ImageWithFallback from '../common/ImageWithFallback';
 import SearchableSelect from '../SearchableSelect';
+
+const getAutoStatus = (stock) => {
+    const value = Number(stock || 0);
+    if (value <= 0) return 'Out of Stock';
+    if (value < 10) return 'Low Stock';
+    return 'In Stock';
+};
+
+const StatusBadge = ({ status }) => {
+    const styles = {
+        'In Stock': 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400',
+        'Low Stock': 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400',
+        'Out of Stock': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+    };
+
+    return (
+        <span className={`inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold ${styles[status] || 'bg-slate-100 text-slate-700'}`}>
+            {status}
+        </span>
+    );
+};
 
 const ProductFormModal = ({
     isOpen,
@@ -21,6 +42,7 @@ const ProductFormModal = ({
     fileInputRef,
     handleImageUpload,
     removeImage,
+    onOpenCategoryManager,
     onClose
 }) => {
     if (!isOpen) return null;
@@ -66,7 +88,7 @@ const ProductFormModal = ({
                                             customAction={{
                                                 label: t('products.form.createCategory'),
                                                 icon: Plus,
-                                                onClick: () => setIsCategoryManagerOpen(true)
+                                                onClick: () => onOpenCategoryManager?.()
                                             }}
                                         />
                                     </div>

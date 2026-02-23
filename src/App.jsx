@@ -34,8 +34,8 @@ const PublicOnly = () => {
 };
 
 const RoleRoute = ({ roles, children }) => {
-    const { currentUser, loading } = useInventory();
-    if (loading) return <FullScreenLoading />;
+    const { currentUser, settingsLoading } = useInventory();
+    if (settingsLoading) return <FullScreenLoading />;
 
     const userRole = currentUser?.role || 'Sales';
     if (!roles.includes(userRole)) {

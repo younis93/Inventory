@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'; // Added useEffect
 import Layout from '../components/Layout';
 import { Moon, Sun, Monitor, User, Trash2, Plus, CheckCircle, Settings as SettingsIcon, Users, Lock, Edit, Sparkles, Palette, Layout as LayoutIcon, AlertTriangle, ShieldAlert, Globe, AlertCircle, X, Info } from 'lucide-react';
-import { useInventory } from '../context/InventoryContext';
+import { useInventory, useSettings } from '../context/InventoryContext';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import ImageCropperModal from '../components/ImageCropperModal';
@@ -13,8 +13,17 @@ import { useSearchParams } from 'react-router-dom';
 const Settings = () => {
     const { t } = useTranslation();
     const {
-        theme, toggleTheme, appearance, setAppearance, users, addUser, updateUser, deleteUser, currentUser, updateUserProfile,
-        brand, updateBrand, addToast, language, changeLanguage, isDesktop, isOnline, pendingSyncCount, syncNow,
+        users,
+        addUser,
+        updateUser,
+        deleteUser,
+        currentUser,
+        updateUserProfile,
+        brand,
+        updateBrand
+    } = useSettings();
+    const {
+        theme, toggleTheme, appearance, setAppearance, addToast, language, changeLanguage, isDesktop, isOnline, pendingSyncCount, syncNow,
         desktopOfflineModeEnabled, setDesktopOfflineModeEnabled, conflicts
     } = useInventory();
     const { user: authUser, updateAuthProfile, changeAuthPassword } = useAuth();

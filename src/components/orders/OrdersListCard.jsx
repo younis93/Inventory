@@ -1,4 +1,5 @@
 import React from 'react';
+import { FixedSizeList as List } from 'react-window';
 import { Download, Edit, Eye, Printer, ShoppingBag, Trash2 } from 'lucide-react';
 import Skeleton from '../common/Skeleton';
 import StatusCell from './StatusCell';
@@ -39,48 +40,61 @@ const OrdersListCard = ({
                     <p className="font-bold uppercase tracking-widest text-xs">{t('orders.noOrders') || t('orders.title')}</p>
                 </div>
             ) : (
-                orders.map((order) => (
-                    <div key={order._id} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4 flex items-start justify-between">
-                        <div className="flex-1 min-w-0">
-                            <div className="flex justify-between items-start mb-1">
-                                <div className="text-sm font-black text-[var(--brand-color)]">{order.orderId}</div>
-                                <div className="text-right">
-                                    <div className="font-black text-slate-900 dark:text-white">{formatCurrency(order.total)}</div>
-                                    <div className="text-[9px] text-slate-400 font-bold">{order.createdBy || 'System'}</div>
-                                </div>
-                            </div>
-                            <div className="text-sm font-bold text-slate-800 dark:text-white mb-0.5">{order.customer.name}</div>
-                            <div className="flex justify-between items-center gap-2">
-                                <div className="text-[10px] text-slate-400 font-medium">
-                                    {new Date(order.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                                </div>
-                                <div>
-                                    <StatusCell order={order} onUpdate={onUpdateStatus} />
-                                </div>
-                            </div>
+                <List
+                    height={Math.min(720, Math.max(200, orders.length * 190))}
+                    itemCount={orders.length}
+                    itemSize={190}
+                    width="100%"
+                    className="custom-scrollbar"
+                >
+                    {({ index, style }) => {
+                        const order = orders[index];
+                        return (
+                            <div style={style} className="pe-1">
+                                <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4 flex items-start justify-between">
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex justify-between items-start mb-1">
+                                            <div className="text-sm font-black text-[var(--brand-color)]">{order.orderId}</div>
+                                            <div className="text-right">
+                                                <div className="font-black text-slate-900 dark:text-white">{formatCurrency(order.total)}</div>
+                                                <div className="text-[9px] text-slate-400 font-bold">{order.createdBy || 'System'}</div>
+                                            </div>
+                                        </div>
+                                        <div className="text-sm font-bold text-slate-800 dark:text-white mb-0.5">{order.customer.name}</div>
+                                        <div className="flex justify-between items-center gap-2">
+                                            <div className="text-[10px] text-slate-400 font-medium">
+                                                {new Date(order.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                            </div>
+                                            <div>
+                                                <StatusCell order={order} onUpdate={onUpdateStatus} />
+                                            </div>
+                                        </div>
 
-                            <div className="flex items-center justify-end gap-1 mt-3 pt-3 border-t border-slate-50 dark:border-slate-700/50">
-                                <button onClick={() => onViewOrder(order)} className="p-2 text-slate-400 hover:text-[var(--brand-color)] hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded-lg transition-all" title="View Order">
-                                    <Eye className="w-5 h-5" />
-                                </button>
-                                <button onClick={() => onEditOrder(order)} className="p-2 text-slate-400 hover:text-[var(--brand-color)] hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded-lg transition-all" title="Edit Order">
-                                    <Edit className="w-5 h-5" />
-                                </button>
-                                <button onClick={() => onPDFInvoice(order)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all" title="PDF Invoice">
-                                    <Download className="w-5 h-5" />
-                                </button>
-                                <button onClick={() => onThermalPrint(order)} className="p-2 text-slate-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-all" title="Thermal Print">
-                                    <Printer className="w-5 h-5" />
-                                </button>
-                                {canDeleteOrder(order) && (
-                                    <button onClick={() => onRequestDelete(order)} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-all" title="Delete Order">
-                                        <Trash2 className="w-5 h-5" />
-                                    </button>
-                                )}
+                                        <div className="flex items-center justify-end gap-1 mt-3 pt-3 border-t border-slate-50 dark:border-slate-700/50">
+                                            <button onClick={() => onViewOrder(order)} className="p-2 text-slate-400 hover:text-[var(--brand-color)] hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded-lg transition-all" title="View Order">
+                                                <Eye className="w-5 h-5" />
+                                            </button>
+                                            <button onClick={() => onEditOrder(order)} className="p-2 text-slate-400 hover:text-[var(--brand-color)] hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded-lg transition-all" title="Edit Order">
+                                                <Edit className="w-5 h-5" />
+                                            </button>
+                                            <button onClick={() => onPDFInvoice(order)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all" title="PDF Invoice">
+                                                <Download className="w-5 h-5" />
+                                            </button>
+                                            <button onClick={() => onThermalPrint(order)} className="p-2 text-slate-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-all" title="Thermal Print">
+                                                <Printer className="w-5 h-5" />
+                                            </button>
+                                            {canDeleteOrder(order) && (
+                                                <button onClick={() => onRequestDelete(order)} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-all" title="Delete Order">
+                                                    <Trash2 className="w-5 h-5" />
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    </div>
-                ))
+                        );
+                    }}
+                </List>
             )}
         </div>
     );

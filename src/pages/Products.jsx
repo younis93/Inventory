@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import Layout from '../components/Layout';
 import { Search, Plus, Filter, Edit, Trash2, Image as ImageIcon, Download, Package, ShoppingBag } from 'lucide-react';
-import { useInventory } from '../context/InventoryContext';
+import { useInventory, useProducts } from '../context/InventoryContext';
 import { useTranslation } from 'react-i18next';
 import CategoryManagerModal from '../components/CategoryManagerModal';
 import FilterDropdown from '../components/FilterDropdown';
@@ -53,8 +53,9 @@ const StatusBadge = ({ status }) => {
 };
 
 const Products = () => {
-    const { t, i18n } = useTranslation();
-    const { products, addProduct, updateProduct, deleteProduct, categories, addCategory, updateCategory, deleteCategory, formatCurrency, loading, brand, addToast, appearance, setIsModalOpen: setGlobalModalOpen } = useInventory();
+    const { t } = useTranslation();
+    const { products, categories, addProduct, updateProduct, deleteProduct, addCategory, updateCategory, deleteCategory } = useProducts();
+    const { formatCurrency, loading, brand, addToast, appearance, setIsModalOpen: setGlobalModalOpen } = useInventory();
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategories, setSelectedCategories] = useState([]);
     const [selectedStatuses, setSelectedStatuses] = useState([]);
@@ -700,6 +701,7 @@ const Products = () => {
                 fileInputRef={fileInputRef}
                 handleImageUpload={handleImageUpload}
                 removeImage={removeImage}
+                onOpenCategoryManager={() => setIsCategoryManagerOpen(true)}
                 onClose={() => setIsModalOpen(false)}
             />
             {/* Product Image Viewer Modal */}

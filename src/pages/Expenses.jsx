@@ -22,7 +22,7 @@ import ExpenseTypeManagerModal from '../components/ExpenseTypeManagerModal';
 import SearchableSelect from '../components/SearchableSelect';
 import { storage } from '../firebase';
 import { useAuth } from '../context/AuthContext';
-import { useInventory } from '../context/InventoryContext';
+import { useExpenses, useInventory } from '../context/InventoryContext';
 import { useTranslation } from 'react-i18next';
 import { exportExpensesToCSV } from '../utils/CSVExportUtil';
 import { DayPicker } from 'react-day-picker';
@@ -66,7 +66,9 @@ const Expenses = () => {
         saveExpenseTypes,
         addExpense,
         updateExpense,
-        deleteExpense,
+        deleteExpense
+    } = useExpenses();
+    const {
         addToast,
         formatCurrency,
         loading,

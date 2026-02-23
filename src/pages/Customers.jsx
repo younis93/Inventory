@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { endOfDay, parseISO, startOfDay, subDays, isSameDay } from 'date-fns';
 import { Facebook, Globe, Instagram, MessageCircle, Twitter } from 'lucide-react';
 import Layout from '../components/Layout';
-import { useInventory } from '../context/InventoryContext';
+import { useCustomers, useInventory, useOrders } from '../context/InventoryContext';
 import { GOVERNORATES, SOCIAL_PLATFORMS } from '../constants/iraq';
 import { useTranslation } from 'react-i18next';
 import { exportCustomersToCSV } from '../utils/CSVExportUtil';
@@ -24,11 +24,9 @@ const INITIAL_FORM_STATE = {
 
 const Customers = () => {
     const { t } = useTranslation();
+    const { customers, addCustomer, updateCustomer } = useCustomers();
+    const { orders } = useOrders();
     const {
-        customers,
-        orders,
-        addCustomer,
-        updateCustomer,
         formatCurrency,
         brand,
         addToast,

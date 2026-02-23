@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
-import { useInventory } from '../context/InventoryContext';
+import { useInventory, useProducts } from '../context/InventoryContext';
 import { useTranslation } from 'react-i18next';
 import { Image as ImageIcon, Search } from 'lucide-react';
 import ProductImageModal from '../components/ProductImageModal';
@@ -9,7 +9,8 @@ import Skeleton from '../components/common/Skeleton';
 
 const ProductPicture = () => {
     const { t } = useTranslation();
-    const { products, updateProduct, loading, isDesktop, isOnline, addToast, setIsModalOpen: setGlobalModalOpen } = useInventory();
+    const { products, updateProduct } = useProducts();
+    const { loading, isDesktop, isOnline, addToast, setIsModalOpen: setGlobalModalOpen } = useInventory();
     const [selectedProduct, setSelectedProduct] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
 

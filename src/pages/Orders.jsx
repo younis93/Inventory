@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { isBefore, isWithinInterval, parseISO, startOfDay, subDays } from 'date-fns';
 import Layout from '../components/Layout';
 import DeleteConfirmModal from '../components/common/DeleteConfirmModal';
-import { useInventory } from '../context/InventoryContext';
+import { useCustomers, useInventory, useOrders, useProducts } from '../context/InventoryContext';
 import { useTranslation } from 'react-i18next';
 import { GOVERNORATES, SOCIAL_PLATFORMS } from '../constants/iraq';
 import { exportOrdersToCSV } from '../utils/CSVExportUtil';
@@ -30,14 +30,10 @@ const STATUS_OPTIONS = ['Processing', 'Completed', 'Cancelled', 'Pending'];
 
 const Orders = () => {
     const { t } = useTranslation();
+    const { orders, addOrder, updateOrder, deleteOrder } = useOrders();
+    const { products } = useProducts();
+    const { customers, addCustomer } = useCustomers();
     const {
-        orders,
-        products,
-        customers,
-        addOrder,
-        updateOrder,
-        deleteOrder,
-        addCustomer,
         formatCurrency,
         brand,
         loading,
@@ -561,7 +557,7 @@ const Orders = () => {
                 }}
                 onConfirm={() => {
                     if (orderToDelete) {
-                        deleteOrder(orderToDelete);
+                        deleteOrder(orderToDelete._id);
                         setIsDeleteModalOpen(false);
                         setOrderToDelete(null);
                     }
