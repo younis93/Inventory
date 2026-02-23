@@ -1,0 +1,23 @@
+:root.dark,
+.theme-dark {
+  color-scheme: dark;
+  --surface-primary: #0f172a;
+  --surface-secondary: #020617;
+  --surface-tertiary: #1e293b;
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --border-default: #334155;
+  --border-subtle: #1e293b;
+  --scrollbar-thumb: #475569;
+  --scrollbar-thumb-hover: #64748b;
+  --focus-ring: color-mix(in srgb, var(--accent-color), white 25%);
+}
+
+:root.dark body,
+:root.dark #root,
+.theme-dark body,
+.theme-dark #root {
+  background-color: var(--surface-secondary);
+  color: var(--text-primary);
+}

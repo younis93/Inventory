@@ -16,6 +16,8 @@ import { useCustomersDomain } from '../hooks/domains/useCustomersDomain';
 import { useExpensesDomain } from '../hooks/domains/useExpensesDomain';
 import { useSettingsDomain } from '../hooks/domains/useSettingsDomain';
 import { usePurchasesDomain } from '../hooks/domains/usePurchasesDomain';
+import lightThemeStylesheet from '../themes/light.css?url';
+import darkThemeStylesheet from '../themes/dark.css?url';
 
 const InventoryContext = createContext();
 
@@ -236,6 +238,17 @@ export const InventoryProvider = ({ children }) => {
         currentUser: settingsDomain.currentUser
     });
 
+    const activeTheme = useMemo(() => {
+        if (appearance.theme === 'dark') return 'dark';
+        if (appearance.theme === 'light') return 'light';
+        if (theme === 'dark') return 'dark';
+        if (theme === 'system') {
+            if (typeof window === 'undefined') return 'light';
+            return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        return 'light';
+    }, [appearance.theme, theme]);
+
     useEffect(() => {
         const root = document.documentElement;
         root.classList.remove('theme-light', 'theme-dark', 'bg-liquid-glass');
@@ -267,6 +280,23 @@ export const InventoryProvider = ({ children }) => {
         else if (appearance.theme === 'light') setTheme('light');
         else if (appearance.theme === 'default') setTheme(localStorage.getItem('theme') || 'light');
     }, [appearance]);
+
+    useEffect(() => {
+        const linkId = 'app-theme-stylesheet';
+        let link = document.getElementById(linkId);
+
+        if (!link) {
+            link = document.createElement('link');
+            link.id = linkId;
+            link.rel = 'stylesheet';
+            document.head.appendChild(link);
+        }
+
+        const href = activeTheme === 'dark' ? darkThemeStylesheet : lightThemeStylesheet;
+        if (link.getAttribute('href') !== href) {
+            link.setAttribute('href', href);
+        }
+    }, [activeTheme]);
 
     useEffect(() => {
         const root = document.documentElement;
