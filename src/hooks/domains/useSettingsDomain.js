@@ -167,29 +167,35 @@ export const useSettingsDomain = ({
 
     const addUser = async (user) => {
         const normalizedEmail = user.email.toLowerCase().trim();
+        const normalizedUsername = String(user.username || '').toLowerCase().trim();
+        const { password: _password, ...safeUser } = user;
         await dataClient.set('users', normalizedEmail, {
-            ...user,
+            ...safeUser,
             email: normalizedEmail,
-            displayName: user.displayName || user.username
+            usernameLower: normalizedUsername,
+            displayName: safeUser.displayName || safeUser.username
         });
     };
 
     const updateUser = async (updatedUser) => {
         const { _id, ...data } = updatedUser;
+        const { password: _password, ...safeData } = data;
         const normalizedEmail = data.email.toLowerCase().trim();
+        const normalizedUsername = String(data.username || '').toLowerCase().trim();
 
         if (_id !== normalizedEmail) {
             await dataClient.set('users', normalizedEmail, {
-                ...data,
+                ...safeData,
                 email: normalizedEmail,
-                displayName: data.displayName || data.username
+                usernameLower: normalizedUsername,
+                displayName: safeData.displayName || safeData.username
             });
             await dataClient.delete('users', _id);
             addToast?.('User migrated to optimized ID system.', 'info');
             return;
         }
 
-        await dataClient.update('users', _id, { ...data, email: normalizedEmail });
+        await dataClient.update('users', _id, { ...safeData, email: normalizedEmail, usernameLower: normalizedUsername });
     };
 
     const updateUserProfile = async (updatedData) => {

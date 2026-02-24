@@ -145,5 +145,36 @@ export const dataClient = {
       }
       return null;
     }
+  },
+  getUserByUsername: async (username) => {
+    if (!username) return null;
+    const normalizedUsername = username.toLowerCase().trim();
+
+    if (!isDesktop()) return firebaseService.getUserByUsername(normalizedUsername);
+
+    try {
+      // 1. Local first for desktop/offline support.
+      const users = await desktopList('users');
+      const localUser = users.find((u) =>
+        String(u.usernameLower || '').toLowerCase() === normalizedUsername
+      ) || users.find((u) =>
+        String(u.username || '').toLowerCase() === normalizedUsername
+      );
+
+      if (localUser) return localUser;
+
+      // 2. Remote fallback if online
+      if (navigator.onLine) {
+        return await firebaseService.getUserByUsername(normalizedUsername);
+      }
+
+      return null;
+    } catch (error) {
+      console.error("getUserByUsername Error:", error);
+      if (navigator.onLine) {
+        return firebaseService.getUserByUsername(normalizedUsername).catch(() => null);
+      }
+      return null;
+    }
   }
 };

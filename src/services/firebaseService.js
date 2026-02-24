@@ -55,6 +55,49 @@ export const firebaseService = {
         }
     },
     /**
+     * Check if a user exists by username (case-insensitive fallback scan)
+     */
+    getUserByUsername: async (username) => {
+        if (!username) return null;
+        const normalizedUsername = username.toLowerCase().trim();
+        try {
+            // 1. Fast path: normalized field if present
+            try {
+                const q = query(collection(db, "users"), where("usernameLower", "==", normalizedUsername));
+                const querySnapshot = await getDocs(q);
+                if (!querySnapshot.empty) {
+                    const d = querySnapshot.docs[0];
+                    return { _id: d.id, ...d.data() };
+                }
+            } catch (_) { }
+
+            // 2. Legacy exact match
+            try {
+                const q = query(collection(db, "users"), where("username", "==", normalizedUsername));
+                const querySnapshot = await getDocs(q);
+                if (!querySnapshot.empty) {
+                    const d = querySnapshot.docs[0];
+                    return { _id: d.id, ...d.data() };
+                }
+            } catch (_) { }
+
+            // 3. Fallback full scan for case-insensitive matches
+            const snapshot = await getDocs(collection(db, "users"));
+            const matched = snapshot.docs.find((entry) => {
+                const data = entry.data() || {};
+                const candidate = String(data.username || '').toLowerCase().trim();
+                return candidate === normalizedUsername;
+            });
+
+            if (matched) return { _id: matched.id, ...matched.data() };
+            return null;
+        } catch (error) {
+            console.error("Error checking username existence:", error);
+            if (error.code === 'permission-denied') return null;
+            throw error;
+        }
+    },
+    /**
      * Set up a real-time listener for a collection
      */
     subscribeToCollection: (collectionName, callback, sortField = "name", sortOrder = "asc", onError) => {

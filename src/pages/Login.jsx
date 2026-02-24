@@ -118,22 +118,48 @@ const Login = () => {
 
     if (user) return <Navigate to={from} replace />;
 
+    const resolveAllowedUser = async (identifier) => {
+        const normalizedInput = String(identifier || '').trim().toLowerCase();
+        if (!normalizedInput) return { normalizedEmail: '', allowedUser: null };
+
+        let allowedUser = null;
+        if (normalizedInput.includes('@')) {
+            allowedUser = await dataClient.getUserByEmail(normalizedInput).catch(() => null);
+        } else {
+            allowedUser = await dataClient.getUserByUsername(normalizedInput).catch(() => null);
+        }
+
+        const normalizedEmail = normalizedInput.includes('@')
+            ? normalizedInput
+            : String(allowedUser?.email || '').trim().toLowerCase();
+
+        return { normalizedEmail, allowedUser };
+    };
+
     const handleEmailSubmit = async (e) => {
         e.preventDefault();
         setError('');
         setSubmitting(true);
-        try {
-            const normalizedEmail = email.trim().toLowerCase();
 
-            // 1. Check if email is in the allowed list first if possible
-            // Note: If Firestore rules are tight, this might fail until signed in.
-            // So we'll check after sign-in for simplicity and consistency.
+        const signInHelpMessage = lang === 'ar'
+            ? 'البريد الإلكتروني أو كلمة المرور غير صحيحة. إذا كانت هذه أول مرة، استخدم تبويب "إنشاء حساب" أولاً.'
+            : 'Invalid email or password. If this is your first time, use the "Create Account" tab first.';
+        const missingIdentifierMessage = lang === 'ar'
+            ? 'يرجى إدخال البريد الإلكتروني أو اسم المستخدم.'
+            : 'Please enter a valid email or invited username.';
+
+        try {
+            const { normalizedEmail, allowedUser: preResolvedAllowedUser } = await resolveAllowedUser(email);
+
+            if (!normalizedEmail) {
+                setError(missingIdentifierMessage);
+                return;
+            }
 
             if (mode === 'signup') {
-                const allowedUser = await dataClient.getUserByEmail(normalizedEmail);
+                const allowedUser = preResolvedAllowedUser || await dataClient.getUserByEmail(normalizedEmail).catch(() => null);
                 if (!allowedUser) {
                     setError(tr.unauthorizedMessage);
-                    setSubmitting(false);
                     return;
                 }
                 await signUpWithEmail(normalizedEmail, password);
@@ -141,27 +167,24 @@ const Login = () => {
                 try {
                     await signInWithEmail(normalizedEmail, password);
                 } catch (signinErr) {
-                    // Check if they are in the allowed list but haven't created an account yet
                     if (signinErr.code === 'auth/user-not-found' || signinErr.code === 'auth/invalid-credential') {
-                        const isAllowed = await dataClient.getUserByEmail(normalizedEmail).catch(() => null);
-                        if (isAllowed) {
-                            setError(lang === 'ar' ? 'بريدك الإلكتروني معتمد، ولكن لم يتم إنشاء حسابك بعد. يرجى استخدام علامة تبويب "إنشاء حساب".' : 'Your email is authorized, but your account hasn\'t been created yet. Please use the "Create Account" tab.');
-                            setSubmitting(false);
+                        const allowedUser = preResolvedAllowedUser || await dataClient.getUserByEmail(normalizedEmail).catch(() => null);
+                        if (allowedUser) {
+                            setError(signInHelpMessage);
                             return;
                         }
                     }
-                    throw signinErr; // Fall through to standard error handling
+                    throw signinErr;
                 }
 
-                // Double check allowed list after successful sign in for extra security
-                const allowedUser = await dataClient.getUserByEmail(normalizedEmail);
+                const allowedUser = preResolvedAllowedUser || await dataClient.getUserByEmail(normalizedEmail);
                 if (!allowedUser) {
                     await signOutUser();
                     setError(tr.unauthorizedMessage);
-                    setSubmitting(false);
                     return;
                 }
             }
+
             navigate(from, { replace: true });
         } catch (err) {
             setError(formatAuthError(err, lang));
@@ -169,7 +192,6 @@ const Login = () => {
             setSubmitting(false);
         }
     };
-
     const handleGoogle = async () => {
         setError('');
         setSubmitting(true);
@@ -274,17 +296,19 @@ const Login = () => {
 
                         <form onSubmit={handleEmailSubmit} className="space-y-3">
                             <label className="block">
-                                <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">{tr.email}</span>
+                                <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">
+                                    {lang === 'ar' ? 'البريد الإلكتروني / اسم المستخدم' : 'Email / Username'}
+                                </span>
                                 <div className="relative">
                                     <Mail className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                                     <input
-                                        type="email"
+                                        type="text"
                                         required
-                                        autoComplete="email"
+                                        autoComplete="username"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
                                         className="w-full rounded-xl border border-slate-300 bg-white py-3 ps-10 pe-3 text-sm font-medium text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
-                                        placeholder={tr.placeholderEmail}
+                                        placeholder={lang === 'ar' ? 'you@example.com أو username' : 'you@example.com or username'}
                                     />
                                 </div>
                             </label>
@@ -333,3 +357,4 @@ const Login = () => {
 };
 
 export default Login;
+

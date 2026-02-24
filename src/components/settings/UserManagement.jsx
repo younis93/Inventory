@@ -18,8 +18,6 @@ import DeleteConfirmModal from '../common/DeleteConfirmModal';
 import ImageWithFallback from '../common/ImageWithFallback';
 import SearchableSelect from '../SearchableSelect';
 
-const isStrongPassword = (value) => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/.test(String(value || ''));
-
 const defaultUserForm = {
     displayName: '',
     username: '',
@@ -99,26 +97,9 @@ const UserManagement = () => {
             email: userForm.email.trim()
         };
 
-        if (!editingUser) {
-            if (!payload.password) {
-                addToast('Password is required when creating a user.', 'error');
-                return;
-            }
-            if (!isStrongPassword(payload.password)) {
-                addToast('Password must be 8+ chars with upper, lower, number, and symbol.', 'error');
-                return;
-            }
-        } else if (payload.password && !isStrongPassword(payload.password)) {
-            addToast('Password must be 8+ chars with upper, lower, number, and symbol.', 'error');
-            return;
-        }
-
         try {
             if (editingUser) {
                 const updatePayload = { ...payload, _id: editingUser._id };
-                if (!updatePayload.password) {
-                    delete updatePayload.password;
-                }
                 await updateUser(updatePayload);
                 addToast(t('settings.toasts.userUpdated'), 'success');
             } else {
@@ -393,15 +374,10 @@ const UserManagement = () => {
                                         value={userForm.password}
                                         onChange={(event) => setUserForm((prev) => ({ ...prev, password: event.target.value }))}
                                         className="w-full p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700 dark:text-white outline-none focus:ring-2 focus:ring-accent/20 transition-all font-medium"
-                                        required={!editingUser}
                                     />
                                     <p className="mt-1.5 ml-1 flex items-start gap-1.5 text-[10px] text-slate-500 dark:text-slate-400 leading-tight">
                                         <Info className="w-3 h-3 mt-0.5 shrink-0 text-accent/70" />
                                         {t('settings.passwordHint')}
-                                    </p>
-                                    <p className="mt-1 ml-1 flex items-start gap-1.5 text-[10px] text-slate-500 dark:text-slate-400 leading-tight">
-                                        <AlertCircle className="w-3 h-3 mt-0.5 shrink-0 text-orange-500" />
-                                        Use 8+ chars with uppercase, lowercase, number, and symbol.
                                     </p>
                                 </div>
 
