@@ -213,12 +213,24 @@ const BrandingSettings = () => {
 
                 <label className="space-y-1">
                     <span className="text-xs font-bold uppercase tracking-wide text-slate-500">{t('settings.customColor')}</span>
-                    <input
-                        type="color"
-                        value={brandForm.color || '#1e3a5f'}
-                        onChange={(event) => setBrandForm((prev) => ({ ...prev, color: event.target.value }))}
-                        className="w-full h-12 p-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent"
-                    />
+                    <div className="h-12 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 flex items-center justify-between">
+                        <span className="text-xs font-mono font-bold text-slate-500 uppercase">
+                            {brandForm.color || '#1E3A5F'}
+                        </span>
+                        <label className="relative w-9 h-9 rounded-full overflow-hidden cursor-pointer border border-slate-200 dark:border-slate-700 shadow-sm">
+                            <span
+                                className="absolute inset-0 rounded-full pointer-events-none"
+                                style={{ backgroundColor: brandForm.color || '#1e3a5f' }}
+                            />
+                            <input
+                                type="color"
+                                value={brandForm.color || '#1e3a5f'}
+                                onChange={(event) => setBrandForm((prev) => ({ ...prev, color: event.target.value }))}
+                                className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                                aria-label={t('settings.customColor')}
+                            />
+                        </label>
+                    </div>
                 </label>
 
                 <label className="space-y-1 lg:col-span-2">

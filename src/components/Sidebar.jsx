@@ -77,8 +77,8 @@ const Sidebar = () => {
                     <div
                         className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg text-white overflow-hidden shrink-0"
                         style={{
-                            backgroundColor: brand.logo ? 'transparent' : brand.color,
-                            boxShadow: brand.logo ? 'none' : `0 10px 15px -3px ${brand.color}33`
+                            backgroundColor: brand.logo ? 'transparent' : 'var(--accent-color)',
+                            boxShadow: brand.logo ? 'none' : '0 10px 15px -3px color-mix(in srgb, var(--accent-color), transparent 80%)'
                         }}
                     >
                         {brand.logo ? (
@@ -165,7 +165,7 @@ const Sidebar = () => {
                         <div className="relative shrink-0 w-10 h-10">
                             <div
                                 className="w-full h-full text-white rounded-full flex items-center justify-center font-bold text-lg overflow-hidden"
-                                style={{ backgroundColor: brand.color }}
+                                style={{ backgroundColor: 'var(--accent-color)' }}
                             >
                                 {profileUser?.photoURL ? (
                                     <img src={profileUser.photoURL} alt="User" className="w-full h-full object-cover" />
@@ -215,7 +215,7 @@ const Sidebar = () => {
                 onClick={toggleSidebar}
                 aria-label={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                 className={`hidden lg:flex absolute bottom-24 ${isRTL ? '-left-3' : '-right-3'} w-6 h-6 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full items-center justify-center text-slate-400 shadow-sm z-50 transition-all hover:scale-110`}
-                style={{ color: brand.color }}
+                style={{ color: 'var(--accent-color)' }}
             >
                 {isSidebarCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
             </button>

@@ -50,10 +50,19 @@ const UserManagement = () => {
     const currentRole = currentUser?.role || 'Sales';
 
     const filteredUsers = useMemo(() => {
-        if (currentRole === 'Admin' || currentRole === 'Manager') {
-            return users;
-        }
-        return users.filter((user) => user.email === authUser?.email);
+        const roleOrder = { Admin: 0, Manager: 1, Sales: 2 };
+        const visibleUsers = (currentRole === 'Admin' || currentRole === 'Manager')
+            ? users
+            : users.filter((user) => user.email === authUser?.email);
+
+        return [...visibleUsers].sort((a, b) => {
+            const roleDelta = (roleOrder[a.role] ?? 99) - (roleOrder[b.role] ?? 99);
+            if (roleDelta !== 0) return roleDelta;
+
+            const aName = (a.displayName || a.username || a.email || '').toLowerCase();
+            const bName = (b.displayName || b.username || b.email || '').toLowerCase();
+            return aName.localeCompare(bName);
+        });
     }, [authUser?.email, currentRole, users]);
 
     const roleOptions = useMemo(() => ([
@@ -336,7 +345,6 @@ const UserManagement = () => {
                         <form onSubmit={handleUserSubmit} className="space-y-4">
                             <div className="space-y-4 max-h-[60vh] overflow-y-auto px-1 custom-scrollbar">
                                 <div>
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('settings.placeholders.displayName')}</label>
                                     <input
                                         required
                                         placeholder={t('settings.placeholders.displayName')}
@@ -347,7 +355,6 @@ const UserManagement = () => {
                                 </div>
 
                                 <div>
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('settings.placeholders.username')}</label>
                                     <input
                                         required
                                         placeholder={t('settings.placeholders.username')}
@@ -358,7 +365,6 @@ const UserManagement = () => {
                                 </div>
 
                                 <div>
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('settings.placeholders.email')}</label>
                                     <input
                                         required
                                         placeholder={t('settings.placeholders.email')}
@@ -370,7 +376,6 @@ const UserManagement = () => {
                                 </div>
 
                                 <div>
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('settings.table.role')}</label>
                                     <SearchableSelect
                                         title={t('common.select')}
                                         options={roleOptions}
@@ -382,9 +387,6 @@ const UserManagement = () => {
                                 </div>
 
                                 <div className="pt-2 border-t border-slate-100 dark:border-slate-700">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                                        {editingUser ? t('settings.placeholders.passwordKeep') : t('settings.placeholders.password')}
-                                    </label>
                                     <input
                                         placeholder={editingUser ? t('settings.placeholders.passwordKeep') : t('settings.placeholders.password')}
                                         type="password"

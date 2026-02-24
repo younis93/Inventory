@@ -23,7 +23,6 @@ export const SOCIAL_PLATFORMS = [
     "Facebook",
     "Instagram",
     "TikTok",
-    "Snapchat",
     "Telegram",
     "WhatsApp",
     "Other"

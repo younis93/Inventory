@@ -52,7 +52,7 @@ const FilterCard = ({ title, options, selectedValues, onChange, onClear, showPro
                 </div>
             )}
 
-            <div className={`flex-1 px-2 pb-2 space-y-1 max-h-64 overflow-y-auto ${!isOpen ? 'hidden' : ''}`}>
+            <div className={`flex-1 px-2 pb-2 space-y-1 max-h-64 overflow-y-auto hide-scrollbar ${!isOpen ? 'hidden' : ''}`}>
                 {filteredOptions.map((option) => {
                     const isSelected = selectedValues.includes(option.value);
                     return (
@@ -63,23 +63,23 @@ const FilterCard = ({ title, options, selectedValues, onChange, onClear, showPro
                             key={option.value}
                             onClick={() => handleToggle(option.value)}
                             aria-label={`${option.label} ${isSelected ? 'selected' : 'not selected'}`}
-                            className={`flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer transition-all group ${isSelected
+                            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer transition-all group ${isSelected
                                 ? 'bg-accent/10'
                                 : (['liquid', 'default_glass'].includes(appearance?.theme) ? 'hover:bg-white/20 dark:hover:bg-slate-700/30' : 'hover:bg-slate-50 dark:hover:bg-slate-700/50')
                                 }`}
                         >
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
                                 <div className={`w-5 h-5 rounded-[5px] border flex items-center justify-center transition-all ${isSelected
                                     ? 'bg-accent border-accent shadow-sm'
                                     : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800'
                                     }`}>
                                     {isSelected && <Check className="w-3.5 h-3.5 text-white stroke-[3px]" />}
                                 </div>
-                                <span className={`text-sm font-semibold ${isSelected ? 'text-accent' : 'text-slate-600 dark:text-slate-300'}`}>
+                                <span className={`text-sm font-semibold truncate ${isSelected ? 'text-accent' : 'text-slate-600 dark:text-slate-300'}`}>
                                     {option.label}
                                 </span>
                             </div>
-                            <span className={`text-xs font-bold ${isSelected ? 'text-accent' : 'text-slate-400 group-hover:text-slate-500'}`}>
+                            <span className={`ms-3 shrink-0 text-xs font-bold ${isSelected ? 'text-accent' : 'text-slate-400 group-hover:text-slate-500'}`}>
                                 {option.count}
                             </span>
                         </button>

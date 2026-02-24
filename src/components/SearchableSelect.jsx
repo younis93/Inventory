@@ -248,16 +248,16 @@ const SearchableSelect = ({
                                         aria-selected={isSelected}
                                         onClick={() => handleSelect(option.value)}
                                         onMouseEnter={() => setHighlightedIndex(optionIndex)}
-                                        className={`flex items-center justify-between px-3 py-2 rounded-xl cursor-pointer transition-all group ${isSelected
+                                        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl cursor-pointer transition-all group ${isSelected
                                             ? 'bg-accent/10 text-accent font-bold'
                                             : 'hover:bg-slate-50 dark:hover:bg-slate-700/50 text-slate-600 dark:text-slate-300'
                                             }`}
                                     >
-                                        <span className={`text-xs font-semibold ${isSelected ? 'text-accent' : 'text-slate-600 dark:text-slate-300'}`}>
+                                        <span className={`text-xs font-semibold min-w-0 flex-1 truncate text-start ${isSelected ? 'text-accent' : 'text-slate-600 dark:text-slate-300'}`}>
                                             {option.label}
                                         </span>
                                         {isSelected && (
-                                            <div className="w-1.5 h-1.5 rounded-full bg-accent shadow-[0_0_8px_var(--accent-color)]" />
+                                            <div className="ms-3 me-1 w-1.5 h-1.5 rounded-full bg-accent shadow-[0_0_8px_var(--accent-color)] shrink-0" />
                                         )}
                                     </button>
                                 );

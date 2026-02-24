@@ -33,6 +33,41 @@ const DEFAULT_APPEARANCE = {
     accentGradient: { start: '#EC4899', end: '#8B5CF6' }
 };
 
+const getAppearanceStorageKey = (user) => (user?.uid ? `appearance:${user.uid}` : 'appearance');
+
+const normalizeAppearance = (parsed) => {
+    const rawTheme = parsed?.theme;
+    const isLegacyGlassTheme = rawTheme === 'liquid' || rawTheme === 'default_glass';
+    const normalizedTheme = isLegacyGlassTheme ? DEFAULT_APPEARANCE.theme : (rawTheme || DEFAULT_APPEARANCE.theme);
+
+    return {
+        theme: normalizedTheme,
+        glassBackground: parsed?.glassBackground ?? isLegacyGlassTheme ?? DEFAULT_APPEARANCE.glassBackground,
+        accentType: parsed?.accentType || DEFAULT_APPEARANCE.accentType,
+        accentColor: parsed?.accentColor || DEFAULT_APPEARANCE.accentColor,
+        accentGradient: {
+            start: parsed?.accentGradient?.start || DEFAULT_APPEARANCE.accentGradient.start,
+            end: parsed?.accentGradient?.end || DEFAULT_APPEARANCE.accentGradient.end
+        }
+    };
+};
+
+const readAppearanceFromStorage = (storageKey) => {
+    try {
+        const scoped = localStorage.getItem(storageKey);
+        if (scoped) return normalizeAppearance(JSON.parse(scoped));
+
+        if (storageKey !== 'appearance') {
+            const legacy = localStorage.getItem('appearance');
+            if (legacy) return normalizeAppearance(JSON.parse(legacy));
+        }
+    } catch (error) {
+        console.error('Error loading appearance settings:', error);
+    }
+
+    return DEFAULT_APPEARANCE;
+};
+
 const DEFAULT_EXPENSE_TYPES = ['Social Media Post', 'Social Media Reels', 'Other'];
 
 const DEFAULT_BRAND = {
@@ -158,25 +193,27 @@ export const InventoryProvider = ({ children }) => {
         }, 3000);
     }, []);
 
-    const [appearance, setAppearanceState] = useState(() => {
-        try {
-            const saved = localStorage.getItem('appearance');
-            const parsed = saved ? JSON.parse(saved) : null;
-            const rawTheme = parsed?.theme;
-            const isLegacyGlassTheme = rawTheme === 'liquid' || rawTheme === 'default_glass';
-            const normalizedTheme = isLegacyGlassTheme ? DEFAULT_APPEARANCE.theme : (rawTheme || DEFAULT_APPEARANCE.theme);
-            return {
-                theme: normalizedTheme,
-                glassBackground: parsed?.glassBackground ?? isLegacyGlassTheme ?? DEFAULT_APPEARANCE.glassBackground,
-                accentType: parsed?.accentType || DEFAULT_APPEARANCE.accentType,
-                accentColor: parsed?.accentColor || DEFAULT_APPEARANCE.accentColor,
-                accentGradient: parsed?.accentGradient || DEFAULT_APPEARANCE.accentGradient
-            };
-        } catch (error) {
-            console.error('Error loading appearance settings:', error);
-            return DEFAULT_APPEARANCE;
+    const [appearance, setAppearanceState] = useState(() =>
+        readAppearanceFromStorage(getAppearanceStorageKey(authUser))
+    );
+
+    useEffect(() => {
+        const storageKey = getAppearanceStorageKey(authUser);
+
+        // One-time migration from legacy shared key to user-scoped key.
+        if (storageKey !== 'appearance') {
+            try {
+                const scoped = localStorage.getItem(storageKey);
+                const legacy = localStorage.getItem('appearance');
+                if (!scoped && legacy) {
+                    localStorage.setItem(storageKey, legacy);
+                }
+            } catch (_) { }
         }
-    });
+
+        const userAppearance = readAppearanceFromStorage(storageKey);
+        setAppearanceState(userAppearance);
+    }, [authUser?.uid]);
 
     const activateDomain = useCallback((domain) => {
         setDomainSubscribers((prev) => ({ ...prev, [domain]: (prev[domain] || 0) + 1 }));
@@ -411,8 +448,14 @@ export const InventoryProvider = ({ children }) => {
 
     const setAppearance = (newAppearance) => {
         setAppearanceState((prev) => {
-            const updated = { ...prev, ...newAppearance };
-            localStorage.setItem('appearance', JSON.stringify(updated));
+            const updated = normalizeAppearance({
+                ...prev,
+                ...newAppearance,
+                accentGradient: newAppearance?.accentGradient
+                    ? { ...prev.accentGradient, ...newAppearance.accentGradient }
+                    : prev.accentGradient
+            });
+            localStorage.setItem(getAppearanceStorageKey(authUser), JSON.stringify(updated));
             return updated;
         });
     };
@@ -423,12 +466,13 @@ export const InventoryProvider = ({ children }) => {
         maximumFractionDigits: 0
     }).format(amount);
 
-    const brand = useMemo(() => {
-        const color = appearance.accentType === 'gradient'
-            ? appearance.accentGradient.start
-            : appearance.accentColor;
-        return { ...settingsDomain.brand, color };
-    }, [settingsDomain.brand, appearance]);
+    const brand = useMemo(
+        () => ({
+            ...settingsDomain.brand,
+            color: settingsDomain.brand?.color || DEFAULT_BRAND.color
+        }),
+        [settingsDomain.brand]
+    );
 
     const settingsLoading = settingsDomain.loading;
     const loading = settingsLoading ||

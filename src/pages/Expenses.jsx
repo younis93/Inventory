@@ -881,11 +881,11 @@ const Expenses = () => {
                                                     showOutsideDays
                                                     classNames={{
                                                         months: 'flex',
-                                                        month: 'w-full',
-                                                        month_caption: 'flex items-center justify-between mb-3',
-                                                        caption: 'm-0',
+                                                        month: 'relative w-full',
+                                                        month_caption: 'relative mb-3 pe-20 h-10 flex items-center',
+                                                        caption: 'm-0 flex items-center',
                                                         caption_label: 'm-0 leading-none text-xl font-extrabold text-slate-800 dark:text-white',
-                                                        nav: 'relative z-10 flex items-center gap-1',
+                                                        nav: 'absolute right-0 top-0 h-10 z-10 flex items-center gap-1',
                                                         nav_button: 'h-8 w-8 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center',
                                                         button_previous: '!static',
                                                         button_next: '!static',
