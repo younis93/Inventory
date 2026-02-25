@@ -3,6 +3,7 @@ import {
     EmailAuthProvider,
     GoogleAuthProvider,
     createUserWithEmailAndPassword,
+    sendPasswordResetEmail,
     onIdTokenChanged,
     onAuthStateChanged,
     reauthenticateWithCredential,
@@ -91,6 +92,67 @@ export const AuthProvider = ({ children }) => {
             await reauthenticateWithCredential(auth.currentUser, credential);
             await updatePassword(auth.currentUser, newPassword);
         },
+        createManagedUserAccount: async (email, password, displayName = '') => {
+            const apiKey = import.meta.env.VITE_FIREBASE_API_KEY;
+            if (!apiKey) throw new Error('Missing Firebase API key.');
+
+            const normalizedEmail = String(email || '').trim().toLowerCase();
+            if (!normalizedEmail) throw new Error('Email is required.');
+            if (!password || String(password).length < 6) {
+                throw new Error('Password must be at least 6 characters.');
+            }
+
+            const parseIdentityError = async (response) => {
+                const payload = await response.json().catch(() => null);
+                const message = payload?.error?.message || `HTTP_${response.status}`;
+                const error = new Error(message);
+                error.code = message;
+                return error;
+            };
+
+            const signUpResponse = await fetch(
+                `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${apiKey}`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: normalizedEmail,
+                        password: String(password),
+                        returnSecureToken: true
+                    })
+                }
+            );
+
+            if (!signUpResponse.ok) throw await parseIdentityError(signUpResponse);
+            const signUpResult = await signUpResponse.json();
+
+            const safeDisplayName = String(displayName || '').trim();
+            if (safeDisplayName && signUpResult?.idToken) {
+                const profileResponse = await fetch(
+                    `https://identitytoolkit.googleapis.com/v1/accounts:update?key=${apiKey}`,
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            idToken: signUpResult.idToken,
+                            displayName: safeDisplayName,
+                            returnSecureToken: false
+                        })
+                    }
+                );
+                if (!profileResponse.ok) throw await parseIdentityError(profileResponse);
+            }
+
+            return {
+                uid: signUpResult.localId,
+                email: signUpResult.email || normalizedEmail
+            };
+        },
+        sendPasswordReset: async (email) => {
+            const normalizedEmail = String(email || '').trim().toLowerCase();
+            if (!normalizedEmail) throw new Error('Email is required.');
+            await sendPasswordResetEmail(auth, normalizedEmail);
+        }
     }), [user, loading]);
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

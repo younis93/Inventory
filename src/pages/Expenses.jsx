@@ -697,20 +697,20 @@ const Expenses = () => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-4">
-                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">{t('expenses.totalSpend')}</p>
-                    <p className="text-2xl font-black text-slate-900 dark:text-white">{formatCurrency(totalSpend)}</p>
+            <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-6">
+                <div className="min-w-0 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-2.5 sm:p-4">
+                    <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">{t('expenses.totalSpend')}</p>
+                    <p className="truncate text-sm sm:text-2xl font-black text-slate-900 dark:text-white">{formatCurrency(totalSpend)}</p>
                 </div>
-                <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-4">
-                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">{t('expenses.topType')}</p>
-                    <p className="text-xl font-black text-slate-900 dark:text-white">{spendByType[0]?.[0] || 'N/A'}</p>
-                    <p className="text-sm text-slate-500">{formatCurrency(spendByType[0]?.[1] || 0)}</p>
+                <div className="min-w-0 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-2.5 sm:p-4">
+                    <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">{t('expenses.topType')}</p>
+                    <p className="truncate text-sm sm:text-xl font-black text-slate-900 dark:text-white">{spendByType[0]?.[0] || 'N/A'}</p>
+                    <p className="truncate text-[11px] sm:text-sm text-slate-500">{formatCurrency(spendByType[0]?.[1] || 0)}</p>
                 </div>
-                <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-4">
-                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">{t('expenses.topCampaign')}</p>
-                    <p className="text-xl font-black text-slate-900 dark:text-white">{spendByCampaign[0]?.[0] || 'N/A'}</p>
-                    <p className="text-sm text-slate-500">{formatCurrency(spendByCampaign[0]?.[1] || 0)}</p>
+                <div className="min-w-0 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-2.5 sm:p-4">
+                    <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">{t('expenses.topCampaign')}</p>
+                    <p className="truncate text-sm sm:text-xl font-black text-slate-900 dark:text-white">{spendByCampaign[0]?.[0] || 'N/A'}</p>
+                    <p className="truncate text-[11px] sm:text-sm text-slate-500">{formatCurrency(spendByCampaign[0]?.[1] || 0)}</p>
                 </div>
             </div>
 

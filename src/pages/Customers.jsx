@@ -11,6 +11,7 @@ import CustomersCardGrid from '../components/customers/CustomersCardGrid';
 import CustomersHeader from '../components/customers/CustomersHeader';
 import CustomersTable from '../components/customers/CustomersTable';
 import OrderHistoryModal from '../components/customers/OrderHistoryModal';
+import { printReceipt } from '../components/orders/ReceiptPrinter';
 
 const INITIAL_FORM_STATE = {
     name: '',
@@ -327,60 +328,22 @@ const Customers = () => {
     };
 
     const handlePrintOrder = (order) => {
-        const printWindow = window.open('', '_blank');
-        if (!printWindow) return;
-
-        printWindow.document.write(`
-            <html>
-                <head>
-                    <title>${t('customers.receipt.title')} ${order.orderId}</title>
-                    <style>
-                        body { font-family: sans-serif; padding: 20px; direction: ${document.dir}; }
-                        .header { text-align: center; margin-bottom: 20px; }
-                        .order-info { margin-bottom: 20px; border-bottom: 1px solid #ccc; padding-bottom: 10px; }
-                        table { width: 100%; border-collapse: collapse; }
-                        th, td { text-align: ${document.dir === 'rtl' ? 'right' : 'left'}; padding: 8px; border-bottom: 1px solid #eee; }
-                        .total { text-align: ${document.dir === 'rtl' ? 'left' : 'right'}; font-weight: bold; font-size: 1.2em; margin-top: 20px; }
-                    </style>
-                </head>
-                <body>
-                    <div class="header">
-                        <h1>${t('customers.receipt.title')}</h1>
-                        <h3>${order.orderId}</h3>
-                    </div>
-                    <div class="order-info">
-                        <p><strong>${t('customers.receipt.customer')}:</strong> ${order.customer.name}</p>
-                        <p><strong>${t('customers.receipt.date')}:</strong> ${order.date}</p>
-                        <p><strong>${t('customers.receipt.status')}:</strong> ${order.status}</p>
-                    </div>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>${t('customers.receipt.item')}</th>
-                                <th>${t('customers.receipt.qty')}</th>
-                                <th>${t('customers.receipt.price')}</th>
-                                <th>${t('customers.receipt.total')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${(order.items || []).map((item) => `
-                                <tr>
-                                    <td>${item.product.name}</td>
-                                    <td>${item.quantity}</td>
-                                    <td>${new Intl.NumberFormat('en-IQ', { style: 'currency', currency: 'IQD', maximumFractionDigits: 0 }).format(item.price)}</td>
-                                    <td>${new Intl.NumberFormat('en-IQ', { style: 'currency', currency: 'IQD', maximumFractionDigits: 0 }).format(item.price * item.quantity)}</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                    <div class="total">
-                        ${t('customers.receipt.total')}: ${new Intl.NumberFormat('en-IQ', { style: 'currency', currency: 'IQD', maximumFractionDigits: 0 }).format(order.total)}
-                    </div>
-                    <script>window.onload = function() { window.print(); window.close(); }</script>
-                </body>
-            </html>
-        `);
-        printWindow.document.close();
+        void (async () => {
+            const result = await printReceipt({
+                order,
+                brand,
+                formatCurrency,
+                t,
+                options: { source: 'customers' }
+            });
+            if (result?.status === 'timeout') {
+                addToast(t('common.printFlow.timeout'), 'warning');
+            } else if (result?.status === 'popup-blocked') {
+                addToast(`${t('common.printFlow.popupBlocked')} ${t('common.printFlow.retrySafari')}`, 'warning');
+            } else if (result?.popupBlocked) {
+                addToast(t('common.printFlow.popupBlocked'), 'info');
+            }
+        })();
     };
 
     const getSocialIcon = (platform) => {

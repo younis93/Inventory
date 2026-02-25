@@ -448,8 +448,15 @@ const Orders = () => {
             } else {
                 const created = await addOrder(payload);
                 if (created) {
-                    setTimeout(() => {
-                        printReceipt({ order: created, brand, formatCurrency, t });
+                    setTimeout(async () => {
+                        const result = await printReceipt({
+                            order: created,
+                            brand,
+                            formatCurrency,
+                            t,
+                            options: { source: 'orders' }
+                        });
+                        notifyPrintResult(result);
                     }, 800);
                 }
             }
@@ -474,6 +481,21 @@ const Orders = () => {
     const canDeleteOrder = (order) => (
         currentUser?.role !== 'Sales' || !isBefore(parseISO(order.date), startOfDay(new Date()))
     );
+
+    const notifyPrintResult = (result) => {
+        if (!result) return;
+        if (result.status === 'timeout') {
+            addToast(t('common.printFlow.timeout'), 'warning');
+            return;
+        }
+        if (result.status === 'popup-blocked') {
+            addToast(`${t('common.printFlow.popupBlocked')} ${t('common.printFlow.retrySafari')}`, 'warning');
+            return;
+        }
+        if (result.popupBlocked) {
+            addToast(t('common.printFlow.popupBlocked'), 'info');
+        }
+    };
 
     const handleExportCSV = () => {
         if (filteredAndSortedOrders.length === 0) {
@@ -502,7 +524,16 @@ const Orders = () => {
     };
 
     const handleThermalPrint = (order) => {
-        printReceipt({ order, brand, formatCurrency, t });
+        void (async () => {
+            const result = await printReceipt({
+                order,
+                brand,
+                formatCurrency,
+                t,
+                options: { source: 'orders' }
+            });
+            notifyPrintResult(result);
+        })();
     };
 
     return (

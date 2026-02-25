@@ -114,7 +114,7 @@ const Sidebar = () => {
             </div>
 
             {/* Navigation */}
-            <nav className="flex-1 overflow-hidden py-2 px-3 space-y-1">
+            <nav className="flex-1 overflow-hidden pt-5 pb-2 px-3 space-y-1">
                 {menuItems.map((item) => {
                     const isActive = location.pathname === item.path;
                     return (
@@ -147,7 +147,7 @@ const Sidebar = () => {
             </nav>
 
             {/* Bottom User Section */}
-            <div className="p-3 mt-auto border-t border-slate-100 dark:border-slate-800/50">
+            <div className="p-3 mt-auto mb-6 lg:mb-3 border-t border-slate-100 dark:border-slate-800/50">
                 <div className="relative" ref={profileMenuRef}>
                     <button
                         type="button"

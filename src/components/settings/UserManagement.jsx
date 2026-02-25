@@ -28,7 +28,7 @@ const defaultUserForm = {
 
 const UserManagement = () => {
     const { t } = useTranslation();
-    const { user: authUser } = useAuth();
+    const { user: authUser, createManagedUserAccount, sendPasswordReset } = useAuth();
     const { addToast } = useInventory();
     const { users, currentUser, addUser, updateUser, deleteUser } = useSettings();
 
@@ -96,20 +96,65 @@ const UserManagement = () => {
             username: userForm.username.trim(),
             email: userForm.email.trim()
         };
+        const password = String(payload.password || '');
+        const hasPasswordInput = password.trim().length > 0;
 
         try {
+            if (hasPasswordInput && password.trim().length < 6) {
+                addToast(t('settings.errors.passwordMinLength'), 'error');
+                return;
+            }
+
+            const prepareAuthPayload = async (targetUser = null) => {
+                if (!hasPasswordInput) return {};
+
+                const normalizedEmail = payload.email.toLowerCase();
+                const displayName = payload.displayName || payload.username;
+
+                if (targetUser?.uid) {
+                    await sendPasswordReset(normalizedEmail);
+                    addToast(t('settings.toasts.passwordResetSent'), 'info');
+                    return {};
+                }
+
+                try {
+                    const createdAuth = await createManagedUserAccount(normalizedEmail, password.trim(), displayName);
+                    addToast(t('settings.toasts.passwordProvisioned'), 'success');
+                    return { uid: createdAuth.uid };
+                } catch (error) {
+                    const errorCode = String(error?.code || error?.message || '');
+                    if (errorCode.includes('EMAIL_EXISTS')) {
+                        await sendPasswordReset(normalizedEmail);
+                        addToast(t('settings.toasts.passwordResetSent'), 'info');
+                        return {};
+                    }
+                    throw error;
+                }
+            };
+
             if (editingUser) {
-                const updatePayload = { ...payload, _id: editingUser._id };
+                const authPayload = await prepareAuthPayload(editingUser);
+                const updatePayload = { ...payload, ...authPayload, _id: editingUser._id };
                 await updateUser(updatePayload);
                 addToast(t('settings.toasts.userUpdated'), 'success');
             } else {
-                await addUser(payload);
+                const authPayload = await prepareAuthPayload();
+                await addUser({ ...payload, ...authPayload });
                 addToast(t('settings.toasts.userCreated'), 'success');
             }
             setIsAddUserModalOpen(false);
+            setEditingUser(null);
+            setUserForm(defaultUserForm);
         } catch (error) {
             console.error('User management error:', error);
-            addToast('Failed to save user.', 'error');
+            const errorCode = String(error?.code || error?.message || '');
+            if (errorCode.includes('EMAIL_EXISTS')) {
+                addToast(t('settings.errors.emailExists'), 'error');
+            } else if (errorCode.includes('auth/invalid-email') || errorCode.includes('INVALID_EMAIL')) {
+                addToast(t('settings.errors.invalidEmail'), 'error');
+            } else {
+                addToast(error?.message || 'Failed to save user.', 'error');
+            }
         }
     };
 

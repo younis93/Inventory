@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import Layout from '../components/Layout';
 import { Search, Plus, Filter, Edit, Trash2, Image as ImageIcon, Download, Package, ShoppingBag, User } from 'lucide-react';
-import { useInventory, useProducts } from '../context/InventoryContext';
+import { useInventory, useProducts, usePurchases } from '../context/InventoryContext';
 import { useTranslation } from 'react-i18next';
 import CategoryManagerModal from '../components/CategoryManagerModal';
 import FilterDropdown from '../components/FilterDropdown';
@@ -57,6 +57,7 @@ const Products = () => {
     const { t } = useTranslation();
     const navigate = useNavigate();
     const { products, categories, addProduct, updateProduct, deleteProduct, addCategory, updateCategory, deleteCategory } = useProducts();
+    const { purchases } = usePurchases();
     const { formatCurrency, loading, brand, addToast, appearance, setIsModalOpen: setGlobalModalOpen } = useInventory();
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategories, setSelectedCategories] = useState([]);
@@ -76,6 +77,15 @@ const Products = () => {
     // New delete confirmation state
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [productToDelete, setProductToDelete] = useState(null);
+
+    const purchaseCountByProductId = useMemo(() => {
+        const counts = {};
+        (purchases || []).forEach((purchase) => {
+            if (!purchase?.productId) return;
+            counts[purchase.productId] = (counts[purchase.productId] || 0) + 1;
+        });
+        return counts;
+    }, [purchases]);
 
     // Sync to global modal state
     useEffect(() => {
@@ -595,7 +605,9 @@ const Products = () => {
                                     <ImageIcon className="w-12 h-12 mx-auto mb-2 opacity-20" />
                                     <p className="font-bold uppercase tracking-widest text-xs">{t('products.noProducts')}</p>
                                 </td></tr>
-                            ) : filteredProducts.map((product) => (
+                            ) : filteredProducts.map((product) => {
+                                const purchaseCount = purchaseCountByProductId[product._id] || 0;
+                                return (
                                 <tr key={product._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/50 transition-colors">
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-4">
@@ -638,10 +650,12 @@ const Products = () => {
                                         <div className="flex items-center justify-end gap-1">
                                             <button
                                                 onClick={() => navigate(`/purchases?productId=${product._id}`)}
-                                                className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-all"
+                                                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2 py-1.5 text-slate-500 hover:border-indigo-200 hover:text-indigo-600 hover:bg-indigo-50 dark:border-slate-700 dark:hover:bg-indigo-900/20 transition-all"
                                                 title={t('purchases.viewPurchases')}
+                                                aria-label={`${t('purchases.viewPurchases')}: ${purchaseCount}`}
                                             >
                                                 <ShoppingBag className="w-4 h-4" />
+                                                <span className="text-[11px] font-bold leading-none">{purchaseCount}</span>
                                             </button>
                                             <button onClick={() => openEditModal(product)} className="p-2 text-slate-400 hover:text-[var(--brand-color)] hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all" title={t('common.edit')}>
                                                 <Edit className="w-4 h-4" />
@@ -652,7 +666,8 @@ const Products = () => {
                                         </div>
                                     </td>
                                 </tr>
-                            ))}
+                                );
+                            })}
                         </tbody>
                     </table>
                     </div>

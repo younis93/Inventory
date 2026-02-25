@@ -67,7 +67,12 @@
         "perUnit": "per unit",
         "createdBy": "Created By",
         "verified": "Linked",
-        "pending": "Pending"
+        "pending": "Pending",
+        "printFlow": {
+            "timeout": "Print did not finish. Retry. If needed, open in Safari and print again.",
+            "popupBlocked": "Print popup was blocked. Retrying with in-app print.",
+            "retrySafari": "If printing still fails, open this app in Safari and retry."
+        }
     },
     "install": {
         "ios": {
@@ -520,7 +525,14 @@
             "fileTooLarge": "File too large. Max 3MB.",
             "userUpdated": "User updated successfully!",
             "userCreated": "User created successfully!",
-            "passwordChanged": "Password changed successfully!"
+            "passwordChanged": "Password changed successfully!",
+            "passwordProvisioned": "Password saved and account linked for this user.",
+            "passwordResetSent": "Password reset email sent to this user."
+        },
+        "errors": {
+            "passwordMinLength": "Password must be at least 6 characters.",
+            "emailExists": "This email already has an auth account. A reset email was sent instead.",
+            "invalidEmail": "Please enter a valid email address."
         },
         "passwordHint": "Optional: Only needed for email/password login. Gmail users can leave this blank.",
         "signupNotice": "Note: Adding a user only authorizes their email. They must still sign up using the 'Create Account' option on the login page to set their password or link their Google account."

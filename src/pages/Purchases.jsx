@@ -384,14 +384,14 @@ const Purchases = () => {
                 </div>
             </div>
 
-            <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="rounded-2xl border border-slate-100 bg-white p-4 dark:border-slate-700 dark:bg-slate-800">
-                    <p className="text-xs font-bold uppercase tracking-widest text-slate-500">{t('purchases.summary.totalSpend')}</p>
-                    <p className="mt-2 text-2xl font-black text-slate-900 dark:text-white">{formatCurrency(totalSpend)}</p>
+            <div className="mb-6 grid grid-cols-2 gap-3 sm:gap-4">
+                <div className="min-w-0 rounded-2xl border border-slate-100 bg-white p-3 dark:border-slate-700 dark:bg-slate-800 sm:p-4">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 sm:text-xs">{t('purchases.summary.totalSpend')}</p>
+                    <p className="mt-2 truncate text-xl font-black text-slate-900 dark:text-white sm:text-2xl">{formatCurrency(totalSpend)}</p>
                 </div>
-                <div className="rounded-2xl border border-slate-100 bg-white p-4 dark:border-slate-700 dark:bg-slate-800">
-                    <p className="text-xs font-bold uppercase tracking-widest text-slate-500">{t('purchases.summary.totalPurchases')}</p>
-                    <p className="mt-2 text-2xl font-black text-slate-900 dark:text-white">{filteredPurchases.length}</p>
+                <div className="min-w-0 rounded-2xl border border-slate-100 bg-white p-3 dark:border-slate-700 dark:bg-slate-800 sm:p-4">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 sm:text-xs">{t('purchases.summary.totalPurchases')}</p>
+                    <p className="mt-2 truncate text-xl font-black text-slate-900 dark:text-white sm:text-2xl">{filteredPurchases.length}</p>
                 </div>
             </div>
 
@@ -513,10 +513,12 @@ const Purchases = () => {
                                             <button
                                                 type="button"
                                                 onClick={() => openStatusEditor(purchase)}
-                                                className="rounded-lg border border-indigo-200 px-3 py-1.5 text-xs font-semibold text-indigo-600"
+                                                aria-label={t('purchases.changeStatus')}
+                                                title={t('purchases.changeStatus')}
+                                                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-indigo-200 text-indigo-600 hover:bg-indigo-50 disabled:opacity-60"
                                                 disabled={!canManagePurchases}
                                             >
-                                                {t('purchases.changeStatus')}
+                                                <CalendarClock className="h-4 w-4" />
                                             </button>
                                             <button
                                                 type="button"
@@ -524,18 +526,22 @@ const Purchases = () => {
                                                     setEditingPurchase(purchase);
                                                     setIsFormOpen(true);
                                                 }}
-                                                className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600"
+                                                aria-label={t('common.edit')}
+                                                title={t('common.edit')}
+                                                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-60"
                                                 disabled={!canManagePurchases}
                                             >
-                                                {t('common.edit')}
+                                                <Edit className="h-4 w-4" />
                                             </button>
                                             <button
                                                 type="button"
                                                 onClick={() => setPurchaseToDelete(purchase)}
-                                                className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-500"
+                                                aria-label={t('common.delete')}
+                                                title={t('common.delete')}
+                                                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 text-red-500 hover:bg-red-50 disabled:opacity-60"
                                                 disabled={!canManagePurchases}
                                             >
-                                                {t('common.delete')}
+                                                <Trash2 className="h-4 w-4" />
                                             </button>
                                         </div>
                                     </div>
