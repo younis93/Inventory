@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Plus, Upload, Download, Save, ZoomIn, ChevronLeft, ChevronRight, Image as ImageIcon, Trash2, Tag } from 'lucide-react';
+import { X, Plus, Upload, Download, Save, ZoomIn, ChevronLeft, ChevronRight, Image as ImageIcon, Trash2, Tag, Copy } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 import { useTranslation } from 'react-i18next';
 import DeleteConfirmModal from './common/DeleteConfirmModal';
@@ -25,12 +25,12 @@ const ImageSlider = ({ images, currentIndex, onChange, onDelete, onDownload }) =
     }
 
     return (
-        <div className="relative w-full h-full flex flex-col group">
-            {/* Main Preview Container - Fixed height to prevent layout shifts */}
-            <div className="relative h-[300px] sm:h-[400px] md:h-[500px] rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-900 flex items-center justify-center shadow-lg w-full">
+        <div className="relative w-full h-full flex flex-col">
+            {/* Main Preview Container */}
+            <div className="relative h-[260px] sm:h-[380px] md:h-[500px] rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-900 flex items-center justify-center shadow-lg w-full">
                 {/* Blurred Backdrop Layer */}
                 {imageUrl && (
-                    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                    <div className="absolute inset-0 overflow-hidden pointer-events-none hidden sm:block">
                         <img
                             src={imageUrl}
                             alt=""
@@ -46,10 +46,11 @@ const ImageSlider = ({ images, currentIndex, onChange, onDelete, onDownload }) =
                     alt="Product"
                     className="w-full h-full flex items-center justify-center relative z-10 bg-transparent"
                     imageClassName="w-auto h-auto max-w-full max-h-full object-contain drop-shadow-2xl"
+                    imageStyle={{ objectFit: 'contain' }}
                 />
 
                 {/* Overlay Controls */}
-                <div className={`absolute top-4 ${isRTL ? 'right-4' : 'left-4'} flex gap-2 z-30`}>
+                <div className={`absolute top-3 sm:top-4 ${isRTL ? 'right-3 sm:right-4' : 'left-3 sm:left-4'} flex gap-2 z-30`}>
                     <button
                         type="button"
                         onClick={onDownload}
@@ -77,7 +78,7 @@ const ImageSlider = ({ images, currentIndex, onChange, onDelete, onDownload }) =
                             type="button"
                             onClick={() => onChange((safeIndex - 1 + images.length) % images.length)}
                             aria-label={t('common.previous') || 'Previous'}
-                            className={`absolute ${isRTL ? 'right-4' : 'left-4'} top-[55%] md:top-1/2 -translate-y-1/2 p-2.5 md:p-3 bg-slate-900/40 hover:bg-slate-900/60 text-white rounded-full backdrop-blur-md transition-all z-20 shadow-lg border border-white/10`}
+                            className={`absolute ${isRTL ? 'right-3 sm:right-4' : 'left-3 sm:left-4'} top-1/2 -translate-y-1/2 p-2.5 md:p-3 bg-slate-900/40 hover:bg-slate-900/60 text-white rounded-full backdrop-blur-md transition-all z-20 shadow-lg border border-white/10`}
                         >
                             {isRTL ? <ChevronRight className="w-5 h-5 md:w-6 md:h-6" /> : <ChevronLeft className="w-5 h-5 md:w-6 md:h-6" />}
                         </button>
@@ -85,7 +86,7 @@ const ImageSlider = ({ images, currentIndex, onChange, onDelete, onDownload }) =
                             type="button"
                             onClick={() => onChange((safeIndex + 1) % images.length)}
                             aria-label={t('common.next') || 'Next'}
-                            className={`absolute ${isRTL ? 'left-4' : 'right-4'} top-[55%] md:top-1/2 -translate-y-1/2 p-2.5 md:p-3 bg-slate-900/40 hover:bg-slate-900/60 text-white rounded-full backdrop-blur-md transition-all z-20 shadow-lg border border-white/10`}
+                            className={`absolute ${isRTL ? 'left-3 sm:left-4' : 'right-3 sm:right-4'} top-1/2 -translate-y-1/2 p-2.5 md:p-3 bg-slate-900/40 hover:bg-slate-900/60 text-white rounded-full backdrop-blur-md transition-all z-20 shadow-lg border border-white/10`}
                         >
                             {isRTL ? <ChevronLeft className="w-5 h-5 md:w-6 md:h-6" /> : <ChevronRight className="w-5 h-5 md:w-6 md:h-6" />}
                         </button>
@@ -95,14 +96,14 @@ const ImageSlider = ({ images, currentIndex, onChange, onDelete, onDownload }) =
 
             {/* Thumbnails */}
             {images.length > 1 && (
-                <div className="flex gap-2 mt-6 px-2 overflow-x-auto py-2 hide-scrollbar">
+                <div className="flex gap-2 mt-3 sm:mt-6 px-0 sm:px-2 overflow-x-auto py-2 hide-scrollbar">
                     {images.map((img, idx) => (
                         <button
                             type="button"
                             key={idx}
                             onClick={() => onChange(idx)}
                             aria-label={`${t('common.image') || 'Image'} ${idx + 1}`}
-                            className={`w-12 h-12 rounded-xl border-2 transition-all flex-shrink-0 bg-white dark:bg-slate-900 shadow-sm overflow-hidden ${idx === safeIndex ? 'border-accent ring-2 ring-accent/20' : 'border-transparent opacity-60 hover:opacity-100'}`}
+                            className={`w-11 h-11 sm:w-12 sm:h-12 rounded-xl border-2 transition-all flex-shrink-0 bg-white dark:bg-slate-900 shadow-sm overflow-hidden ${idx === safeIndex ? 'border-accent ring-2 ring-accent/20' : 'border-transparent opacity-60 hover:opacity-100'}`}
                         >
                             <ImageWithFallback
                                 src={typeof img === 'string' ? img : img?.url}
@@ -274,6 +275,34 @@ const ProductImageModal = ({ product, onClose, onSave, onUpload }) => {
         document.body.removeChild(link);
     };
 
+    const handleCopyDescription = async () => {
+        const value = String(editedDescription || '').trim();
+        if (!value) {
+            addToast(t('productPicture.modal.descriptionEmpty'), 'info');
+            return;
+        }
+
+        try {
+            if (navigator?.clipboard?.writeText) {
+                await navigator.clipboard.writeText(value);
+            } else {
+                const textarea = document.createElement('textarea');
+                textarea.value = value;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.focus();
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+            }
+            addToast(t('productPicture.modal.descriptionCopied'), 'success');
+        } catch (error) {
+            console.error('Copy description failed:', error);
+            addToast(t('common.error'), 'error');
+        }
+    };
+
     // Logical padding for sidebar offset
     const sidebarPadding = isRTL
         ? (isSidebarCollapsed ? 'lg:pr-20' : 'lg:pr-56')
@@ -298,14 +327,14 @@ const ProductImageModal = ({ product, onClose, onSave, onUpload }) => {
                     type="button"
                     onClick={onClose}
                     aria-label={t('common.close') || 'Close'}
-                    className={`absolute top-16 ${isRTL ? 'left-8' : 'right-8'} md:top-4 ${isRTL ? 'md:left-4' : 'md:right-4'} z-[150] p-2 bg-slate-100/80 dark:bg-slate-900/80 hover:bg-slate-200 text-slate-500 dark:text-slate-400 rounded-lg transition-all active:scale-95 border border-slate-200/50 dark:border-slate-700/50 backdrop-blur shadow-sm`}
+                    className={`absolute top-3 sm:top-4 ${isRTL ? 'left-3 sm:left-4' : 'right-3 sm:right-4'} z-[150] p-2 bg-slate-100/80 dark:bg-slate-900/80 hover:bg-slate-200 text-slate-500 dark:text-slate-400 rounded-lg transition-all active:scale-95 border border-slate-200/50 dark:border-slate-700/50 backdrop-blur shadow-sm`}
                 >
                     <X className="w-4 h-4" />
                 </button>
 
                 <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
                     {/* Left: Image Slider & Actions */}
-                    <div className="w-full h-[70vh] md:h-auto md:w-2/3 bg-slate-100 dark:bg-slate-900/50 flex flex-col p-4 pt-12 md:p-6 overflow-hidden relative">
+                    <div className="w-full md:w-2/3 bg-slate-100 dark:bg-slate-900/50 flex flex-col p-3 pt-12 sm:p-4 sm:pt-14 md:p-6 overflow-hidden relative">
                         <div className="flex-1 min-h-0">
                             <ImageSlider
                                 images={images}
@@ -317,8 +346,8 @@ const ProductImageModal = ({ product, onClose, onSave, onUpload }) => {
                         </div>
 
                         {/* Centered Add Photo Action */}
-                        <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-center">
-                            <label className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3 bg-accent text-white rounded-2xl text-sm font-black hover:brightness-110 cursor-pointer transition-all shadow-xl shadow-accent/20 active:scale-95">
+                        <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-center">
+                            <label className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 sm:px-8 py-3 bg-accent text-white rounded-2xl text-base sm:text-sm font-black hover:brightness-110 cursor-pointer transition-all shadow-xl shadow-accent/20 active:scale-95">
                                 <Plus className="w-5 h-5" />
                                 <span>{t('productPicture.modal.addPhoto')}</span>
                                 <input type="file" multiple accept="image/*" className="hidden" onChange={handleFileChange} />
@@ -327,7 +356,7 @@ const ProductImageModal = ({ product, onClose, onSave, onUpload }) => {
                     </div>
 
                     {/* Right: Product Details & Edit */}
-                    <div className="w-full md:w-1/3 flex-1 p-6 md:p-8 flex flex-col bg-white dark:bg-slate-800 md:border-s border-slate-100 dark:border-slate-700 overflow-y-auto scrollbar-none">
+                    <div className="w-full md:w-1/3 flex-1 p-4 sm:p-6 md:p-8 flex flex-col bg-white dark:bg-slate-800 md:border-s border-slate-100 dark:border-slate-700 overflow-y-auto scrollbar-none">
                         <div className="space-y-6 flex-1">
                             <div>
                                 <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">{t('productPicture.modal.productTitle')}</label>
@@ -341,7 +370,18 @@ const ProductImageModal = ({ product, onClose, onSave, onUpload }) => {
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">{t('productPicture.modal.description')}</label>
+                                <div className="mb-2 flex items-center justify-between gap-2">
+                                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest">{t('productPicture.modal.description')}</label>
+                                    <button
+                                        type="button"
+                                        onClick={handleCopyDescription}
+                                        aria-label={t('productPicture.modal.copyDescription')}
+                                        className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-bold text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                                    >
+                                        <Copy className="w-3.5 h-3.5" />
+                                        <span>{t('productPicture.modal.copyDescription')}</span>
+                                    </button>
+                                </div>
                                 <textarea
                                     value={editedDescription}
                                     onChange={(e) => setEditedDescription(e.target.value)}
