@@ -45,6 +45,7 @@ const OrderFormModal = ({
     getAvailableStock
 }) => {
     const dialogRef = useRef(null);
+    const scrollContainerRef = useRef(null);
     const [showValidationErrors, setShowValidationErrors] = useState(false);
 
     useModalA11y({
@@ -99,6 +100,20 @@ const OrderFormModal = ({
         if (isOpen) setShowValidationErrors(false);
     }, [isOpen]);
 
+    useEffect(() => {
+        if (!isOpen) return undefined;
+
+        const resetScrollTop = () => {
+            if (window.innerWidth >= 768) return;
+            scrollContainerRef.current?.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+            dialogRef.current?.scrollTo?.({ top: 0, left: 0, behavior: 'auto' });
+        };
+
+        resetScrollTop();
+        const frameId = window.requestAnimationFrame(resetScrollTop);
+        return () => window.cancelAnimationFrame(frameId);
+    }, [isOpen]);
+
     const handleSubmitAttempt = () => {
         setShowValidationErrors(true);
         if (isLocalSubmitDisabled) return;
@@ -108,7 +123,7 @@ const OrderFormModal = ({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-start justify-center bg-slate-900/60 backdrop-blur-md p-2 md:p-4 overflow-hidden">
+        <div className="fixed inset-0 z-[100] flex items-start justify-center bg-black/50 md:bg-slate-900/60 backdrop-blur-sm md:backdrop-blur-md p-2 sm:p-4 overflow-hidden">
             <div
                 ref={dialogRef}
                 role="dialog"
@@ -117,7 +132,7 @@ const OrderFormModal = ({
                 tabIndex={-1}
                 className="bg-white dark:bg-slate-800 rounded-[32px] shadow-2xl w-full max-w-5xl my-4 sm:my-8 min-h-0 flex flex-col overflow-hidden animate-in fade-in zoom-in duration-300 relative max-h-[90vh]"
             >
-                <div className="flex-1 min-h-0 flex flex-col md:flex-row overflow-y-auto overflow-x-hidden md:overflow-hidden custom-scrollbar">
+                <div ref={scrollContainerRef} className="flex-1 min-h-0 flex flex-col md:flex-row overflow-y-auto overflow-x-hidden md:overflow-hidden custom-scrollbar">
                     <div className="order-2 md:order-1 w-full shrink-0 md:shrink md:flex-1 p-4 md:p-6 border-t md:border-t-0 md:border-e border-slate-100 dark:border-slate-700 flex flex-col md:min-h-0 overflow-x-hidden overflow-visible md:overflow-visible relative z-20">
                         <div className="bg-white dark:bg-slate-800 pb-4 z-10 md:sticky md:top-0 lg:static">
                             <h3 id="order-form-title" className="text-lg font-bold mb-4 text-slate-800 dark:text-white">Add Items</h3>

@@ -6,6 +6,7 @@ import { useInventory } from '../context/InventoryContext';
 const FilterDropdown = ({ title, options, selectedValues, onChange, icon: Icon, showProductCount = false, productCount = 0, showSearch = true, ariaLabel = null }) => {
     const { appearance } = useInventory();
     const [isOpen, setIsOpen] = useState(false);
+    const [mobileAlignEnd, setMobileAlignEnd] = useState(false);
     const containerRef = useRef(null);
     const triggerRef = useRef(null);
 
@@ -36,6 +37,29 @@ const FilterDropdown = ({ title, options, selectedValues, onChange, icon: Icon, 
 
         document.addEventListener('keydown', onKeyDown);
         return () => document.removeEventListener('keydown', onKeyDown);
+    }, [isOpen]);
+
+    useEffect(() => {
+        if (!isOpen) return undefined;
+
+        const syncMobileAlignment = () => {
+            if (window.innerWidth >= 640) {
+                setMobileAlignEnd(false);
+                return;
+            }
+
+            const rect = containerRef.current?.getBoundingClientRect();
+            if (!rect) return;
+
+            const panelWidth = Math.min(288, window.innerWidth - 16);
+            const wouldOverflowRight = rect.left + panelWidth > window.innerWidth - 8;
+            const rightAlignedFits = rect.right - panelWidth >= 8;
+            setMobileAlignEnd(wouldOverflowRight && rightAlignedFits);
+        };
+
+        syncMobileAlignment();
+        window.addEventListener('resize', syncMobileAlignment);
+        return () => window.removeEventListener('resize', syncMobileAlignment);
     }, [isOpen]);
 
     const handleClear = () => {
@@ -83,7 +107,7 @@ const FilterDropdown = ({ title, options, selectedValues, onChange, icon: Icon, 
             </button>
 
             {isOpen && (
-                <div className="absolute top-full start-0 mt-2 z-50 w-72 animate-in fade-in zoom-in-95 duration-200">
+                <div className={`absolute top-full mt-2 z-50 w-[min(18rem,calc(100vw-1rem))] sm:start-0 sm:right-auto sm:w-72 animate-in fade-in zoom-in-95 duration-200 ${mobileAlignEnd ? 'end-0' : 'start-0'}`}>
                     <FilterCard
                         title=""
                         options={options}

@@ -83,7 +83,7 @@ const SortDropdown = ({ title, options, selectedValue, onChange, icon: Icon }) =
                             </div>
                         </div>
 
-                        <div className="flex-1 px-2 pb-2 space-y-1 max-h-64 overflow-y-auto">
+                        <div className="flex-1 px-2 pb-2 space-y-1 max-h-64 overflow-y-auto custom-scrollbar">
                             {options.map((option) => {
                                 const isSelected = selectedValue === option.value;
                                 return (

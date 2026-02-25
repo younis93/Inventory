@@ -1,5 +1,5 @@
 import React from 'react';
-import { Download, Globe, MapPin, Plus, Search, ShoppingBag } from 'lucide-react';
+import { Download, Globe, MapPin, Plus, Search, ShoppingBag, User } from 'lucide-react';
 import DateRangePicker from '../DateRangePicker';
 import FilterDropdown from '../FilterDropdown';
 import RowLimitDropdown from '../RowLimitDropdown';
@@ -39,7 +39,10 @@ const OrdersHeader = ({
     onFilterGovernoratesChange,
     socialOptions,
     filterSocials,
-    onFilterSocialsChange
+    onFilterSocialsChange,
+    createdByOptions,
+    filterCreatedBy,
+    onFilterCreatedByChange
 }) => {
     return (
         <div className={`flex flex-col gap-4 mb-8 bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 transition-all ${['liquid', 'default_glass'].includes(appearanceTheme) ? 'glass-panel' : ''}`}>
@@ -153,6 +156,15 @@ const OrdersHeader = ({
                     selectedValues={filterSocials}
                     onChange={onFilterSocialsChange}
                     icon={Globe}
+                    showSearch={false}
+                />
+
+                <FilterDropdown
+                    title={t('common.createdBy')}
+                    options={createdByOptions}
+                    selectedValues={filterCreatedBy}
+                    onChange={onFilterCreatedByChange}
+                    icon={User}
                     showSearch={false}
                 />
 

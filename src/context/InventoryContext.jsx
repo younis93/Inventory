@@ -154,10 +154,15 @@ export const usePurchases = () => {
     const context = useInventory();
     useDomainActivation('purchases');
     return {
+        loading: context.purchasesLoading,
         purchases: context.purchases,
+        purchaseStatuses: context.purchaseStatuses,
+        canManagePurchases: context.canManagePurchases,
         addPurchase: context.addPurchase,
         updatePurchase: context.updatePurchase,
-        deletePurchase: context.deletePurchase
+        updatePurchaseStatus: context.updatePurchaseStatus,
+        deletePurchase: context.deletePurchase,
+        getPurchasesByProduct: context.getPurchasesByProduct
     };
 };
 
@@ -272,8 +277,40 @@ export const InventoryProvider = ({ children }) => {
     const purchasesDomain = usePurchasesDomain({
         enabled: enabledDomains.purchases,
         addToast,
-        currentUser: settingsDomain.currentUser
+        currentUser: settingsDomain.currentUser,
+        products: productsDomain.products,
+        addProduct: productsDomain.addProduct,
+        updateProductStock: productsDomain.updateProductStock,
+        getStockStatus: productsDomain.getStockStatus
     });
+
+    const addProductWithInitialPurchase = useCallback(async (newProduct, options = {}) => {
+        const createdProduct = await productsDomain.addProduct(newProduct, {
+            silent: options.silentProductToast
+        });
+        if (!createdProduct) return null;
+
+        const shouldCreateInitialPurchase = options.createInitialPurchase !== false;
+        if (!shouldCreateInitialPurchase) return createdProduct;
+
+        try {
+            const fallbackDate = new Date().toISOString().slice(0, 10);
+            await purchasesDomain.createInitialPurchaseForProduct(createdProduct, {
+                quantity: options.initialPurchaseQuantity ?? newProduct?.stock,
+                status: options.initialPurchaseStatus || 'received',
+                statusDate: options.initialPurchaseDate || fallbackDate,
+                statusNote: options.initialPurchaseNote || '',
+                notes: options.initialPurchaseNotes || '',
+                skipStockAdjustment: true,
+                silent: true
+            });
+        } catch (error) {
+            console.error('Initial purchase creation failed:', error);
+            addToast('Product saved, but failed to create initial purchase record.', 'warning');
+        }
+
+        return createdProduct;
+    }, [productsDomain, purchasesDomain, addToast]);
 
     const activeTheme = useMemo(() => {
         if (appearance.theme === 'dark') return 'dark';
@@ -513,7 +550,7 @@ export const InventoryProvider = ({ children }) => {
                 conflicts,
                 products: productsDomain.products,
                 categories: productsDomain.categories,
-                addProduct: productsDomain.addProduct,
+                addProduct: addProductWithInitialPurchase,
                 updateProduct: productsDomain.updateProduct,
                 deleteProduct: productsDomain.deleteProduct,
                 addCategory: productsDomain.addCategory,
@@ -541,9 +578,14 @@ export const InventoryProvider = ({ children }) => {
                 expenseTypes: settingsDomain.expenseTypes,
                 saveExpenseTypes: settingsDomain.saveExpenseTypes,
                 purchases: purchasesDomain.purchases,
+                purchasesLoading: purchasesDomain.loading,
+                purchaseStatuses: purchasesDomain.purchaseStatuses,
+                canManagePurchases: purchasesDomain.canManagePurchases,
                 addPurchase: purchasesDomain.addPurchase,
                 updatePurchase: purchasesDomain.updatePurchase,
-                deletePurchase: purchasesDomain.deletePurchase
+                updatePurchaseStatus: purchasesDomain.updatePurchaseStatus,
+                deletePurchase: purchasesDomain.deletePurchase,
+                getPurchasesByProduct: purchasesDomain.getPurchasesByProduct
             }}
         >
             {children}

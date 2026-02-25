@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import Layout from '../components/Layout';
-import { Search, Plus, Filter, Edit, Trash2, Image as ImageIcon, Download, Package, ShoppingBag } from 'lucide-react';
+import { Search, Plus, Filter, Edit, Trash2, Image as ImageIcon, Download, Package, ShoppingBag, User } from 'lucide-react';
 import { useInventory, useProducts } from '../context/InventoryContext';
 import { useTranslation } from 'react-i18next';
 import CategoryManagerModal from '../components/CategoryManagerModal';
@@ -13,6 +13,7 @@ import { exportProductsToCSV } from '../utils/CSVExportUtil';
 import ImageWithFallback from '../components/common/ImageWithFallback';
 import Skeleton from '../components/common/Skeleton';
 import DeleteConfirmModal from '../components/common/DeleteConfirmModal';
+import { useNavigate } from 'react-router-dom';
 
 const getAutoStatus = (stock) => {
     const s = Number(stock);
@@ -54,11 +55,13 @@ const StatusBadge = ({ status }) => {
 
 const Products = () => {
     const { t } = useTranslation();
+    const navigate = useNavigate();
     const { products, categories, addProduct, updateProduct, deleteProduct, addCategory, updateCategory, deleteCategory } = useProducts();
     const { formatCurrency, loading, brand, addToast, appearance, setIsModalOpen: setGlobalModalOpen } = useInventory();
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategories, setSelectedCategories] = useState([]);
     const [selectedStatuses, setSelectedStatuses] = useState([]);
+    const [selectedCreators, setSelectedCreators] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState(false);
     const [isImageModalOpen, setIsImageModalOpen] = useState(false);
@@ -67,6 +70,7 @@ const Products = () => {
     const [editingProduct, setEditingProduct] = useState(null);
     const [editingProductForImage, setEditingProductForImage] = useState(null);
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'ascending' });
+    const [isMobileView, setIsMobileView] = useState(() => (typeof window !== 'undefined' ? window.innerWidth < 640 : false));
     const fileInputRef = useRef(null);
 
     // New delete confirmation state
@@ -78,6 +82,13 @@ const Products = () => {
         setGlobalModalOpen(isModalOpen || isCategoryManagerOpen || isImageModalOpen || isDeleteModalOpen);
         return () => setGlobalModalOpen(false);
     }, [isModalOpen, isCategoryManagerOpen, isImageModalOpen, isDeleteModalOpen, setGlobalModalOpen]);
+
+    useEffect(() => {
+        const onResize = () => setIsMobileView(window.innerWidth < 640);
+        onResize();
+        window.addEventListener('resize', onResize);
+        return () => window.removeEventListener('resize', onResize);
+    }, []);
 
     // Form State
     const initialFormState = {
@@ -113,7 +124,8 @@ const Products = () => {
         alibabaNote: '',
         description: '',
         profitPerUnitUSD: 0,
-        totalProfitUSD: 0
+        totalProfitUSD: 0,
+        initialPurchaseDate: new Date().toISOString().slice(0, 10)
     };
     const [formData, setFormData] = useState(initialFormState);
 
@@ -142,6 +154,17 @@ const Products = () => {
         }));
     }, [products, t]);
 
+    const createdByOptions = useMemo(() => {
+        const counts = {};
+        products.forEach((product) => {
+            const createdBy = product.createdBy || 'System';
+            counts[createdBy] = (counts[createdBy] || 0) + 1;
+        });
+        return Object.entries(counts)
+            .map(([value, count]) => ({ value, label: value, count }))
+            .sort((a, b) => b.count - a.count);
+    }, [products]);
+
     // Sorting Logic
     const sortedProducts = useMemo(() => {
         let sortableProducts = [...products];
@@ -162,15 +185,28 @@ const Products = () => {
         return sortableProducts;
     }, [products, sortConfig]);
 
-    const allFilteredProducts = sortedProducts.filter(product => {
-        const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            product.sku.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(product.category);
-        const matchesStatus = selectedStatuses.length === 0 || selectedStatuses.includes(product.status);
-        return matchesSearch && matchesCategory && matchesStatus;
-    });
+    const normalizedSearchTerm = searchTerm.trim().toLowerCase();
 
-    const filteredProducts = allFilteredProducts.slice(0, displayLimit);
+    const allFilteredProducts = useMemo(() => {
+        return sortedProducts.filter((product) => {
+            const productName = String(product.name || '').toLowerCase();
+            const productSku = String(product.sku || '').toLowerCase();
+            const matchesSearch =
+                !normalizedSearchTerm ||
+                productName.includes(normalizedSearchTerm) ||
+                productSku.includes(normalizedSearchTerm);
+            const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(product.category);
+            const matchesStatus = selectedStatuses.length === 0 || selectedStatuses.includes(product.status);
+            const createdBy = product.createdBy || 'System';
+            const matchesCreatedBy = selectedCreators.length === 0 || selectedCreators.includes(createdBy);
+            return matchesSearch && matchesCategory && matchesStatus && matchesCreatedBy;
+        });
+    }, [sortedProducts, normalizedSearchTerm, selectedCategories, selectedStatuses, selectedCreators]);
+
+    const filteredProducts = useMemo(
+        () => allFilteredProducts.slice(0, displayLimit),
+        [allFilteredProducts, displayLimit]
+    );
 
     const requestSort = (key) => {
         let direction = 'ascending';
@@ -263,7 +299,10 @@ const Products = () => {
     // Modal & Form Handlers
     const openAddModal = () => {
         setEditingProduct(null);
-        setFormData(initialFormState);
+        setFormData({
+            ...initialFormState,
+            initialPurchaseDate: new Date().toISOString().slice(0, 10)
+        });
         setIsModalOpen(true);
     };
 
@@ -354,7 +393,11 @@ const Products = () => {
         if (editingProduct) {
             updateProduct({ ...productData, _id: editingProduct._id });
         } else {
-            addProduct(productData);
+            addProduct(productData, {
+                initialPurchaseDate: formData.initialPurchaseDate,
+                initialPurchaseStatus: 'received',
+                initialPurchaseQuantity: parseInt(formData.stock) || 0
+            });
         }
         setIsModalOpen(false);
     };
@@ -415,13 +458,14 @@ const Products = () => {
 
                         <button
                             onClick={() => {
-                                if (!(selectedCategories.length > 0 || selectedStatuses.length > 0 || searchTerm)) return;
+                                if (!(selectedCategories.length > 0 || selectedStatuses.length > 0 || selectedCreators.length > 0 || searchTerm)) return;
                                 setSearchTerm('');
                                 setSelectedCategories([]);
                                 setSelectedStatuses([]);
+                                setSelectedCreators([]);
                             }}
                             className={`sm:hidden flex-1 min-w-0 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl font-bold text-sm transition-all border active:scale-95 ${
-                                (selectedCategories.length > 0 || selectedStatuses.length > 0 || searchTerm)
+                                (selectedCategories.length > 0 || selectedStatuses.length > 0 || selectedCreators.length > 0 || searchTerm)
                                     ? 'bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
                                     : 'opacity-0 pointer-events-none border-transparent'
                             }`}
@@ -432,12 +476,13 @@ const Products = () => {
 
                     <div className="flex gap-3 items-center flex-wrap">
                         {/* Clear Filters Button */}
-                        {(selectedCategories.length > 0 || selectedStatuses.length > 0 || searchTerm) && (
+                        {(selectedCategories.length > 0 || selectedStatuses.length > 0 || selectedCreators.length > 0 || searchTerm) && (
                             <button
                                 onClick={() => {
                                     setSearchTerm('');
                                     setSelectedCategories([]);
                                     setSelectedStatuses([]);
+                                    setSelectedCreators([]);
                                 }}
                                 className="hidden sm:inline-flex px-4 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-xl font-bold text-sm transition-all border border-slate-200 dark:border-slate-700"
                             >
@@ -495,6 +540,15 @@ const Products = () => {
                         icon={ShoppingBag}
                         showSearch={false}
                     />
+
+                    <FilterDropdown
+                        title={t('common.createdBy')}
+                        options={createdByOptions}
+                        selectedValues={selectedCreators}
+                        onChange={setSelectedCreators}
+                        icon={User}
+                        showSearch={false}
+                    />
                 </div>
             </div>
 
@@ -511,7 +565,8 @@ const Products = () => {
 
             {/* Products Table (desktop) and Card list (mobile) */}
             <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
-                <div className="hidden sm:block overflow-x-auto">
+                {!isMobileView && (
+                    <div className="overflow-x-auto custom-scrollbar">
                     <table className="w-full text-left">
                         <thead>
                             <tr className="bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
@@ -581,6 +636,13 @@ const Products = () => {
                                     </td>
                                     <td className="px-6 py-4 text-end border-s dark:border-slate-700">
                                         <div className="flex items-center justify-end gap-1">
+                                            <button
+                                                onClick={() => navigate(`/purchases?productId=${product._id}`)}
+                                                className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-all"
+                                                title={t('purchases.viewPurchases')}
+                                            >
+                                                <ShoppingBag className="w-4 h-4" />
+                                            </button>
                                             <button onClick={() => openEditModal(product)} className="p-2 text-slate-400 hover:text-[var(--brand-color)] hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all" title={t('common.edit')}>
                                                 <Edit className="w-4 h-4" />
                                             </button>
@@ -593,10 +655,12 @@ const Products = () => {
                             ))}
                         </tbody>
                     </table>
-                </div>
+                    </div>
+                )}
 
                 {/* Mobile: stacked card list for small viewports */}
-                <div className="block sm:hidden p-4 space-y-3">
+                {isMobileView && (
+                    <div className="p-4 space-y-3">
                     {loading ? (
                         Array.from({ length: 3 }).map((_, i) => (
                             <div key={i} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4 flex gap-4">
@@ -638,6 +702,13 @@ const Products = () => {
                                     <div className="flex items-center justify-between mt-3">
                                         <div className="text-[11px] text-slate-600">{t('products.table.stock')}: <span className="font-bold">{product.stock}</span></div>
                                         <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={() => navigate(`/purchases?productId=${product._id}`)}
+                                                className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-all"
+                                                title={t('purchases.viewPurchases')}
+                                            >
+                                                <ShoppingBag className="w-4 h-4" />
+                                            </button>
                                             <button onClick={() => openEditModal(product)} className="p-2 text-slate-400 hover:text-[var(--brand-color)] hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-all" title={t('common.edit')}>
                                                 <Edit className="w-4 h-4" />
                                             </button>
@@ -650,7 +721,8 @@ const Products = () => {
                             </div>
                         ))
                     )}
-                </div>
+                    </div>
+                )}
             </div>
 
             <ProductFormModal

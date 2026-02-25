@@ -68,14 +68,14 @@ const CustomerFormModal = ({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-start justify-center bg-slate-900/80 backdrop-blur-md p-2 sm:p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-[100] flex items-stretch sm:items-start justify-center bg-slate-900/80 backdrop-blur-md p-2 sm:p-4 overflow-hidden">
             <div
                 ref={dialogRef}
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="customer-form-title"
                 tabIndex={-1}
-                className={`rounded-[32px] shadow-2xl w-full max-w-md my-4 sm:my-8 flex flex-col overflow-hidden animate-in fade-in zoom-in duration-300 relative ${['liquid', 'default_glass'].includes(appearanceTheme) ? 'glass-panel' : 'bg-white dark:bg-slate-800'}`}
+                className={`rounded-[32px] shadow-2xl w-full max-w-md my-0 sm:my-8 h-[calc(100dvh-1rem)] sm:h-auto max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-300 relative ${['liquid', 'default_glass'].includes(appearanceTheme) ? 'glass-panel' : 'bg-white dark:bg-slate-800'}`}
             >
                 <div className={`px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center sticky top-0 z-10 ${['liquid', 'default_glass'].includes(appearanceTheme) ? 'bg-white/20 dark:bg-slate-900/20 backdrop-blur-md' : 'bg-white dark:bg-slate-800'}`}>
                     <div>
@@ -86,7 +86,7 @@ const CustomerFormModal = ({
                         <X className="w-5 h-5 text-slate-400" />
                     </button>
                 </div>
-                <div className="p-5 overflow-y-auto custom-scrollbar">
+                <div className="flex-1 min-h-0 p-5 overflow-y-auto custom-scrollbar">
                     <form id="customer-form" onSubmit={handleFormSubmit} className="space-y-4">
                         {showValidation && hasValidationErrors && (
                             <div className="p-3 rounded-xl border border-red-200 bg-red-50 text-red-600 text-xs font-semibold">
@@ -188,7 +188,7 @@ const CustomerFormModal = ({
                         </div>
                     </form>
                 </div>
-                <div className={`p-6 pt-0 mt-auto border-t border-slate-100 dark:border-slate-700 ${['liquid', 'default_glass'].includes(appearanceTheme) ? 'bg-white/20 dark:bg-slate-900/20 backdrop-blur-md' : 'bg-white dark:bg-slate-800'}`}>
+                <div className={`px-6 pt-0 pb-8 sm:pb-6 mt-auto border-t border-slate-100 dark:border-slate-700 ${['liquid', 'default_glass'].includes(appearanceTheme) ? 'bg-white/20 dark:bg-slate-900/20 backdrop-blur-md' : 'bg-white dark:bg-slate-800'}`}>
                     <div className="flex gap-4 pt-4">
                         <button type="button" onClick={onClose} className="flex-1 py-3 border-2 border-slate-100 dark:border-slate-800 rounded-2xl font-black text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all active:scale-95">
                             {t('common.cancel')}

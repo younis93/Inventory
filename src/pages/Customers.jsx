@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { endOfDay, parseISO, startOfDay, subDays, isSameDay } from 'date-fns';
 import { Facebook, Globe, Instagram, MessageCircle, Twitter } from 'lucide-react';
 import Layout from '../components/Layout';
@@ -22,6 +22,8 @@ const INITIAL_FORM_STATE = {
     notes: ''
 };
 
+const buildCustomerContactKey = (name, phone) => `${String(name || '').trim().toLowerCase()}::${String(phone || '').trim()}`;
+
 const Customers = () => {
     const { t } = useTranslation();
     const { customers, addCustomer, updateCustomer } = useCustomers();
@@ -39,6 +41,7 @@ const Customers = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterGovernorates, setFilterGovernorates] = useState([]);
     const [filterSocials, setFilterSocials] = useState([]);
+    const [filterCreatedBy, setFilterCreatedBy] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isOrderHistoryOpen, setIsOrderHistoryOpen] = useState(false);
     const [sortBy, setSortBy] = useState('orders-high');
@@ -103,28 +106,96 @@ const Customers = () => {
         return SOCIAL_PLATFORMS.map((social) => ({ value: social, label: social, count: counts[social] || 0 })).sort((a, b) => b.count - a.count);
     }, [customers]);
 
-    const getCustomerOrders = (customerId) => {
-        return orders.filter((order) => {
-            const customer = customers.find((c) => c._id === customerId);
-            if (!customer) return false;
-            if (order.customer?._id === customerId) return true;
-            return order.customer?.name === customer.name && order.customer?.phone === customer.phone;
+    const createdByOptions = useMemo(() => {
+        const counts = {};
+        customers.forEach((customer) => {
+            const createdBy = customer.createdBy || 'System';
+            counts[createdBy] = (counts[createdBy] || 0) + 1;
         });
-    };
+        return Object.entries(counts)
+            .map(([value, count]) => ({ value, label: value, count }))
+            .sort((a, b) => b.count - a.count);
+    }, [customers]);
 
-    const getValidDate = (customer) => {
-        const dateString = customer.createdOn || customer.createdAt;
-        if (!dateString) return null;
-        try {
-            return typeof dateString === 'string'
-                ? parseISO(dateString)
-                : dateString.toDate
-                    ? dateString.toDate()
-                    : new Date(dateString);
-        } catch {
-            return null;
-        }
-    };
+    const customerIdSet = useMemo(() => new Set(customers.map((customer) => customer._id)), [customers]);
+
+    const customerIdByContactKey = useMemo(() => {
+        const map = new Map();
+        customers.forEach((customer) => {
+            const key = buildCustomerContactKey(customer.name, customer.phone);
+            if (key !== '::' && !map.has(key)) map.set(key, customer._id);
+        });
+        return map;
+    }, [customers]);
+
+    const customerOrdersMap = useMemo(() => {
+        const map = new Map();
+        customers.forEach((customer) => map.set(customer._id, []));
+
+        orders.forEach((order) => {
+            const directId = order.customer?._id;
+            if (directId && customerIdSet.has(directId)) {
+                map.get(directId)?.push(order);
+                return;
+            }
+
+            const fallbackKey = buildCustomerContactKey(order.customer?.name, order.customer?.phone);
+            const fallbackCustomerId = customerIdByContactKey.get(fallbackKey);
+            if (fallbackCustomerId) {
+                map.get(fallbackCustomerId)?.push(order);
+            }
+        });
+
+        return map;
+    }, [customers, orders, customerIdByContactKey, customerIdSet]);
+
+    const customerOrderStatsMap = useMemo(() => {
+        const stats = new Map();
+        customerOrdersMap.forEach((ordersList, customerId) => {
+            let totalSpent = 0;
+            ordersList.forEach((order) => {
+                totalSpent += Number(order.total || 0);
+            });
+            stats.set(customerId, {
+                orders: ordersList,
+                orderCount: ordersList.length,
+                totalSpent
+            });
+        });
+        return stats;
+    }, [customerOrdersMap]);
+
+    const getCustomerOrders = useCallback((customerId) => {
+        return customerOrderStatsMap.get(customerId)?.orders || [];
+    }, [customerOrderStatsMap]);
+
+    const getCustomerStats = useCallback((customerId) => {
+        return customerOrderStatsMap.get(customerId) || { orders: [], orderCount: 0, totalSpent: 0 };
+    }, [customerOrderStatsMap]);
+
+    const customerDateMap = useMemo(() => {
+        const map = new Map();
+        customers.forEach((customer) => {
+            const dateString = customer.createdOn || customer.createdAt;
+            if (!dateString) {
+                map.set(customer._id, null);
+                return;
+            }
+            try {
+                const parsed = typeof dateString === 'string'
+                    ? parseISO(dateString)
+                    : dateString.toDate
+                        ? dateString.toDate()
+                        : new Date(dateString);
+                map.set(customer._id, Number.isNaN(parsed?.getTime?.()) ? null : parsed);
+            } catch {
+                map.set(customer._id, null);
+            }
+        });
+        return map;
+    }, [customers]);
+
+    const getValidDate = useCallback((customer) => customerDateMap.get(customer._id) || null, [customerDateMap]);
 
     const filteredAndSortedCustomers = useMemo(() => {
         const filtered = customers.filter((customer) => {
@@ -132,7 +203,7 @@ const Customers = () => {
                 customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 customer.phone.includes(searchTerm);
 
-            const createdDate = getValidDate(customer);
+            const createdDate = customerDateMap.get(customer._id);
             let matchesDate = true;
             if (dateRange?.from && dateRange?.to && createdDate) {
                 const start = startOfDay(dateRange.from);
@@ -142,8 +213,10 @@ const Customers = () => {
 
             const matchesGovernorate = filterGovernorates.length === 0 || filterGovernorates.includes(customer.governorate);
             const matchesSocial = filterSocials.length === 0 || filterSocials.includes(customer.social);
+            const createdBy = customer.createdBy || 'System';
+            const matchesCreatedBy = filterCreatedBy.length === 0 || filterCreatedBy.includes(createdBy);
 
-            return matchesSearch && matchesDate && matchesGovernorate && matchesSocial;
+            return matchesSearch && matchesDate && matchesGovernorate && matchesSocial && matchesCreatedBy;
         });
 
         const sorted = filtered.sort((a, b) => {
@@ -153,13 +226,13 @@ const Customers = () => {
                 return columnSort.direction === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
             }
             if (columnSort.column === 'orders') {
-                const valA = getCustomerOrders(a._id).length;
-                const valB = getCustomerOrders(b._id).length;
+                const valA = customerOrderStatsMap.get(a._id)?.orderCount || 0;
+                const valB = customerOrderStatsMap.get(b._id)?.orderCount || 0;
                 return columnSort.direction === 'asc' ? valA - valB : valB - valA;
             }
             if (columnSort.column === 'spent') {
-                const valA = getCustomerOrders(a._id).reduce((sum, order) => sum + order.total, 0);
-                const valB = getCustomerOrders(b._id).reduce((sum, order) => sum + order.total, 0);
+                const valA = customerOrderStatsMap.get(a._id)?.totalSpent || 0;
+                const valB = customerOrderStatsMap.get(b._id)?.totalSpent || 0;
                 return columnSort.direction === 'asc' ? valA - valB : valB - valA;
             }
             if (columnSort.column === 'governorate') {
@@ -176,19 +249,22 @@ const Customers = () => {
         searchTerm,
         filterGovernorates,
         filterSocials,
+        filterCreatedBy,
         columnSort,
-        orders,
         dateRange,
-        displayLimit
+        displayLimit,
+        customerDateMap,
+        customerOrderStatsMap
     ]);
 
     const hasActiveFilters = useMemo(() => (
         filterGovernorates.length > 0 ||
         filterSocials.length > 0 ||
+        filterCreatedBy.length > 0 ||
         Boolean(searchTerm) ||
         !isSameDay(dateRange.from, defaultRange.from) ||
         !isSameDay(dateRange.to, defaultRange.to)
-    ), [filterGovernorates, filterSocials, searchTerm, dateRange, defaultRange]);
+    ), [filterGovernorates, filterSocials, filterCreatedBy, searchTerm, dateRange, defaultRange]);
 
     const handleSortChange = (value) => {
         setSortBy(value);
@@ -238,6 +314,7 @@ const Customers = () => {
         setSearchTerm('');
         setFilterGovernorates([]);
         setFilterSocials([]);
+        setFilterCreatedBy([]);
         setDateRange(defaultRange);
     };
 
@@ -349,6 +426,9 @@ const Customers = () => {
                 socialOptions={socialOptions}
                 filterSocials={filterSocials}
                 onFilterSocialsChange={setFilterSocials}
+                createdByOptions={createdByOptions}
+                filterCreatedBy={filterCreatedBy}
+                onFilterCreatedByChange={setFilterCreatedBy}
                 viewMode={viewMode}
                 onViewModeChange={setViewMode}
             />
@@ -358,12 +438,12 @@ const Customers = () => {
                     <CustomersTable
                         t={t}
                         loading={loading}
-                        customersData={filteredAndSortedCustomers}
-                        formatCurrency={formatCurrency}
-                        getCustomerOrders={getCustomerOrders}
-                        getValidDate={getValidDate}
-                        onOpenHistory={handleOpenHistory}
-                        onOpenEdit={handleOpenEdit}
+                    customersData={filteredAndSortedCustomers}
+                    formatCurrency={formatCurrency}
+                    getCustomerStats={getCustomerStats}
+                    getValidDate={getValidDate}
+                    onOpenHistory={handleOpenHistory}
+                    onOpenEdit={handleOpenEdit}
                         columnSort={columnSort}
                         onColumnSort={handleColumnSort}
                     />
@@ -374,7 +454,7 @@ const Customers = () => {
                     loading={loading}
                     customersData={filteredAndSortedCustomers}
                     appearanceTheme={appearance.theme}
-                    getCustomerOrders={getCustomerOrders}
+                    getCustomerStats={getCustomerStats}
                     formatCurrency={formatCurrency}
                     onOpenHistory={handleOpenHistory}
                     onOpenEdit={handleOpenEdit}

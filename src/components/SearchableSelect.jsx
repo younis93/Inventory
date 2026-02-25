@@ -214,7 +214,7 @@ const SearchableSelect = ({
                             </div>
                         )}
 
-                        <div className="flex-1 max-h-48 overflow-y-auto p-2 space-y-1">
+                        <div className="flex-1 max-h-48 overflow-y-auto custom-scrollbar p-2 space-y-1">
                             {customAction && (
                                 <button
                                     type="button"

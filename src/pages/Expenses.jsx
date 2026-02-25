@@ -11,7 +11,8 @@ import {
     Plus,
     Search,
     Tag,
-    Trash2
+    Trash2,
+    User
 } from 'lucide-react';
 import { getDownloadURL, ref, uploadBytesResumable } from 'firebase/storage';
 import Layout from '../components/Layout';
@@ -56,6 +57,15 @@ const isValidUrl = (value) => {
         return ['http:', 'https:'].includes(url.protocol);
     } catch {
         return false;
+    }
+};
+
+const dayKey = (value) => {
+    if (!value) return '';
+    try {
+        return format(value, 'yyyy-MM-dd');
+    } catch {
+        return '';
     }
 };
 
@@ -166,9 +176,11 @@ const Expenses = () => {
     const [dateRange, setDateRange] = useState(defaultRange);
     const [hasInitializedDate, setHasInitializedDate] = useState(false);
     const [selectedTypes, setSelectedTypes] = useState([]);
+    const [selectedCreatedBy, setSelectedCreatedBy] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [displayLimit, setDisplayLimit] = useState(100);
     const [sortConfig, setSortConfig] = useState({ column: 'date', direction: 'desc' });
+    const [isMobileView, setIsMobileView] = useState(() => (typeof window !== 'undefined' ? window.innerWidth < 640 : false));
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isTypeManagerOpen, setIsTypeManagerOpen] = useState(false);
@@ -204,6 +216,13 @@ const Expenses = () => {
         setGlobalModalOpen(isModalOpen || isTypeManagerOpen);
         return () => setGlobalModalOpen(false);
     }, [isModalOpen, isTypeManagerOpen, setGlobalModalOpen]);
+
+    useEffect(() => {
+        const onResize = () => setIsMobileView(window.innerWidth < 640);
+        onResize();
+        window.addEventListener('resize', onResize);
+        return () => window.removeEventListener('resize', onResize);
+    }, []);
 
     useEffect(() => {
         if (!isDateOpen) return;
@@ -337,11 +356,25 @@ const Expenses = () => {
         })).sort((a, b) => b.count - a.count);
     }, [expensesInDateRange, expenseTypes]);
 
+    const createdByOptions = useMemo(() => {
+        const counts = {};
+        expensesInDateRange.forEach((expense) => {
+            const createdBy = expense.createdBy || 'System';
+            counts[createdBy] = (counts[createdBy] || 0) + 1;
+        });
+        return Object.entries(counts)
+            .map(([value, count]) => ({ value, label: value, count }))
+            .sort((a, b) => b.count - a.count);
+    }, [expensesInDateRange]);
+
     const filteredExpenses = useMemo(() => {
         const query = searchTerm.trim().toLowerCase();
         return expensesInDateRange.filter((expense) => {
             const matchesType = selectedTypes.length === 0 || selectedTypes.includes(expense.type);
+            const createdBy = expense.createdBy || 'System';
+            const matchesCreatedBy = selectedCreatedBy.length === 0 || selectedCreatedBy.includes(createdBy);
             if (!matchesType) return false;
+            if (!matchesCreatedBy) return false;
             if (!query) return true;
 
             const text = [
@@ -353,7 +386,7 @@ const Expenses = () => {
             ].join(' ').toLowerCase();
             return text.includes(query);
         });
-    }, [expensesInDateRange, selectedTypes, searchTerm]);
+    }, [expensesInDateRange, selectedTypes, selectedCreatedBy, searchTerm]);
 
     const sortedExpenses = useMemo(() => {
         const getValue = (expense, key) => {
@@ -379,6 +412,14 @@ const Expenses = () => {
         () => filteredExpenses.reduce((sum, expense) => sum + Number(expense.amountIQD || 0), 0),
         [filteredExpenses]
     );
+
+    const hasActiveFilters = useMemo(() => (
+        selectedTypes.length > 0 ||
+        selectedCreatedBy.length > 0 ||
+        searchTerm.trim().length > 0 ||
+        dayKey(dateRange?.from) !== dayKey(defaultRange?.from) ||
+        dayKey(dateRange?.to) !== dayKey(defaultRange?.to)
+    ), [selectedTypes, selectedCreatedBy, searchTerm, dateRange, defaultRange]);
 
     const spendByType = useMemo(() => {
         const totals = {};
@@ -583,13 +624,12 @@ const Expenses = () => {
                     </div>
 
                     <div className="hidden sm:flex items-center gap-3">
-                        {(selectedTypes.length > 0 || searchTerm ||
-                            dateRange.from?.getTime() !== defaultRange.from?.getTime() ||
-                            dateRange.to?.getTime() !== defaultRange.to?.getTime()) && (
+                        {hasActiveFilters && (
                                 <button
                                     onClick={() => {
                                         setSearchTerm('');
                                         setSelectedTypes([]);
+                                        setSelectedCreatedBy([]);
                                         setDateRange(defaultRange);
                                     }}
                                     className="px-4 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-xl font-bold text-sm transition-all border border-slate-200 dark:border-slate-700"
@@ -645,6 +685,15 @@ const Expenses = () => {
                         icon={Tag}
                         showSearch={false}
                     />
+
+                    <FilterDropdown
+                        title={t('common.createdBy')}
+                        options={createdByOptions}
+                        selectedValues={selectedCreatedBy}
+                        onChange={setSelectedCreatedBy}
+                        icon={User}
+                        showSearch={false}
+                    />
                 </div>
             </div>
 
@@ -666,16 +715,18 @@ const Expenses = () => {
             </div>
 
             <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
-                <div className="hidden sm:block overflow-x-auto">
+                {!isMobileView && (
+                    <div className="overflow-x-auto custom-scrollbar">
                     <table className="w-full text-left">
                         <thead>
                             <tr className="bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-500 uppercase">
                                 {[
-                                    ['date', 'Date'],
-                                    ['type', 'Type'],
-                                    ['campaign', 'Campaign'],
-                                    ['link', 'Link'],
-                                    ['amountIQD', 'Amount (IQD)']
+                                    ['date', t('expenses.table.date')],
+                                    ['type', t('expenses.table.type')],
+                                    ['campaign', t('expenses.table.campaign')],
+                                    ['link', t('expenses.table.link')],
+                                    ['amountIQD', t('expenses.table.amountIQD')],
+                                    ['createdBy', t('common.createdBy')]
                                 ].map(([column, label]) => (
                                     <th
                                         key={column}
@@ -690,8 +741,8 @@ const Expenses = () => {
                                         </div>
                                     </th>
                                 ))}
-                                <th className="px-6 py-4">Attachments</th>
-                                <th className="px-6 py-4 text-end">Actions</th>
+                                <th className="px-6 py-4">{t('expenses.table.attachments')}</th>
+                                <th className="px-6 py-4 text-end">{t('common.actions')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
@@ -710,6 +761,7 @@ const Expenses = () => {
                                         ) : '-'}
                                     </td>
                                     <td className="px-6 py-4 text-sm font-bold text-slate-900 dark:text-white">{formatCurrency(expense.amountIQD || 0)}</td>
+                                    <td className="px-6 py-4 text-sm text-slate-700 dark:text-slate-200">{expense.createdBy || 'System'}</td>
                                     <td className="px-6 py-4 text-sm">
                                         {Array.isArray(expense.attachments) && expense.attachments.length > 0 ? (
                                             <div className="flex flex-col gap-1">
@@ -752,16 +804,18 @@ const Expenses = () => {
                             ))}
                             {visibleExpenses.length === 0 && (
                                 <tr>
-                                    <td colSpan="8" className="px-6 py-12 text-center text-slate-400">
+                                    <td colSpan="9" className="px-6 py-12 text-center text-slate-400">
                                         {t('expenses.noExpenses')}
                                     </td>
                                 </tr>
                             )}
                         </tbody>
                     </table>
-                </div>
+                    </div>
+                )}
 
-                <div className="sm:hidden divide-y divide-slate-100 dark:divide-slate-700">
+                {isMobileView && (
+                    <div className="divide-y divide-slate-100 dark:divide-slate-700">
                     {visibleExpenses.map((expense) => (
                         <div key={expense._id} className="p-4 space-y-3">
                             <div className="flex items-start justify-between gap-3">
@@ -771,6 +825,7 @@ const Expenses = () => {
                                     </p>
                                     <p className="text-base font-black text-slate-900 dark:text-white">{expense.type || 'Other'}</p>
                                     <p className="text-sm text-slate-500">{expense.campaign || 'No campaign'}</p>
+                                    <p className="text-xs text-slate-400">{t('common.createdBy')}: {expense.createdBy || 'System'}</p>
                                 </div>
                                 <p className="text-base font-black text-slate-900 dark:text-white">{formatCurrency(expense.amountIQD || 0)}</p>
                             </div>
@@ -815,7 +870,8 @@ const Expenses = () => {
                     {visibleExpenses.length === 0 && (
                         <div className="px-6 py-10 text-center text-slate-400">{t('expenses.noExpenses')}</div>
                     )}
-                </div>
+                    </div>
+                )}
             </div>
 
             {isTypeManagerOpen && (
@@ -828,14 +884,14 @@ const Expenses = () => {
             )}
 
             {isModalOpen && (
-                <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-start sm:items-center justify-center p-3 sm:p-4">
+                <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/50 backdrop-blur-sm p-2 sm:p-4 custom-scrollbar">
                     <div
                         ref={expenseDialogRef}
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="expense-modal-title"
                         tabIndex={-1}
-                        className="w-full max-w-[980px] my-2 sm:my-0 max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-3rem)] overflow-hidden bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-700 flex flex-col"
+                        className="my-4 flex max-h-[92vh] w-full max-w-[980px] flex-col overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-800"
                     >
                         <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
                             <h3 id="expense-modal-title" className="text-xl font-black text-slate-800 dark:text-white">
@@ -843,7 +899,7 @@ const Expenses = () => {
                             </h3>
                             <button type="button" aria-label={t('common.close') || 'Close'} onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">X</button>
                         </div>
-                        <form onSubmit={handleSaveExpense} className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 pt-7 sm:pt-8 pb-6 sm:pb-8 space-y-5 sm:space-y-6">
+                        <form onSubmit={handleSaveExpense} className="flex-1 overflow-y-auto overscroll-contain px-4 sm:px-6 lg:px-8 pt-7 sm:pt-8 pb-6 sm:pb-8 space-y-5 sm:space-y-6 custom-scrollbar">
                             {((showValidationErrors && hasFormErrors) || uploadError) && (
                                 <div className="p-3 rounded-xl border border-red-200 bg-red-50 text-red-600 text-xs font-semibold">
                                     {uploadError || Object.values(formErrors)[0]}

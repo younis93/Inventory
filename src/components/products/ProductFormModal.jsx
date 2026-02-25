@@ -101,6 +101,8 @@ const getAutoStatus = (stock) => {
     return 'In Stock';
 };
 
+const todayIso = () => new Date().toISOString().slice(0, 10);
+
 const StatusBadge = ({ status }) => {
     const styles = {
         'In Stock': 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400',
@@ -186,8 +188,16 @@ const ProductFormModal = ({
         if (!isHttpUrl(formData.alibabaMessageLink)) errors.alibabaMessageLink = 'Use a valid URL (http/https).';
         if (!isHttpUrl(formData.alibabaOrderLink)) errors.alibabaOrderLink = 'Use a valid URL (http/https).';
 
+        if (!editingProduct) {
+            if (!formData.initialPurchaseDate) {
+                errors.initialPurchaseDate = 'Received date is required.';
+            } else if (formData.initialPurchaseDate > todayIso()) {
+                errors.initialPurchaseDate = 'Received date cannot be in the future.';
+            }
+        }
+
         return errors;
-    }, [formData]);
+    }, [formData, editingProduct]);
 
     const hasValidationErrors = Object.keys(validationErrors).length > 0;
 
@@ -278,7 +288,7 @@ const ProductFormModal = ({
     if (!isOpen) return null;
 
     return (
-                <div className="fixed inset-0 z-[100] flex items-start justify-center bg-black/50 backdrop-blur-sm p-2 sm:p-4 overflow-y-auto">
+                <div className="fixed inset-0 z-[100] flex items-start justify-center bg-black/50 backdrop-blur-sm p-2 sm:p-4 overflow-y-auto custom-scrollbar">
                     <div
                         ref={dialogRef}
                         role="dialog"
@@ -347,6 +357,22 @@ const ProductFormModal = ({
                                         </div>
                                         {renderFieldError('stock')}
                                     </div>
+                                    {!editingProduct && (
+                                        <div className="col-span-2 md:col-span-1">
+                                            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">
+                                                {t('products.form.initialReceivedDate')}
+                                            </label>
+                                            <input
+                                                type="date"
+                                                name="initialPurchaseDate"
+                                                max={todayIso()}
+                                                value={formData.initialPurchaseDate || ''}
+                                                onChange={handleInputChange}
+                                                className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--brand-color)]/20 outline-none dark:text-white transition-all shadow-sm"
+                                            />
+                                            {renderFieldError('initialPurchaseDate')}
+                                        </div>
+                                    )}
                                 </div>
                             </section>
 

@@ -7,7 +7,7 @@ const CustomersCardGrid = ({
     loading,
     customersData,
     appearanceTheme,
-    getCustomerOrders,
+    getCustomerStats,
     formatCurrency,
     onOpenHistory,
     onOpenEdit,
@@ -41,8 +41,9 @@ const CustomersCardGrid = ({
     const listHeight = Math.min(760, Math.max(240, rowCount * (rowHeight + rowGap)));
 
     const renderCard = (customer) => {
-        const customerOrders = getCustomerOrders(customer._id);
-        const totalSpent = customerOrders.reduce((sum, order) => sum + order.total, 0);
+        const customerStats = getCustomerStats(customer._id);
+        const customerOrders = customerStats.orders;
+        const totalSpent = customerStats.totalSpent;
 
         return (
             <div className={`bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 hover:shadow-xl transition-all duration-300 group overflow-hidden flex flex-col h-full ${['liquid', 'default_glass'].includes(appearanceTheme) ? 'glass-panel' : ''}`}>

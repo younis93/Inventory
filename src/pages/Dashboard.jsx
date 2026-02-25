@@ -13,6 +13,16 @@ import { isWithinInterval, isAfter, parseISO, subDays, startOfMonth, endOfMonth,
 import { useTranslation } from 'react-i18next';
 import Skeleton from '../components/common/Skeleton';
 
+const parseOrderDateSafe = (value) => {
+    if (!value) return null;
+    try {
+        const parsed = parseISO(value);
+        return Number.isNaN(parsed.getTime()) ? null : parsed;
+    } catch {
+        return null;
+    }
+};
+
 const Dashboard = () => {
     const { t } = useTranslation();
     const { orders } = useOrders();
@@ -21,18 +31,35 @@ const Dashboard = () => {
     const { customers } = useCustomers();
     const { loading, formatCurrency, brand, theme, appearance } = useInventory();
 
+    const normalizedOrders = useMemo(() => {
+        return orders
+            .map((order) => {
+                const parsedDate = parseOrderDateSafe(order.date);
+                if (!parsedDate) return null;
+
+                const categorySet = new Set();
+                (order.items || []).forEach((item) => {
+                    const category = item?.product?.category;
+                    if (category) categorySet.add(category);
+                });
+
+                return {
+                    ...order,
+                    _parsedDate: parsedDate,
+                    _categorySet: categorySet
+                };
+            })
+            .filter(Boolean);
+    }, [orders]);
+
     // Filters State
     const minDate = useMemo(() => {
-        if (orders.length === 0) return subDays(new Date(), 30);
-        return orders.reduce((min, o) => {
-            try {
-                const d = parseISO(o.date);
-                return d < min ? d : min;
-            } catch (e) {
-                return min;
-            }
+        if (normalizedOrders.length === 0) return subDays(new Date(), 30);
+        return normalizedOrders.reduce((min, order) => {
+            const orderDate = order._parsedDate;
+            return orderDate < min ? orderDate : min;
         }, new Date());
-    }, [orders]);
+    }, [normalizedOrders]);
 
     const defaultRange = useMemo(() => ({
         from: minDate,
@@ -58,14 +85,8 @@ const Dashboard = () => {
 
     // --- Derived Data ---
     const filteredOrders = useMemo(() => {
-        return orders.filter(order => {
-            let orderDate;
-            try {
-                orderDate = order.date ? parseISO(order.date) : null;
-            } catch (e) {
-                return false;
-            }
-            if (!orderDate || isNaN(orderDate.getTime())) return false;
+        return normalizedOrders.filter((order) => {
+            const orderDate = order._parsedDate;
 
             const matchesDate = !dateRange?.from || !dateRange?.to ||
                 isWithinInterval(orderDate, { start: dateRange.from, end: dateRange.to });
@@ -75,11 +96,12 @@ const Dashboard = () => {
             const matchesSocial = selectedSocials.length === 0 || (order.customer?.social && selectedSocials.includes(order.customer.social));
 
             // Category filter
-            const matchesCategory = selectedCategories.length === 0 || (order.items && order.items.some(item => item.product?.category && selectedCategories.includes(item.product.category)));
+            const matchesCategory = selectedCategories.length === 0 ||
+                selectedCategories.some((category) => order._categorySet?.has(category));
 
             return matchesDate && matchesStatus && matchesGov && matchesSocial && matchesCategory;
         });
-    }, [orders, dateRange, selectedStatuses, selectedGovernorates, selectedSocials, selectedCategories]);
+    }, [normalizedOrders, dateRange, selectedStatuses, selectedGovernorates, selectedSocials, selectedCategories]);
 
     const previousPeriodRevenue = useMemo(() => {
         if (!dateRange?.from || !dateRange?.to) return 0;
@@ -91,25 +113,19 @@ const Dashboard = () => {
         const previousEnd = new Date(start.getTime() - 1);
         const previousStart = new Date(previousEnd.getTime() - periodMs);
 
-        return orders.reduce((sum, order) => {
-            let orderDate;
-            try {
-                orderDate = order.date ? parseISO(order.date) : null;
-            } catch (e) {
-                return sum;
-            }
-            if (!orderDate || isNaN(orderDate.getTime())) return sum;
-
+        return normalizedOrders.reduce((sum, order) => {
+            const orderDate = order._parsedDate;
             const matchesDate = isWithinInterval(orderDate, { start: previousStart, end: previousEnd });
             const matchesStatus = selectedStatuses.length === 0 || selectedStatuses.includes(order.status);
             const matchesGov = selectedGovernorates.length === 0 || (order.customer?.governorate && selectedGovernorates.includes(order.customer.governorate));
             const matchesSocial = selectedSocials.length === 0 || (order.customer?.social && selectedSocials.includes(order.customer.social));
-            const matchesCategory = selectedCategories.length === 0 || (order.items && order.items.some(item => item.product?.category && selectedCategories.includes(item.product.category)));
+            const matchesCategory = selectedCategories.length === 0 ||
+                selectedCategories.some((category) => order._categorySet?.has(category));
 
             if (!matchesDate || !matchesStatus || !matchesGov || !matchesSocial || !matchesCategory) return sum;
             return sum + (Number(order.total) || 0);
         }, 0);
-    }, [orders, dateRange, selectedStatuses, selectedGovernorates, selectedSocials, selectedCategories]);
+    }, [normalizedOrders, dateRange, selectedStatuses, selectedGovernorates, selectedSocials, selectedCategories]);
 
     // KPI Calculations
     const totalRevenue = useMemo(() => filteredOrders.reduce((sum, order) => sum + order.total, 0), [filteredOrders]);
@@ -162,17 +178,11 @@ const Dashboard = () => {
     // Filter Options with Counts
 
     const ordersInDateRange = useMemo(() => {
-        return orders.filter(order => {
-            let orderDate;
-            try {
-                orderDate = order.date ? parseISO(order.date) : null;
-            } catch (e) {
-                return false;
-            }
-            if (!orderDate || isNaN(orderDate.getTime())) return false;
+        return normalizedOrders.filter((order) => {
+            const orderDate = order._parsedDate;
             return !dateRange?.from || !dateRange?.to || isWithinInterval(orderDate, { start: dateRange.from, end: dateRange.to });
         });
-    }, [orders, dateRange]);
+    }, [normalizedOrders, dateRange]);
 
     const statusOptions = useMemo(() => {
         const counts = {};
@@ -247,7 +257,7 @@ const Dashboard = () => {
         days.forEach(day => dataMap[format(day, 'yyyy-MM-dd')] = 0);
 
         filteredOrders.forEach(order => {
-            const dayStr = format(parseISO(order.date), 'yyyy-MM-dd');
+            const dayStr = format(order._parsedDate, 'yyyy-MM-dd');
             if (dataMap[dayStr] !== undefined) {
                 dataMap[dayStr] += order.total;
             }

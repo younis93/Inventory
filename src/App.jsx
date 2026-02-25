@@ -7,6 +7,7 @@ import Customers from './pages/Customers';
 import ProductPicture from './pages/ProductPicture';
 import Settings from './pages/Settings';
 import Expenses from './pages/Expenses';
+import Purchases from './pages/Purchases';
 import { InventoryProvider, useInventory } from './context/InventoryContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
@@ -73,6 +74,7 @@ function App() {
                             <Route path="/products" element={<RoleRoute roles={['Admin', 'Manager']}><Products /></RoleRoute>} />
                             <Route path="/orders" element={<Orders />} />
                             <Route path="/expenses" element={<RoleRoute roles={['Admin', 'Manager']}><Expenses /></RoleRoute>} />
+                            <Route path="/purchases" element={<RoleRoute roles={['Admin', 'Manager']}><Purchases /></RoleRoute>} />
                             <Route path="/customers" element={<Customers />} />
                             <Route path="/product-picture" element={<RoleRoute roles={['Admin', 'Manager']}><ProductPicture /></RoleRoute>} />
                             <Route path="/settings" element={<Settings />} />

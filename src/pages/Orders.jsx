@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { isBefore, isWithinInterval, parseISO, startOfDay, subDays } from 'date-fns';
+import { format, isBefore, isWithinInterval, parseISO, startOfDay, subDays } from 'date-fns';
 import Layout from '../components/Layout';
 import DeleteConfirmModal from '../components/common/DeleteConfirmModal';
 import { useCustomers, useInventory, useOrders, useProducts } from '../context/InventoryContext';
@@ -27,6 +27,25 @@ const INITIAL_ORDER_STATE = {
 };
 
 const STATUS_OPTIONS = ['Processing', 'Completed', 'Cancelled', 'Pending'];
+
+const parseOrderDateSafe = (value) => {
+    if (!value) return null;
+    try {
+        const parsed = parseISO(value);
+        return Number.isNaN(parsed.getTime()) ? null : parsed;
+    } catch {
+        return null;
+    }
+};
+
+const dayKey = (value) => {
+    if (!value) return '';
+    try {
+        return format(value, 'yyyy-MM-dd');
+    } catch {
+        return '';
+    }
+};
 
 const Orders = () => {
     const { t } = useTranslation();
@@ -57,6 +76,7 @@ const Orders = () => {
     const [hasInitializedDate, setHasInitializedDate] = useState(false);
     const [filterGovernorates, setFilterGovernorates] = useState([]);
     const [filterSocials, setFilterSocials] = useState([]);
+    const [filterCreatedBy, setFilterCreatedBy] = useState([]);
     const [filterStatuses, setFilterStatuses] = useState([]);
     const [sortBy, setSortBy] = useState('date-new');
     const [columnSort, setColumnSort] = useState({ column: 'date', direction: 'desc' });
@@ -64,23 +84,37 @@ const Orders = () => {
     const [newOrder, setNewOrder] = useState(INITIAL_ORDER_STATE);
     const [selectedProductId, setSelectedProductId] = useState('');
     const [qty, setQty] = useState(1);
+    const [isMobileView, setIsMobileView] = useState(() => (typeof window !== 'undefined' ? window.innerWidth < 640 : false));
+    const normalizedSearchTerm = searchTerm.trim().toLowerCase();
+
+    const orderDateMap = useMemo(() => {
+        const map = new Map();
+        orders.forEach((order) => {
+            map.set(order._id, parseOrderDateSafe(order.date));
+        });
+        return map;
+    }, [orders]);
 
     useEffect(() => {
         setIsModalOpen(isCreateModalOpen || isViewModalOpen || isDeleteModalOpen);
         return () => setIsModalOpen(false);
     }, [isCreateModalOpen, isViewModalOpen, isDeleteModalOpen, setIsModalOpen]);
 
+    useEffect(() => {
+        const onResize = () => setIsMobileView(window.innerWidth < 640);
+        onResize();
+        window.addEventListener('resize', onResize);
+        return () => window.removeEventListener('resize', onResize);
+    }, []);
+
     const minDate = useMemo(() => {
         if (orders.length === 0) return subDays(new Date(), 30);
         return orders.reduce((min, order) => {
-            try {
-                const orderDate = parseISO(order.date);
-                return orderDate < min ? orderDate : min;
-            } catch {
-                return min;
-            }
+            const orderDate = orderDateMap.get(order._id);
+            if (!orderDate) return min;
+            return orderDate < min ? orderDate : min;
         }, new Date());
-    }, [orders]);
+    }, [orders, orderDateMap]);
 
     const defaultRange = useMemo(() => ({ from: minDate, to: new Date() }), [minDate]);
     const [dateRange, setDateRange] = useState(defaultRange);
@@ -120,6 +154,18 @@ const Orders = () => {
         })).sort((a, b) => b.count - a.count);
     }, [orders]);
 
+    const createdByOptions = useMemo(() => {
+        const counts = {};
+        orders.forEach((order) => {
+            const createdBy = order.createdBy || 'System';
+            counts[createdBy] = (counts[createdBy] || 0) + 1;
+        });
+
+        return Object.entries(counts)
+            .map(([value, count]) => ({ value, label: value, count }))
+            .sort((a, b) => b.count - a.count);
+    }, [orders]);
+
     const statusOptions = useMemo(() => {
         const counts = {};
         orders.forEach((order) => {
@@ -134,12 +180,15 @@ const Orders = () => {
 
     const filteredAndSortedOrders = useMemo(() => {
         const filtered = orders.filter((order) => {
-            const search = searchTerm.toLowerCase();
+            const orderId = String(order.orderId || '').toLowerCase();
+            const customerName = String(order.customer?.name || '').toLowerCase();
             const matchesSearch =
-                order.orderId.toLowerCase().includes(search) ||
-                order.customer.name.toLowerCase().includes(search);
+                !normalizedSearchTerm ||
+                orderId.includes(normalizedSearchTerm) ||
+                customerName.includes(normalizedSearchTerm);
 
-            const orderDate = parseISO(order.date);
+            const orderDate = orderDateMap.get(order._id);
+            if (!orderDate) return false;
             const matchesDate = !dateRange?.from || !dateRange?.to
                 ? true
                 : isWithinInterval(orderDate, { start: dateRange.from, end: dateRange.to });
@@ -147,15 +196,17 @@ const Orders = () => {
             const matchesGov = filterGovernorates.length === 0 || filterGovernorates.includes(order.customer.governorate);
             const matchesSocial = filterSocials.length === 0 || filterSocials.includes(order.customer.social);
             const matchesStatus = filterStatuses.length === 0 || filterStatuses.includes(order.status);
+            const createdBy = order.createdBy || 'System';
+            const matchesCreatedBy = filterCreatedBy.length === 0 || filterCreatedBy.includes(createdBy);
 
-            return matchesSearch && matchesDate && matchesGov && matchesSocial && matchesStatus;
+            return matchesSearch && matchesDate && matchesGov && matchesSocial && matchesStatus && matchesCreatedBy;
         });
 
         const sorted = filtered.sort((a, b) => {
             let compare = 0;
             if (columnSort.column === 'orderId') compare = a.orderId.localeCompare(b.orderId);
             else if (columnSort.column === 'customer') compare = a.customer.name.localeCompare(b.customer.name);
-            else if (columnSort.column === 'date') compare = new Date(a.date) - new Date(b.date);
+            else if (columnSort.column === 'date') compare = (orderDateMap.get(a._id)?.getTime() || 0) - (orderDateMap.get(b._id)?.getTime() || 0);
             else if (columnSort.column === 'total') compare = a.total - b.total;
             else if (columnSort.column === 'status') compare = a.status.localeCompare(b.status);
             else if (columnSort.column === 'createdBy') compare = (a.createdBy || '').localeCompare(b.createdBy || '');
@@ -166,23 +217,26 @@ const Orders = () => {
         return sorted.slice(0, displayLimit);
     }, [
         orders,
-        searchTerm,
+        normalizedSearchTerm,
         dateRange,
         filterGovernorates,
         filterSocials,
         filterStatuses,
+        filterCreatedBy,
         columnSort,
-        displayLimit
+        displayLimit,
+        orderDateMap
     ]);
 
     const hasActiveFilters = useMemo(() => (
         filterGovernorates.length > 0 ||
         filterStatuses.length > 0 ||
         filterSocials.length > 0 ||
-        Boolean(searchTerm) ||
-        dateRange.from?.getTime() !== defaultRange.from?.getTime() ||
-        dateRange.to?.getTime() !== defaultRange.to?.getTime()
-    ), [filterGovernorates, filterStatuses, filterSocials, searchTerm, dateRange, defaultRange]);
+        filterCreatedBy.length > 0 ||
+        searchTerm.trim().length > 0 ||
+        dayKey(dateRange.from) !== dayKey(defaultRange.from) ||
+        dayKey(dateRange.to) !== dayKey(defaultRange.to)
+    ), [filterGovernorates, filterStatuses, filterSocials, filterCreatedBy, searchTerm, dateRange, defaultRange]);
 
     const handleSortChange = (value) => {
         setSortBy(value);
@@ -434,6 +488,7 @@ const Orders = () => {
         setFilterStatuses([]);
         setFilterGovernorates([]);
         setFilterSocials([]);
+        setFilterCreatedBy([]);
         setDateRange(defaultRange);
     };
 
@@ -479,37 +534,43 @@ const Orders = () => {
                 socialOptions={socialOptions}
                 filterSocials={filterSocials}
                 onFilterSocialsChange={setFilterSocials}
+                createdByOptions={createdByOptions}
+                filterCreatedBy={filterCreatedBy}
+                onFilterCreatedByChange={setFilterCreatedBy}
             />
 
             <div className={`bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden transition-all ${['liquid', 'default_glass'].includes(appearance.theme) ? 'glass-panel' : ''}`}>
-                <OrdersTable
-                    t={t}
-                    loading={loading}
-                    orders={filteredAndSortedOrders}
-                    formatCurrency={formatCurrency}
-                    columnSort={columnSort}
-                    onColumnSort={handleColumnSort}
-                    onUpdateStatus={updateOrder}
-                    onViewOrder={handleViewOrder}
-                    onEditOrder={handleEditOrder}
-                    onPDFInvoice={handlePDFInvoice}
-                    onThermalPrint={handleThermalPrint}
-                    canDeleteOrder={canDeleteOrder}
-                    onRequestDelete={handleRequestDelete}
-                />
-                <OrdersListCard
-                    t={t}
-                    loading={loading}
-                    orders={filteredAndSortedOrders}
-                    formatCurrency={formatCurrency}
-                    onUpdateStatus={updateOrder}
-                    onViewOrder={handleViewOrder}
-                    onEditOrder={handleEditOrder}
-                    onPDFInvoice={handlePDFInvoice}
-                    onThermalPrint={handleThermalPrint}
-                    canDeleteOrder={canDeleteOrder}
-                    onRequestDelete={handleRequestDelete}
-                />
+                {isMobileView ? (
+                    <OrdersListCard
+                        t={t}
+                        loading={loading}
+                        orders={filteredAndSortedOrders}
+                        formatCurrency={formatCurrency}
+                        onUpdateStatus={updateOrder}
+                        onViewOrder={handleViewOrder}
+                        onEditOrder={handleEditOrder}
+                        onPDFInvoice={handlePDFInvoice}
+                        onThermalPrint={handleThermalPrint}
+                        canDeleteOrder={canDeleteOrder}
+                        onRequestDelete={handleRequestDelete}
+                    />
+                ) : (
+                    <OrdersTable
+                        t={t}
+                        loading={loading}
+                        orders={filteredAndSortedOrders}
+                        formatCurrency={formatCurrency}
+                        columnSort={columnSort}
+                        onColumnSort={handleColumnSort}
+                        onUpdateStatus={updateOrder}
+                        onViewOrder={handleViewOrder}
+                        onEditOrder={handleEditOrder}
+                        onPDFInvoice={handlePDFInvoice}
+                        onThermalPrint={handleThermalPrint}
+                        canDeleteOrder={canDeleteOrder}
+                        onRequestDelete={handleRequestDelete}
+                    />
+                )}
             </div>
 
             <OrderFormModal

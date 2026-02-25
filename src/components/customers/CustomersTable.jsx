@@ -20,7 +20,7 @@ const CustomersTable = ({
     loading,
     customersData,
     formatCurrency,
-    getCustomerOrders,
+    getCustomerStats,
     getValidDate,
     onOpenHistory,
     onOpenEdit,
@@ -63,7 +63,7 @@ const CustomersTable = ({
     const listHeight = Math.min(560, Math.max(160, customersData.length * 86));
 
     return (
-        <div className="overflow-x-auto hidden sm:block" dir={isRTL ? 'rtl' : 'ltr'}>
+        <div className="overflow-x-auto custom-scrollbar hidden sm:block" dir={isRTL ? 'rtl' : 'ltr'}>
             <div className="min-w-[1040px]">
                 <div className={`${gridClass} gap-3 px-4 py-3 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-500 uppercase rounded-t-2xl`}>
                     {headerColumns.map((column) => {
@@ -104,8 +104,10 @@ const CustomersTable = ({
                 >
                     {({ index, style }) => {
                         const customer = customersData[index];
-                        const customerOrders = getCustomerOrders(customer._id);
-                        const totalSpent = customerOrders.reduce((sum, order) => sum + order.total, 0);
+                        const customerStats = getCustomerStats(customer._id);
+                        const customerOrders = customerStats.orders;
+                        const totalSpent = customerStats.totalSpent;
+                        const createdDate = getValidDate(customer);
 
                         return (
                             <div style={style} className={`${gridClass} gap-3 px-4 py-3 border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50/50 dark:hover:bg-slate-700/50 transition-colors`}>
@@ -126,7 +128,7 @@ const CustomersTable = ({
                                 </div>
                                 <div className="text-sm font-black text-slate-800 dark:text-white truncate">{formatCurrency(totalSpent)}</div>
                                 <div className="text-xs font-bold text-slate-500 truncate">
-                                    {getValidDate(customer) ? format(getValidDate(customer), 'yyyy MMM dd') : t('orders.receipt.na')}
+                                    {createdDate ? format(createdDate, 'yyyy MMM dd') : t('orders.receipt.na')}
                                 </div>
                                 <div className="text-xs font-medium text-slate-500 truncate">{customer.createdBy || 'System'}</div>
                                 <div className="flex items-center justify-end gap-2">

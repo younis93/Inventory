@@ -78,7 +78,7 @@ const OrdersTable = ({
     const listHeight = Math.min(560, Math.max(160, orders.length * 78));
 
     return (
-        <div className="hidden sm:block overflow-x-auto" dir={isRTL ? 'rtl' : 'ltr'}>
+        <div className="hidden sm:block overflow-x-auto custom-scrollbar" dir={isRTL ? 'rtl' : 'ltr'}>
             <div className="min-w-[1080px]">
                 <div className={`${gridClass} gap-3 px-4 py-3 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-500 uppercase rounded-t-2xl`}>
                     {headerColumns.map((column) => {

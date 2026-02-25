@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { LayoutDashboard, Package, ShoppingCart, Settings, Users, Box, X, ChevronLeft, ChevronRight, Image as ImageIcon, LogOut, UserCog, ChevronUp, Receipt } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, Settings, Users, Box, X, ChevronLeft, ChevronRight, Image as ImageIcon, LogOut, UserCog, ChevronUp, Receipt, Truck } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useInventory } from '../context/InventoryContext';
 import { useTranslation } from 'react-i18next';
@@ -28,11 +28,12 @@ const Sidebar = () => {
 
     const menuItems = [
         { icon: LayoutDashboard, label: t('menu.dashboard'), path: '/', roles: ['Admin', 'Manager'] },
+        { icon: Truck, label: t('menu.purchases'), path: '/purchases', roles: ['Admin', 'Manager'] },
         { icon: Box, label: t('menu.inventory'), path: '/products', roles: ['Admin', 'Manager'] },
         { icon: ImageIcon, label: t('menu.productPicture'), path: '/product-picture', roles: ['Admin', 'Manager'] },
         { icon: ShoppingCart, label: t('menu.orders'), path: '/orders', roles: ['Admin', 'Manager', 'Sales'] },
-        { icon: Receipt, label: t('menu.expenses'), path: '/expenses', roles: ['Admin', 'Manager'] },
         { icon: Users, label: t('menu.customers'), path: '/customers', roles: ['Admin', 'Manager', 'Sales'] },
+        { icon: Receipt, label: t('menu.expenses'), path: '/expenses', roles: ['Admin', 'Manager'] },
         { icon: Settings, label: t('menu.settings'), path: '/settings', roles: ['Admin', 'Manager', 'Sales'] },
     ].filter(item => !item.roles || item.roles.includes(currentUser?.role || 'Sales'));
 
@@ -72,7 +73,7 @@ const Sidebar = () => {
     return (
         <aside className={sidebarClasses}>
             {/* Logo Area */}
-            <div className={`h-24 flex items-center ${isSidebarCollapsed ? 'justify-center' : 'px-8'} relative`}>
+            <div className={`h-20 flex items-center ${isSidebarCollapsed ? 'justify-center' : 'px-6'} relative`}>
                 <div className="flex items-center gap-3">
                     <div
                         className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg text-white overflow-hidden shrink-0"
@@ -113,13 +114,7 @@ const Sidebar = () => {
             </div>
 
             {/* Navigation */}
-            <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-2 custom-scrollbar">
-                {!isSidebarCollapsed && (
-                    <div className="mb-4 px-4">
-                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">{t('menu.mainMenu')}</p>
-                    </div>
-                )}
-
+            <nav className="flex-1 overflow-hidden py-2 px-3 space-y-1">
                 {menuItems.map((item) => {
                     const isActive = location.pathname === item.path;
                     return (
@@ -129,7 +124,7 @@ const Sidebar = () => {
                             aria-label={item.label}
                             title={isSidebarCollapsed ? item.label : ''}
                             onClick={closeMobileMenu}
-                            className={`flex items-center gap-3 rounded-xl transition-all duration-200 group relative overflow-hidden ${isSidebarCollapsed ? 'justify-center p-3' : 'px-4 py-3.5'
+                            className={`flex items-center gap-3 rounded-xl transition-all duration-200 group relative overflow-hidden ${isSidebarCollapsed ? 'justify-center p-2.5' : 'px-4 py-2.5'
                                 } ${isActive
                                     ? 'text-white shadow-lg bg-accent shadow-accent'
                                     : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 dark:text-slate-400 dark:hover:text-white'
@@ -152,7 +147,7 @@ const Sidebar = () => {
             </nav>
 
             {/* Bottom User Section */}
-            <div className="p-4 mt-auto border-t border-slate-100 dark:border-slate-800/50">
+            <div className="p-3 mt-auto border-t border-slate-100 dark:border-slate-800/50">
                 <div className="relative" ref={profileMenuRef}>
                     <button
                         type="button"
@@ -184,8 +179,14 @@ const Sidebar = () => {
                         {!isSidebarCollapsed && <ChevronUp className={`w-4 h-4 text-slate-400 transition-transform ${isProfileMenuOpen ? 'rotate-180' : ''}`} />}
                     </button>
 
-                    {isProfileMenuOpen && !isSidebarCollapsed && (
-                        <div className="absolute bottom-full mb-2 left-0 right-0 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-2xl overflow-hidden z-50">
+                    {isProfileMenuOpen && (
+                        <div
+                            className={`absolute rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-2xl overflow-hidden z-50 ${
+                                isSidebarCollapsed
+                                    ? `bottom-0 ${isRTL ? 'right-full mr-2' : 'left-full ml-2'} w-56`
+                                    : 'bottom-full mb-2 left-0 right-0'
+                            }`}
+                        >
                             <button
                                 type="button"
                                 onClick={handleAccountSettings}
@@ -214,7 +215,7 @@ const Sidebar = () => {
                 type="button"
                 onClick={toggleSidebar}
                 aria-label={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-                className={`hidden lg:flex absolute bottom-24 ${isRTL ? '-left-3' : '-right-3'} w-6 h-6 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full items-center justify-center text-slate-400 shadow-sm z-50 transition-all hover:scale-110`}
+                className={`hidden lg:flex absolute bottom-20 ${isRTL ? '-left-3' : '-right-3'} w-6 h-6 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full items-center justify-center text-slate-400 shadow-sm z-50 transition-all hover:scale-110`}
                 style={{ color: 'var(--accent-color)' }}
             >
                 {isSidebarCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}

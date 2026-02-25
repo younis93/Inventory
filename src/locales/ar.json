@@ -8,7 +8,8 @@
         "expenses": "المصروفات",
         "customers": "العملاء",
         "settings": "الإعدادات",
-        "logout": "تسجيل الخروج"
+        "logout": "تسجيل الخروج",
+        "purchases": "المشتريات"
     },
     "header": {
         "welcome": "مرحباً بك،",
@@ -162,7 +163,8 @@
             "qtyCalculation": "حساب الكمية",
             "unitsExpected": "الوحدات المتوقع بيعها",
             "selectCategory": "اختر الفئة",
-            "createCategory": "إنشاء فئة جديدة"
+            "createCategory": "إنشاء فئة جديدة",
+            "initialReceivedDate": "تاريخ الاستلام الأولي"
         },
         "searchPlaceholder": "بحث عن منتجات...",
         "confirmDelete": "هل أنت متأكد من حذف هذا المنتج؟",
@@ -286,7 +288,15 @@
         "topCampaign": "أعلى حملة",
         "addType": "إضافة نوع",
         "typePrompt": "أدخل نوع مصروف جديد",
-        "noExpenses": "لا توجد مصروفات"
+        "noExpenses": "لا توجد مصروفات",
+        "table": {
+            "date": "التاريخ",
+            "type": "النوع",
+            "campaign": "الحملة",
+            "link": "الرابط",
+            "amountIQD": "المبلغ (د.ع)",
+            "attachments": "المرفقات"
+        }
     },
     "customers": {
         "title": "العملاء",
@@ -438,5 +448,81 @@
         },
         "passwordHint": "اختياري: مطلوب فقط لتسجيل الدخول بالبريد الإلكتروني وكلمة المرور. بإمكان مستخدمي Gmail ترك هذا الحقل فارغاً.",
         "signupNotice": "ملاحظة: إضافة مستخدم تمنح صلاحية الوصول لبريده الإلكتروني فقط. يجب على المستخدم التسجيل عبر خيار 'إنشاء حساب' في صفحة الدخول لتعيين كلمة مروره أو ربط حساب Google الخاص به."
+    },
+    "purchases": {
+        "title": "المشتريات",
+        "newPurchase": "شراء جديد",
+        "editPurchase": "تعديل الشراء",
+        "createPurchase": "إنشاء شراء",
+        "updatePurchase": "تحديث الشراء",
+        "viewPurchases": "عرض المشتريات",
+        "searchPlaceholder": "ابحث برقم الشراء أو المنتج أو SKU...",
+        "statusTimeline": "سجل حالة الشراء",
+        "noPurchases": "لا توجد مشتريات",
+        "confirmDelete": "هل أنت متأكد من حذف هذا الشراء؟",
+        "filters": {
+            "status": "الحالة",
+            "product": "المنتج"
+        },
+        "table": {
+            "product": "المنتج / SKU",
+            "lastStatusDate": "تاريخ آخر حالة",
+            "totalCost": "التكلفة الإجمالية",
+            "id": "رقم الشراء"
+        },
+        "summary": {
+            "totalSpend": "إجمالي الإنفاق",
+            "totalPurchases": "إجمالي المشتريات"
+        },
+        "statuses": {
+            "factory": "المصنع",
+            "chinaWarehouse": "مخزن الصين",
+            "shippingToIraq": "الشحن إلى العراق",
+            "received": "تم الاستلام",
+            "ordered": "تم الطلب"
+        },
+        "form": {
+            "mode": "الوضع",
+            "existingProduct": "منتج موجود",
+            "newProduct": "منتج جديد",
+            "product": "المنتج",
+            "statusDate": "تاريخ الحالة",
+            "notesPlaceholder": "ملاحظات الشراء العامة...",
+            "createHint": "أنشئ عملية شراء مرتبطة بمنتج موجود أو منتج جديد.",
+            "editHint": "حدّث بيانات الشراء وسجل الحالة.",
+            "nextStatus": "الحالة التالية",
+            "statusNote": "ملاحظة الحالة",
+            "statusNotePlaceholder": "أضف ملاحظة اختيارية لهذه الحالة"
+        },
+        "pricing": {
+            "unitPriceUSD": "سعر الوحدة (دولار)",
+            "alibabaFeeUSD": "رسوم علي بابا (دولار)",
+            "exchangeRate": "سعر الصرف",
+            "shippingToIraqIQD": "الشحن إلى العراق (د.ع)",
+            "additionalFeesIQD": "رسوم إضافية (د.ع)",
+            "marginPercent": "نسبة الربح",
+            "sellingPriceIQD": "سعر البيع (د.ع)",
+            "costPriceIQD_total": "إجمالي التكلفة (د.ع)",
+            "costPriceIQD_perUnit": "تكلفة الوحدة (د.ع)",
+            "recommendedSellingPriceIQD_perUnit": "سعر البيع المقترح للوحدة (د.ع)",
+            "profitPerUnitIQD": "الربح لكل وحدة (د.ع)",
+            "unitsSold": "الوحدات المباعة"
+        },
+        "changeStatus": "تغيير الحالة",
+        "applyStatus": "تطبيق الحالة",
+        "statusValidation": {
+            "dateRequired": "تاريخ الحالة مطلوب.",
+            "noFuture": "لا يمكن أن يكون تاريخ الحالة في المستقبل.",
+            "chronological": "يجب أن يكون تاريخ الحالة في نفس يوم آخر حالة أو بعده."
+        }
+    },
+    "install": {
+        "ios": {
+            "title": "ثبّت التطبيق على آيفون",
+            "stepsBefore": "اضغط",
+            "stepsMiddle": "ثم اختر",
+            "stepsAfter": "إضافة إلى الشاشة الرئيسية.",
+            "dismiss": "إغلاق"
+        }
     }
 }

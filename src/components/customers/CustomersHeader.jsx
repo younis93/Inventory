@@ -43,6 +43,9 @@ const CustomersHeader = ({
     socialOptions,
     filterSocials,
     onFilterSocialsChange,
+    createdByOptions,
+    filterCreatedBy,
+    onFilterCreatedByChange,
     viewMode,
     onViewModeChange
 }) => {
@@ -99,7 +102,7 @@ const CustomersHeader = ({
                 </div>
             </div>
 
-            <div className="flex sm:hidden gap-2 items-center w-full flex-nowrap overflow-visible">
+            <div className="flex sm:hidden gap-2 items-center w-full min-w-0 overflow-visible">
                 <SortDropdown
                     title={t('common.sort')}
                     options={mobileSortOptions(t)}
@@ -107,9 +110,9 @@ const CustomersHeader = ({
                     onChange={onSortChange}
                 />
                 <RowLimitDropdown limit={displayLimit} onChange={onDisplayLimitChange} />
-                <div className="shrink-0 whitespace-nowrap flex items-center gap-3 px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
+                <div className="min-w-0 flex-1 flex items-center gap-2 px-3 py-2.5 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
                     <User className="w-4 h-4 text-slate-400" />
-                    <span className="text-sm font-bold text-slate-500">
+                    <span className="min-w-0 truncate text-sm font-bold text-slate-500">
                         <span className="text-slate-900 dark:text-white">{filteredCount}</span> {t('customers.title')}
                     </span>
                 </div>
@@ -150,6 +153,15 @@ const CustomersHeader = ({
                         showSearch={false}
                     />
                 </div>
+
+                <FilterDropdown
+                    title={t('common.createdBy')}
+                    options={createdByOptions}
+                    selectedValues={filterCreatedBy}
+                    onChange={onFilterCreatedByChange}
+                    icon={User}
+                    showSearch={false}
+                />
 
                 <div className="hidden sm:block">
                     <SortDropdown

@@ -8,6 +8,64 @@ const getStockStatus = (stock) => {
     return 'In Stock';
 };
 
+const toFiniteNumber = (value, fallback = 0) => {
+    const num = Number(value);
+    return Number.isFinite(num) ? num : fallback;
+};
+
+const toNonNegativeInt = (value, fallback = 0) => {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) return fallback;
+    return Math.max(0, Math.floor(parsed));
+};
+
+const toOptionalText = (value) => {
+    if (value == null) return '';
+    return String(value).trim();
+};
+
+const normalizeProductPayload = (payload = {}, { isUpdate = false } = {}) => {
+    const stock = toNonNegativeInt(payload.stock, 0);
+    const now = new Date().toISOString();
+
+    const normalized = {
+        ...payload,
+        name: toOptionalText(payload.name),
+        sku: toOptionalText(payload.sku),
+        category: toOptionalText(payload.category),
+        description: toOptionalText(payload.description),
+        images: Array.isArray(payload.images) ? payload.images : [],
+        stock,
+        status: getStockStatus(stock),
+        // Pricing fields
+        unitPriceUSD: toFiniteNumber(payload.unitPriceUSD, 0),
+        alibabaFeeUSD: toFiniteNumber(payload.alibabaFeeUSD, 0),
+        exchangeRate: toFiniteNumber(payload.exchangeRate, 0),
+        shippingToIraqIQD: toFiniteNumber(payload.shippingToIraqIQD, 0),
+        additionalFeesIQD: toFiniteNumber(payload.additionalFeesIQD, 0),
+        marginPercent: toFiniteNumber(payload.marginPercent, 0),
+        sellingPriceIQD: toFiniteNumber(payload.sellingPriceIQD ?? payload.price, 0),
+        costPriceIQD_total: toFiniteNumber(payload.costPriceIQD_total, 0),
+        costPriceIQD_perUnit: toFiniteNumber(payload.costPriceIQD_perUnit, 0),
+        recommendedSellingPriceIQD_perUnit: toFiniteNumber(payload.recommendedSellingPriceIQD_perUnit, 0),
+        profitPerUnitIQD: toFiniteNumber(payload.profitPerUnitIQD, 0),
+        unitsSold: toNonNegativeInt(payload.unitsSold, 0),
+        // Keep legacy fields in sync
+        unitPrice: toFiniteNumber(payload.unitPrice ?? payload.unitPriceUSD, 0),
+        price: toFiniteNumber(payload.price ?? payload.sellingPriceIQD, 0),
+        // Alibaba fields
+        alibabaProductLink: toOptionalText(payload.alibabaProductLink),
+        alibabaMessageLink: toOptionalText(payload.alibabaMessageLink),
+        alibabaOrderLink: toOptionalText(payload.alibabaOrderLink),
+        alibabaOrderNumber: toOptionalText(payload.alibabaOrderNumber),
+        alibabaNote: toOptionalText(payload.alibabaNote),
+        createdAt: isUpdate ? (payload.createdAt || now) : now,
+        updatedAt: now
+    };
+
+    return normalized;
+};
+
 export const useProductsDomain = ({ enabled, addToast, currentUser }) => {
     const [products, setProducts] = useState([]);
     const [categories, setCategories] = useState(['Electronics', 'Clothing', 'Home', 'Beauty', 'Sports']);
@@ -70,34 +128,45 @@ export const useProductsDomain = ({ enabled, addToast, currentUser }) => {
         const value = Math.max(0, Number(stock || 0));
         await dataClient.update('products', productId, {
             stock: value,
-            status: getStockStatus(value)
+            status: getStockStatus(value),
+            updatedAt: new Date().toISOString()
         });
     };
 
-    const addProduct = async (newProduct) => {
+    const addProduct = async (newProduct, options = {}) => {
         try {
+            const normalizedProduct = normalizeProductPayload(newProduct, { isUpdate: false });
             const payload = {
-                ...newProduct,
+                ...normalizedProduct,
                 createdBy: currentUser?.displayName || currentUser?.username || 'System'
             };
             const result = await dataClient.add('products', payload);
-            addToast?.('Product added successfully', 'success');
+            if (!options.silent) {
+                addToast?.('Product added successfully', 'success');
+            }
             return result;
         } catch (error) {
             console.error(error);
-            addToast?.('Error adding product', 'error');
+            if (!options.silent) {
+                addToast?.('Error adding product', 'error');
+            }
             return null;
         }
     };
 
-    const updateProduct = async (updatedProduct) => {
+    const updateProduct = async (updatedProduct, options = {}) => {
         const { _id, ...data } = updatedProduct;
         try {
-            await dataClient.update('products', _id, data);
-            addToast?.('Product updated successfully', 'success');
+            const normalizedProduct = normalizeProductPayload(data, { isUpdate: true });
+            await dataClient.update('products', _id, normalizedProduct);
+            if (!options.silent) {
+                addToast?.('Product updated successfully', 'success');
+            }
         } catch (error) {
             console.error(error);
-            addToast?.('Error updating product', 'error');
+            if (!options.silent) {
+                addToast?.('Error updating product', 'error');
+            }
         }
     };
 

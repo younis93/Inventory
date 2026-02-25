@@ -6,6 +6,7 @@
         "productPicture": "Product Picture",
         "orders": "Orders",
         "expenses": "Expenses",
+        "purchases": "Purchases",
         "customers": "Customers",
         "settings": "Settings",
         "logout": "Logout"
@@ -67,6 +68,15 @@
         "createdBy": "Created By",
         "verified": "Linked",
         "pending": "Pending"
+    },
+    "install": {
+        "ios": {
+            "title": "Install this app on your iPhone",
+            "stepsBefore": "Tap",
+            "stepsMiddle": "then choose",
+            "stepsAfter": "Add to Home Screen.",
+            "dismiss": "Dismiss"
+        }
     },
     "dashboard": {
         "title": "Dashboard",
@@ -162,7 +172,8 @@
             "qtyCalculation": "Quantity Calculation",
             "unitsExpected": "Units Expected to Sell",
             "selectCategory": "Select Category",
-            "createCategory": "Create New Category"
+            "createCategory": "Create New Category",
+            "initialReceivedDate": "Initial Received Date"
         },
         "searchPlaceholder": "Search products...",
         "confirmDelete": "Are you sure you want to delete this product?",
@@ -286,7 +297,82 @@
         "topCampaign": "Top Campaign",
         "addType": "Add Type",
         "typePrompt": "Enter new expense type",
-        "noExpenses": "No expenses found"
+        "noExpenses": "No expenses found",
+        "table": {
+            "date": "Date",
+            "type": "Type",
+            "campaign": "Campaign",
+            "link": "Link",
+            "amountIQD": "Amount (IQD)",
+            "attachments": "Attachments"
+        }
+    },
+    "purchases": {
+        "title": "Purchases",
+        "newPurchase": "New Purchase",
+        "editPurchase": "Edit Purchase",
+        "createPurchase": "Create Purchase",
+        "updatePurchase": "Update Purchase",
+        "viewPurchases": "View Purchases",
+        "searchPlaceholder": "Search by purchase ID, product, SKU...",
+        "statusTimeline": "Status Timeline",
+        "noPurchases": "No purchases found",
+        "confirmDelete": "Are you sure you want to delete this purchase?",
+        "filters": {
+            "status": "Status",
+            "product": "Product"
+        },
+        "table": {
+            "product": "Product / SKU",
+            "lastStatusDate": "Last Status Date",
+            "totalCost": "Total Cost",
+            "id": "Purchase ID"
+        },
+        "summary": {
+            "totalSpend": "Total Spend",
+            "totalPurchases": "Total Purchases"
+        },
+        "statuses": {
+            "factory": "Factory",
+            "chinaWarehouse": "China Warehouse",
+            "shippingToIraq": "Shipping to Iraq",
+            "received": "Received",
+            "ordered": "Ordered"
+        },
+        "form": {
+            "mode": "Mode",
+            "existingProduct": "Existing Product",
+            "newProduct": "New Product",
+            "product": "Product",
+            "statusDate": "Status Date",
+            "notesPlaceholder": "General purchase notes...",
+            "createHint": "Create a purchase linked to an existing product or a new product.",
+            "editHint": "Update purchase snapshots and timeline entries.",
+            "nextStatus": "Next Status",
+            "statusNote": "Status Note",
+            "statusNotePlaceholder": "Optional note for this status step"
+        },
+        "pricing": {
+            "unitPriceUSD": "Unit Price USD",
+            "alibabaFeeUSD": "Alibaba Fee USD",
+            "exchangeRate": "Exchange Rate",
+            "shippingToIraqIQD": "Shipping IQD",
+            "additionalFeesIQD": "Additional Fees IQD",
+            "marginPercent": "Margin %",
+            "sellingPriceIQD": "Selling Price IQD",
+            "costPriceIQD_total": "Total Cost IQD",
+            "costPriceIQD_perUnit": "Cost Per Unit IQD",
+            "recommendedSellingPriceIQD_perUnit": "Recommended Price IQD",
+            "profitPerUnitIQD": "Profit Per Unit IQD",
+            "unitsSold": "Units Sold"
+        },
+        "changeStatus": "Change Status",
+        "applyStatus": "Apply Status",
+        "statusValidation": {
+            "dateRequired": "Status date is required.",
+            "noFuture": "Status date cannot be in the future.",
+            "chronological": "Status date must be on or after the last status date."
+        }
     },
     "customers": {
         "title": "Customers",

@@ -2,6 +2,7 @@
  * CSV Export Utility
  * Provides functions to export data to CSV format with Excel compatibility
  */
+import { getPurchaseDisplayId } from '../hooks/domains/purchaseUtils';
 
 /**
  * Convert array of objects to CSV string
@@ -186,11 +187,47 @@ export const exportExpensesToCSV = (expenses, filename = null) => {
     downloadCSV(csvContent, defaultFilename);
 };
 
+/**
+ * Export purchases to CSV
+ * @param {Array} purchases - Array of purchase objects
+ * @param {string} filename - Optional filename
+ */
+export const exportPurchasesToCSV = (purchases, filename = null) => {
+    if (!purchases || purchases.length === 0) {
+        return;
+    }
+
+    const formattedPurchases = purchases.map((purchase) => {
+        const latest = Array.isArray(purchase.statusHistory) && purchase.statusHistory.length > 0
+            ? purchase.statusHistory[purchase.statusHistory.length - 1]
+            : null;
+        const totalCost = Number(purchase?.pricing?.costPriceIQD_perUnit || 0) * Number(purchase?.quantity || 0);
+
+        return {
+            'Purchase ID': getPurchaseDisplayId(purchase),
+            'Product Name': purchase.basicInfo?.name || '',
+            'SKU': purchase.basicInfo?.sku || '',
+            'Quantity': purchase.quantity || 0,
+            'Status': purchase.status || '',
+            'Last Status Date': latest?.date || '',
+            'Total Cost (IQD)': totalCost || Number(purchase?.pricing?.costPriceIQD_total || 0),
+            'Alibaba Order #': purchase.alibabaInfo?.alibabaOrderNumber || '',
+            'Notes': purchase.notes || ''
+        };
+    });
+
+    const csvContent = convertToCSV(formattedPurchases);
+    const defaultFilename = filename || `purchases_export_${new Date().toISOString().split('T')[0]}.csv`;
+
+    downloadCSV(csvContent, defaultFilename);
+};
+
 export default {
     convertToCSV,
     downloadCSV,
     exportOrdersToCSV,
     exportCustomersToCSV,
     exportProductsToCSV,
-    exportExpensesToCSV
+    exportExpensesToCSV,
+    exportPurchasesToCSV
 };

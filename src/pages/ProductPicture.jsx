@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Layout from '../components/Layout';
 import { useInventory, useProducts } from '../context/InventoryContext';
 import { useTranslation } from 'react-i18next';
@@ -64,10 +64,15 @@ const ProductPicture = () => {
         return newImages;
     };
 
-    const filteredProducts = products.filter(p =>
-        p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.sku?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const normalizedSearchTerm = searchTerm.trim().toLowerCase();
+    const filteredProducts = useMemo(() => {
+        if (!normalizedSearchTerm) return products;
+        return products.filter((product) => {
+            const name = String(product.name || '').toLowerCase();
+            const sku = String(product.sku || '').toLowerCase();
+            return name.includes(normalizedSearchTerm) || sku.includes(normalizedSearchTerm);
+        });
+    }, [products, normalizedSearchTerm]);
 
     return (
         <Layout title={t('productPicture.title')} hideHeader={true} fullWidth={true}>
