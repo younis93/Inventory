@@ -358,6 +358,7 @@ const Purchases = () => {
                             selectedValues={selectedStatuses}
                             onChange={setSelectedStatuses}
                             icon={ShoppingBag}
+                            showSearch={false}
                         />
                     </div>
 

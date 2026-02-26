@@ -2,9 +2,11 @@ import React from 'react';
 import { Globe, RefreshCcw, Wifi, WifiOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useInventory } from '../../context/InventoryContext';
+import { useSettings } from '../../context/InventoryContext';
 
 const GeneralSettings = () => {
     const { t } = useTranslation();
+    const { brand, updateBrand } = useSettings();
     const {
         language,
         changeLanguage,
@@ -16,6 +18,15 @@ const GeneralSettings = () => {
         setDesktopOfflineModeEnabled,
         conflicts
     } = useInventory();
+    const isAppHeaderVisible = !Boolean(brand?.hideHeader);
+
+    const handleToggleAppHeader = async () => {
+        const nextVisible = !isAppHeaderVisible;
+        await updateBrand({
+            ...brand,
+            hideHeader: !nextVisible
+        });
+    };
 
     return (
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-8 animate-in fade-in slide-in-from-bottom-4 duration-300 space-y-6">
@@ -51,6 +62,20 @@ const GeneralSettings = () => {
                     </button>
                 </div>
             </div>
+
+            <label className="flex items-center justify-between gap-3 p-4 rounded-xl border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
+                <div>
+                    <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{t('settings.appHeader')}</p>
+                    <p className="text-xs text-slate-500">{t('settings.appHeaderDesc')}</p>
+                </div>
+                <button
+                    type="button"
+                    onClick={handleToggleAppHeader}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isAppHeaderVisible ? 'bg-accent' : 'bg-slate-300 dark:bg-slate-600'}`}
+                >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isAppHeaderVisible ? 'translate-x-6' : 'translate-x-1'}`} />
+                </button>
+            </label>
 
             {isDesktop && (
                 <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 space-y-4">

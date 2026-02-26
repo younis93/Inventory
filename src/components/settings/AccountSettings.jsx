@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { CheckCircle, Lock, Send, Shield, User } from 'lucide-react';
+import { CheckCircle, Lock, User } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useSettings } from '../../context/InventoryContext';
 import { useInventory } from '../../context/InventoryContext';
@@ -21,9 +21,6 @@ const AccountSettings = () => {
     const [croppingImage, setCroppingImage] = useState(null);
     const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
     const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
-    const [twoFactorEnabled, setTwoFactorEnabled] = useState(Boolean(currentUser?.twoFactorEnabled));
-    const [verificationMethod, setVerificationMethod] = useState(currentUser?.twoFactorMethod || 'email');
-    const [verificationCode, setVerificationCode] = useState('');
     const changePasswordDialogRef = useRef(null);
 
     useModalA11y({
@@ -35,11 +32,6 @@ const AccountSettings = () => {
     useEffect(() => {
         setDisplayName(authUser?.displayName || '');
     }, [authUser?.displayName]);
-
-    useEffect(() => {
-        setTwoFactorEnabled(Boolean(currentUser?.twoFactorEnabled));
-        setVerificationMethod(currentUser?.twoFactorMethod || 'email');
-    }, [currentUser?.twoFactorEnabled, currentUser?.twoFactorMethod]);
 
     const accountAvatar = currentUser?.photoURL || authUser?.photoURL || '';
     const authUsername = authUser?.email ? authUser.email.split('@')[0] : '';
@@ -107,29 +99,6 @@ const AccountSettings = () => {
             console.error(error);
             addToast('Failed to change password. Verify your current password.', 'error');
         }
-    };
-
-    const handleTwoFactorToggle = async () => {
-        const next = !twoFactorEnabled;
-        setTwoFactorEnabled(next);
-        try {
-            await updateUserProfile({ twoFactorEnabled: next, twoFactorMethod: verificationMethod });
-        } catch (error) {
-            setTwoFactorEnabled(!next);
-            addToast('Failed to update 2FA setting.', 'error');
-        }
-    };
-
-    const handleSendCode = () => {
-        addToast(`Verification code sent via ${verificationMethod} (placeholder).`, 'info');
-    };
-
-    const handleVerifyCode = () => {
-        if (!verificationCode.trim()) {
-            addToast('Enter verification code first.', 'error');
-            return;
-        }
-        addToast('Verification successful (placeholder).', 'success');
     };
 
     return (
@@ -200,54 +169,6 @@ const AccountSettings = () => {
                             {t('common.cancel')}
                         </button>
                     </>
-                )}
-            </div>
-
-            <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 space-y-4">
-                <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
-                    <Shield className="w-4 h-4 text-accent" />
-                    {t('settings.enable2fa')}
-                </h3>
-
-                <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm text-slate-600 dark:text-slate-300">Enable two-factor authentication for this account.</p>
-                    <button
-                        type="button"
-                        onClick={handleTwoFactorToggle}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${twoFactorEnabled ? 'bg-accent' : 'bg-slate-300 dark:bg-slate-600'}`}
-                    >
-                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${twoFactorEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
-                    </button>
-                </div>
-
-                {twoFactorEnabled && (
-                    <div className="grid grid-cols-1 md:grid-cols-[180px_1fr_auto_auto] gap-2 items-center">
-                        <select
-                            value={verificationMethod}
-                            onChange={(event) => {
-                                const method = event.target.value;
-                                setVerificationMethod(method);
-                                updateUserProfile({ twoFactorMethod: method }).catch(() => { });
-                            }}
-                            className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800 text-sm"
-                        >
-                            <option value="email">Email</option>
-                            <option value="sms">SMS</option>
-                        </select>
-                        <input
-                            type="text"
-                            value={verificationCode}
-                            onChange={(event) => setVerificationCode(event.target.value)}
-                            placeholder="Verification code"
-                            className="w-full p-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800 text-sm"
-                        />
-                        <button type="button" onClick={handleSendCode} className="px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-semibold inline-flex items-center gap-1.5">
-                            <Send className="w-4 h-4" /> Send Code
-                        </button>
-                        <button type="button" onClick={handleVerifyCode} className="px-3 py-2.5 rounded-xl bg-accent text-white text-sm font-semibold">
-                            Verify
-                        </button>
-                    </div>
                 )}
             </div>
 

@@ -47,6 +47,12 @@ const dayKey = (value) => {
     }
 };
 
+const toPositiveInteger = (value, fallback = 1) => {
+    const parsed = Number.parseInt(String(value ?? ''), 10);
+    if (!Number.isFinite(parsed) || parsed < 1) return fallback;
+    return parsed;
+};
+
 const Orders = () => {
     const { t } = useTranslation();
     const { orders, addOrder, updateOrder, deleteOrder } = useOrders();
@@ -278,7 +284,8 @@ const Orders = () => {
         const latestProduct = products.find((product) => product._id === selectedProductId);
         if (!latestProduct) return;
 
-        const requestedQty = parseInt(qty);
+        const requestedQty = toPositiveInteger(qty, 0);
+        if (requestedQty < 1) return;
         const totalAvailable = getAvailableStock(latestProduct._id);
 
         if (requestedQty > totalAvailable) {
@@ -316,13 +323,14 @@ const Orders = () => {
 
     const handlePriceChange = (index, newPrice) => {
         const updatedItems = [...newOrder.items];
-        updatedItems[index].price = parseFloat(newPrice || 0);
+        updatedItems[index].price = toPositiveInteger(newPrice, 1);
         setNewOrder((prev) => ({ ...prev, items: updatedItems }));
     };
 
     const handleQtyChange = (index, newQty) => {
         const updatedItems = [...newOrder.items];
-        updatedItems[index].quantity = parseInt(newQty || 0);
+        const available = Math.max(1, Number(getAvailableStock(updatedItems[index]?.product?._id) || 1));
+        updatedItems[index].quantity = Math.min(toPositiveInteger(newQty, 1), available);
         setNewOrder((prev) => ({ ...prev, items: updatedItems }));
     };
 
@@ -380,7 +388,11 @@ const Orders = () => {
             customerGovernorate: order.customer.governorate || '',
             customerSocial: order.customer.social || '',
             customerNotes: order.notes || '',
-            items: order.items,
+            items: (order.items || []).map((item) => ({
+                ...item,
+                quantity: toPositiveInteger(item.quantity, 1),
+                price: toPositiveInteger(item.price, 1)
+            })),
             discount: order.discount || 0
         });
 

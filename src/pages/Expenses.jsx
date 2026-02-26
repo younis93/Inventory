@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { getDownloadURL, ref, uploadBytesResumable } from 'firebase/storage';
 import Layout from '../components/Layout';
+import DeleteConfirmModal from '../components/common/DeleteConfirmModal';
 import DateRangePicker from '../components/DateRangePicker';
 import FilterDropdown from '../components/FilterDropdown';
 import RowLimitDropdown from '../components/RowLimitDropdown';
@@ -67,6 +68,21 @@ const dayKey = (value) => {
     } catch {
         return '';
     }
+};
+
+const INVALID_INTEGER_KEYS = ['e', 'E', '+', '-', '.'];
+
+const preventInvalidIntegerKey = (event) => {
+    if (INVALID_INTEGER_KEYS.includes(event.key)) {
+        event.preventDefault();
+    }
+};
+
+const sanitizePositiveIntegerInput = (value) => {
+    const digits = String(value ?? '').replace(/[^\d]/g, '');
+    const parsed = Number.parseInt(digits, 10);
+    if (!Number.isFinite(parsed) || parsed < 1) return '';
+    return String(parsed);
 };
 
 const MAX_ATTACHMENT_BYTES = 6 * 1024 * 1024;
@@ -184,6 +200,8 @@ const Expenses = () => {
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isTypeManagerOpen, setIsTypeManagerOpen] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [expenseToDelete, setExpenseToDelete] = useState(null);
     const [isDateOpen, setIsDateOpen] = useState(false);
     const [editingExpenseId, setEditingExpenseId] = useState(null);
     const [form, setForm] = useState(defaultForm);
@@ -213,9 +231,9 @@ const Expenses = () => {
     }, [loading, expenses.length, hasInitializedDate, defaultRange]);
 
     useEffect(() => {
-        setGlobalModalOpen(isModalOpen || isTypeManagerOpen);
+        setGlobalModalOpen(isModalOpen || isTypeManagerOpen || isDeleteModalOpen);
         return () => setGlobalModalOpen(false);
-    }, [isModalOpen, isTypeManagerOpen, setGlobalModalOpen]);
+    }, [isModalOpen, isTypeManagerOpen, isDeleteModalOpen, setGlobalModalOpen]);
 
     useEffect(() => {
         const onResize = () => setIsMobileView(window.innerWidth < 640);
@@ -240,8 +258,8 @@ const Expenses = () => {
         if (!form.date) errors.date = 'Date is required.';
         if (!String(form.type || '').trim()) errors.type = 'Type is required.';
 
-        const amount = Number(form.amountIQD);
-        if (!Number.isFinite(amount) || amount <= 0) {
+        const amount = Number.parseInt(form.amountIQD, 10);
+        if (!Number.isInteger(amount) || amount <= 0) {
             errors.amountIQD = 'Amount must be greater than 0.';
         } else if (amount > 1000000000) {
             errors.amountIQD = 'Amount is too large.';
@@ -284,7 +302,7 @@ const Expenses = () => {
                 if (!SUPPORTED_ATTACHMENT_TYPES.includes(rawFile.type)) {
                     throw new Error('Only JPG, PNG, WEBP, GIF, or PDF files are allowed.');
                 }
-                if (rawFile.type === 'application/pdf' && rawFile.size > MAX_ATTACHMENT_BYTES) {
+                if (rawFile.size > MAX_ATTACHMENT_BYTES) {
                     throw new Error(`${rawFile.name} is larger than 6MB.`);
                 }
 
@@ -480,6 +498,18 @@ const Expenses = () => {
         });
     };
 
+    const handleRequestDelete = (expense) => {
+        setExpenseToDelete(expense);
+        setIsDeleteModalOpen(true);
+    };
+
+    const handleConfirmDelete = () => {
+        if (!expenseToDelete?._id) return;
+        deleteExpense(expenseToDelete._id);
+        setExpenseToDelete(null);
+        setIsDeleteModalOpen(false);
+    };
+
     const removeAttachmentFromForm = (index) => {
         setForm((prev) => ({
             ...prev,
@@ -561,7 +591,7 @@ const Expenses = () => {
         setUploadError('');
         setSaving(true);
         try {
-            const amount = Number(form.amountIQD);
+            const amount = Number.parseInt(form.amountIQD, 10);
             const uploaded = await uploadNewFiles(newFiles);
             const payload = {
                 date: new Date(`${form.date}T12:00:00`).toISOString(),
@@ -791,9 +821,7 @@ const Expenses = () => {
                                                 <Pencil className="w-4 h-4" />
                                             </button>
                                             <button
-                                                onClick={() => {
-                                                    if (window.confirm('Delete this expense?')) deleteExpense(expense._id);
-                                                }}
+                                                onClick={() => handleRequestDelete(expense)}
                                                 className="p-2 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
                                             >
                                                 <Trash2 className="w-4 h-4" />
@@ -857,9 +885,7 @@ const Expenses = () => {
                                     <Pencil className="w-4 h-4" />
                                 </button>
                                 <button
-                                    onClick={() => {
-                                        if (window.confirm('Delete this expense?')) deleteExpense(expense._id);
-                                    }}
+                                    onClick={() => handleRequestDelete(expense)}
                                     className="p-2 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
                                 >
                                     <Trash2 className="w-4 h-4" />
@@ -882,6 +908,17 @@ const Expenses = () => {
                     onClose={() => setIsTypeManagerOpen(false)}
                 />
             )}
+
+            <DeleteConfirmModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => {
+                    setIsDeleteModalOpen(false);
+                    setExpenseToDelete(null);
+                }}
+                onConfirm={handleConfirmDelete}
+                title={t('common.delete')}
+                message={t('common.confirmDelete')}
+            />
 
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/50 backdrop-blur-sm p-2 sm:p-4 custom-scrollbar">
@@ -999,11 +1036,12 @@ const Expenses = () => {
                                 </div>
                                 <div className="space-y-1">
                                     <input
-                                        type="number"
-                                        min="1"
-                                        step="1"
+                                        type="text"
+                                        inputMode="numeric"
+                                        pattern="[0-9]*"
                                         value={form.amountIQD}
-                                        onChange={(e) => setForm((prev) => ({ ...prev, amountIQD: e.target.value }))}
+                                        onKeyDown={preventInvalidIntegerKey}
+                                        onChange={(e) => setForm((prev) => ({ ...prev, amountIQD: sanitizePositiveIntegerInput(e.target.value) }))}
                                         aria-invalid={Boolean(showValidationErrors && formErrors.amountIQD)}
                                         aria-label="Amount in IQD"
                                         className={`w-full px-3 py-2.5 rounded-xl border bg-white dark:bg-slate-900 ${
@@ -1082,7 +1120,7 @@ const Expenses = () => {
                                     <span className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-xs font-bold text-slate-600 dark:text-slate-200">Browse</span>
                                     <input type="file" accept={SUPPORTED_ATTACHMENT_TYPES.join(',')} multiple onChange={handleFileInputChange} aria-label="Choose files" className="hidden" />
                                 </label>
-                                <p className="text-[11px] text-slate-500 dark:text-slate-400">Drag & drop supported. Max 6MB per file. Large images are compressed automatically.</p>
+                                <p className="text-[11px] text-slate-500 dark:text-slate-400">Drag & drop supported. Max 6MB per file.</p>
 
                                 {uploadQueue.length > 0 && (
                                     <div className="space-y-2 max-h-32 overflow-y-auto pe-1 custom-scrollbar">

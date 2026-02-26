@@ -650,9 +650,9 @@ const ProductFormModal = ({
                                         Drag and drop JPG, PNG, WEBP, or GIF images (max 6MB each). Large images are compressed automatically.
                                     </p>
 
-                                    {uploadQueue.length > 0 && (
+                                    {uploadQueue.some((item) => item.status !== 'done') && (
                                         <div className="mt-3 space-y-2 max-h-32 overflow-y-auto pe-1 custom-scrollbar">
-                                            {uploadQueue.map((item) => (
+                                            {uploadQueue.filter((item) => item.status !== 'done').map((item) => (
                                                 <div key={item.id} className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-2.5">
                                                     <div className="flex items-center justify-between gap-2">
                                                         <p className="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate">{item.name}</p>

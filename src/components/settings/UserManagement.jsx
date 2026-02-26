@@ -4,7 +4,6 @@ import {
     AlertTriangle,
     CheckCircle,
     Edit,
-    Info,
     Plus,
     ShieldAlert,
     Trash2,
@@ -22,13 +21,12 @@ const defaultUserForm = {
     displayName: '',
     username: '',
     email: '',
-    role: 'Sales',
-    password: ''
+    role: 'Sales'
 };
 
 const UserManagement = () => {
     const { t } = useTranslation();
-    const { user: authUser, createManagedUserAccount, sendPasswordReset } = useAuth();
+    const { user: authUser } = useAuth();
     const { addToast } = useInventory();
     const { users, currentUser, addUser, updateUser, deleteUser } = useSettings();
 
@@ -46,6 +44,18 @@ const UserManagement = () => {
     });
 
     const currentRole = currentUser?.role || 'Sales';
+    const canCreateUsers = currentRole === 'Admin' || currentRole === 'Manager';
+    const canManageTargetUser = (targetUser) => {
+        if (!targetUser) return false;
+        if (currentRole === 'Admin') return true;
+        if (currentRole === 'Manager') return targetUser.role === 'Sales';
+        return false;
+    };
+    const canAssignRole = (role) => {
+        if (currentRole === 'Admin') return true;
+        if (currentRole === 'Manager') return role === 'Sales';
+        return false;
+    };
 
     const filteredUsers = useMemo(() => {
         const roleOrder = { Admin: 0, Manager: 1, Sales: 2 };
@@ -70,19 +80,26 @@ const UserManagement = () => {
     ]), [currentRole]);
 
     const handleOpenAddUser = () => {
+        if (!canCreateUsers) {
+            addToast('Only Admin or Manager can add users.', 'error');
+            return;
+        }
         setEditingUser(null);
         setUserForm({ ...defaultUserForm, role: currentRole === 'Admin' ? 'Sales' : 'Sales' });
         setIsAddUserModalOpen(true);
     };
 
     const handleOpenEditUser = (user) => {
+        if (!canManageTargetUser(user)) {
+            addToast('Only Admin can edit Manager or Admin accounts.', 'error');
+            return;
+        }
         setEditingUser(user);
         setUserForm({
             displayName: user.displayName || '',
             username: user.username || '',
             email: user.email || '',
-            role: user.role || 'Sales',
-            password: ''
+            role: user.role || 'Sales'
         });
         setIsAddUserModalOpen(true);
     };
@@ -96,50 +113,30 @@ const UserManagement = () => {
             username: userForm.username.trim(),
             email: userForm.email.trim()
         };
-        const password = String(payload.password || '');
-        const hasPasswordInput = password.trim().length > 0;
 
         try {
-            if (hasPasswordInput && password.trim().length < 6) {
-                addToast(t('settings.errors.passwordMinLength'), 'error');
-                return;
-            }
-
-            const prepareAuthPayload = async (targetUser = null) => {
-                if (!hasPasswordInput) return {};
-
-                const normalizedEmail = payload.email.toLowerCase();
-                const displayName = payload.displayName || payload.username;
-
-                if (targetUser?.uid) {
-                    await sendPasswordReset(normalizedEmail);
-                    addToast(t('settings.toasts.passwordResetSent'), 'info');
-                    return {};
-                }
-
-                try {
-                    const createdAuth = await createManagedUserAccount(normalizedEmail, password.trim(), displayName);
-                    addToast(t('settings.toasts.passwordProvisioned'), 'success');
-                    return { uid: createdAuth.uid };
-                } catch (error) {
-                    const errorCode = String(error?.code || error?.message || '');
-                    if (errorCode.includes('EMAIL_EXISTS')) {
-                        await sendPasswordReset(normalizedEmail);
-                        addToast(t('settings.toasts.passwordResetSent'), 'info');
-                        return {};
-                    }
-                    throw error;
-                }
-            };
-
             if (editingUser) {
-                const authPayload = await prepareAuthPayload(editingUser);
-                const updatePayload = { ...payload, ...authPayload, _id: editingUser._id };
-                await updateUser(updatePayload);
+                const latestEditingUser = users.find((user) => user._id === editingUser._id);
+                if (!canManageTargetUser(latestEditingUser || editingUser)) {
+                    addToast('Only Admin can edit Manager or Admin accounts.', 'error');
+                    return;
+                }
+                if (!canAssignRole(payload.role)) {
+                    addToast('Manager can assign Sales role only.', 'error');
+                    return;
+                }
+                await updateUser({ ...payload, _id: editingUser._id });
                 addToast(t('settings.toasts.userUpdated'), 'success');
             } else {
-                const authPayload = await prepareAuthPayload();
-                await addUser({ ...payload, ...authPayload });
+                if (!canCreateUsers) {
+                    addToast('Only Admin or Manager can add users.', 'error');
+                    return;
+                }
+                if (!canAssignRole(payload.role)) {
+                    addToast('Manager can assign Sales role only.', 'error');
+                    return;
+                }
+                await addUser(payload);
                 addToast(t('settings.toasts.userCreated'), 'success');
             }
             setIsAddUserModalOpen(false);
@@ -159,6 +156,11 @@ const UserManagement = () => {
     };
 
     const handleDeleteUser = (id) => {
+        const targetUser = users.find((user) => user._id === id);
+        if (!canManageTargetUser(targetUser)) {
+            addToast('Only Admin can delete Manager or Admin accounts.', 'error');
+            return;
+        }
         setUserToDelete(id);
         setIsDeleteModalOpen(true);
     };
@@ -167,6 +169,13 @@ const UserManagement = () => {
         if (!userToDelete) return;
 
         try {
+            const targetUser = users.find((user) => user._id === userToDelete);
+            if (!canManageTargetUser(targetUser)) {
+                addToast('Only Admin can delete Manager or Admin accounts.', 'error');
+                setIsDeleteModalOpen(false);
+                setUserToDelete(null);
+                return;
+            }
             await deleteUser(userToDelete);
             addToast('User deleted successfully.', 'success');
         } catch (error) {
@@ -186,6 +195,7 @@ const UserManagement = () => {
                     <button
                         type="button"
                         onClick={handleOpenAddUser}
+                        disabled={!canCreateUsers}
                         className="flex items-center gap-2 px-4 py-2 text-white font-medium rounded-xl transition-colors shadow-lg bg-accent"
                     >
                         <Plus className="w-5 h-5" />
@@ -206,7 +216,7 @@ const UserManagement = () => {
                         </thead>
                         <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
                             {filteredUsers.map((user) => {
-                                const canManage = currentRole === 'Admin' || (currentRole === 'Manager' && user.role === 'Sales');
+                                const canManage = canManageTargetUser(user);
                                 const isSelf = user.email === authUser?.email;
 
                                 return (
@@ -282,7 +292,7 @@ const UserManagement = () => {
 
                 <div className="sm:hidden space-y-4">
                     {filteredUsers.map((user) => {
-                        const canManage = currentRole === 'Admin' || (currentRole === 'Manager' && user.role === 'Sales');
+                        const canManage = canManageTargetUser(user);
                         const isSelf = user.email === authUser?.email;
 
                         return (
@@ -410,20 +420,6 @@ const UserManagement = () => {
                                         icon={ShieldAlert}
                                         showSearch={false}
                                     />
-                                </div>
-
-                                <div className="pt-2 border-t border-slate-100 dark:border-slate-700">
-                                    <input
-                                        placeholder={editingUser ? t('settings.placeholders.passwordKeep') : t('settings.placeholders.password')}
-                                        type="password"
-                                        value={userForm.password}
-                                        onChange={(event) => setUserForm((prev) => ({ ...prev, password: event.target.value }))}
-                                        className="w-full p-3 border rounded-xl dark:bg-slate-900 dark:border-slate-700 dark:text-white outline-none focus:ring-2 focus:ring-accent/20 transition-all font-medium"
-                                    />
-                                    <p className="mt-1.5 ml-1 flex items-start gap-1.5 text-[10px] text-slate-500 dark:text-slate-400 leading-tight">
-                                        <Info className="w-3 h-3 mt-0.5 shrink-0 text-accent/70" />
-                                        {t('settings.passwordHint')}
-                                    </p>
                                 </div>
 
                                 {!editingUser && (

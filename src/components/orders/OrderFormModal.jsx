@@ -17,6 +17,23 @@ import { useModalA11y } from '../../hooks/useModalA11y';
 
 const normalizePhone = (value) => String(value || '').replace(/[^\d]/g, '');
 const isValidIraqPhone = (value) => /^07\d{9}$/.test(normalizePhone(value));
+const INVALID_INTEGER_KEYS = ['e', 'E', '+', '-', '.'];
+
+const preventInvalidIntegerKey = (event) => {
+    if (INVALID_INTEGER_KEYS.includes(event.key)) {
+        event.preventDefault();
+    }
+};
+
+const sanitizePositiveIntegerInput = (value, max) => {
+    const digits = String(value ?? '').replace(/[^\d]/g, '');
+    const parsed = Number.parseInt(digits, 10);
+    if (!Number.isFinite(parsed) || parsed < 1) return '1';
+    if (Number.isFinite(max) && max > 0) {
+        return String(Math.min(parsed, max));
+    }
+    return String(parsed);
+};
 
 const OrderFormModal = ({
     isOpen,
@@ -60,7 +77,7 @@ const OrderFormModal = ({
     );
     const selectedQty = Number(qty);
     const selectedAvailableStock = Math.max(0, getAvailableStock(selectedProductId));
-    const selectedQtyInvalid = !Number.isFinite(selectedQty) || selectedQty < 1;
+    const selectedQtyInvalid = !Number.isInteger(selectedQty) || selectedQty < 1;
     const selectedQtyExceedsStock = Boolean(selectedProductId) && selectedQty > selectedAvailableStock;
 
     const itemIssues = useMemo(
@@ -69,8 +86,8 @@ const OrderFormModal = ({
             const price = Number(item.price);
             const available = Number(getAvailableStock(item.product?._id));
             return {
-                quantityInvalid: !Number.isFinite(quantity) || quantity < 1,
-                priceInvalid: !Number.isFinite(price) || price <= 0,
+                quantityInvalid: !Number.isInteger(quantity) || quantity < 1,
+                priceInvalid: !Number.isInteger(price) || price <= 0,
                 exceedsStock: quantity > available,
                 stockAvailable: available
             };
@@ -158,9 +175,13 @@ const OrderFormModal = ({
                                             <input
                                                 type="number"
                                                 min="1"
+                                                step="1"
+                                                inputMode="numeric"
+                                                pattern="[0-9]*"
                                                 max={selectedProduct ? selectedAvailableStock : undefined}
                                                 value={qty}
-                                                onChange={(e) => setQty(e.target.value)}
+                                                onKeyDown={preventInvalidIntegerKey}
+                                                onChange={(e) => setQty(sanitizePositiveIntegerInput(e.target.value, selectedProduct ? selectedAvailableStock : undefined))}
                                                 aria-invalid={selectedQtyInvalid || selectedQtyExceedsStock}
                                                 className={`w-full p-3 border-2 rounded-xl dark:bg-slate-900 dark:text-white outline-none text-center font-bold ${
                                                     selectedQtyInvalid || selectedQtyExceedsStock
@@ -223,8 +244,13 @@ const OrderFormModal = ({
                                                         <span className="text-[10px] font-bold text-slate-400">{t('orders.price')}</span>
                                                         <input
                                                             type="number"
+                                                            min="1"
+                                                            step="1"
+                                                            inputMode="numeric"
+                                                            pattern="[0-9]*"
                                                             value={item.price}
-                                                            onChange={(e) => onPriceChange(idx, e.target.value)}
+                                                            onKeyDown={preventInvalidIntegerKey}
+                                                            onChange={(e) => onPriceChange(idx, sanitizePositiveIntegerInput(e.target.value))}
                                                             aria-invalid={issue.priceInvalid}
                                                             className={`w-20 sm:w-24 p-1.5 text-xs font-black border-2 rounded-lg bg-white dark:bg-slate-800 dark:text-white transition-colors ${
                                                                 issue.priceInvalid
@@ -239,9 +265,13 @@ const OrderFormModal = ({
                                                             <input
                                                                 type="number"
                                                                 min="1"
-                                                                max={item.product.stock}
+                                                                step="1"
+                                                                inputMode="numeric"
+                                                                pattern="[0-9]*"
+                                                                max={issue.stockAvailable || item.product.stock}
                                                                 value={item.quantity}
-                                                                onChange={(e) => onQtyChange(idx, e.target.value)}
+                                                                onKeyDown={preventInvalidIntegerKey}
+                                                                onChange={(e) => onQtyChange(idx, sanitizePositiveIntegerInput(e.target.value, issue.stockAvailable || item.product.stock))}
                                                                 aria-invalid={issue.quantityInvalid || issue.exceedsStock}
                                                                 className={`w-14 sm:w-16 p-1.5 text-xs font-black border-2 rounded-lg bg-white dark:bg-slate-800 dark:text-white transition-all text-center ${
                                                                     issue.quantityInvalid || issue.exceedsStock ? 'border-red-500 text-red-500 ring-4 ring-red-500/10' : 'border-slate-100 dark:border-slate-700 focus:border-indigo-500'

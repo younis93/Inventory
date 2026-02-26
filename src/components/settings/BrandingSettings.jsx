@@ -345,20 +345,6 @@ const BrandingSettings = () => {
                 <input ref={faviconInputRef} type="file" accept="image/*" className="hidden" onChange={(event) => handlePickFile(event, 'favicon')} />
             </div>
 
-            <label className="flex items-center justify-between gap-3 p-4 rounded-xl border border-slate-100 dark:border-slate-700">
-                <div>
-                    <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{t('settings.appHeader')}</p>
-                    <p className="text-xs text-slate-500">{t('settings.appHeaderDesc')}</p>
-                </div>
-                <button
-                    type="button"
-                    onClick={() => setBrandForm((prev) => ({ ...prev, hideHeader: !prev.hideHeader }))}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${brandForm.hideHeader ? 'bg-accent' : 'bg-slate-300 dark:bg-slate-600'}`}
-                >
-                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${brandForm.hideHeader ? 'translate-x-6' : 'translate-x-1'}`} />
-                </button>
-            </label>
-
             <div className="flex justify-end">
                 <button
                     type="button"

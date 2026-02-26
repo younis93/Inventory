@@ -38,11 +38,7 @@ const RoleRoute = ({ roles, children }) => {
     const { currentUser, settingsLoading } = useInventory();
     if (settingsLoading) return <FullScreenLoading />;
 
-    let persistedRole = 'Sales';
-    try {
-        persistedRole = localStorage.getItem('inventory.userRole') || 'Sales';
-    } catch (_) { }
-    const userRole = currentUser?.role || persistedRole;
+    const userRole = currentUser?.role || 'Sales';
     if (!roles.includes(userRole)) {
         return <Navigate to="/orders" replace />;
     }
