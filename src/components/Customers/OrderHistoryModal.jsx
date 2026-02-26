@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, Printer, ShoppingBag, X } from 'lucide-react';
 import { useModalA11y } from '../../hooks/useModalA11y';
 
@@ -15,6 +15,7 @@ const OrderHistoryModal = ({
     onPrintOrder
 }) => {
     const dialogRef = useRef(null);
+    const [searchTerm, setSearchTerm] = useState('');
 
     useModalA11y({
         isOpen: isOpen && Boolean(selectedCustomer),
@@ -25,6 +26,31 @@ const OrderHistoryModal = ({
     if (!isOpen || !selectedCustomer) return null;
 
     const customerOrders = getCustomerOrders(selectedCustomer._id);
+    const normalizedSearchTerm = searchTerm.trim().toLowerCase();
+    const filteredOrders = useMemo(() => {
+        if (!normalizedSearchTerm) return customerOrders;
+        return customerOrders.filter((order) => {
+            const matchesOrderId = String(order.orderId || '').toLowerCase().includes(normalizedSearchTerm);
+            if (matchesOrderId) return true;
+            return (order.items || []).some((item) =>
+                String(item.product?.name || '').toLowerCase().includes(normalizedSearchTerm)
+            );
+        });
+    }, [customerOrders, normalizedSearchTerm]);
+
+    useEffect(() => {
+        if (isOpen) {
+            setSearchTerm('');
+        }
+    }, [isOpen, selectedCustomer?._id]);
+
+    useEffect(() => {
+        if (!expandedOrderId) return;
+        const existsInFilteredList = filteredOrders.some((order) => order._id === expandedOrderId);
+        if (!existsInFilteredList) {
+            setExpandedOrderId(null);
+        }
+    }, [expandedOrderId, filteredOrders, setExpandedOrderId]);
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/90 backdrop-blur-md p-4">
@@ -62,6 +88,16 @@ const OrderHistoryModal = ({
                 </div>
 
                 <div className="p-10 overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-slate-900/50">
+                    <div className="mb-6">
+                        <input
+                            type="text"
+                            value={searchTerm}
+                            onChange={(event) => setSearchTerm(event.target.value)}
+                            placeholder={t('customers.history.searchPlaceholder', { defaultValue: 'Search by order ID or product name...' })}
+                            aria-label={t('customers.history.searchLabel', { defaultValue: 'Search order history' })}
+                            className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm font-semibold text-slate-700 dark:text-slate-100 placeholder:text-slate-400 outline-none focus:border-[var(--brand-color)] focus:ring-2 focus:ring-[var(--brand-color)]/20"
+                        />
+                    </div>
                     {customerOrders.length === 0 ? (
                         <div className="text-center py-24">
                             <div className="w-24 h-24 bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-3xl flex items-center justify-center mx-auto mb-6 text-slate-200">
@@ -69,9 +105,13 @@ const OrderHistoryModal = ({
                             </div>
                             <h4 className="text-slate-400 font-black uppercase text-xs tracking-widest">{t('customers.history.noRecords')}</h4>
                         </div>
+                    ) : filteredOrders.length === 0 ? (
+                        <div className="text-center py-16 text-slate-400 font-bold">
+                            {t('customers.history.noSearchMatch', { defaultValue: 'No orders match your search.' })}
+                        </div>
                     ) : (
                         <div className="space-y-4">
-                            {customerOrders.map((order) => (
+                            {filteredOrders.map((order) => (
                                 <div key={order._id} className="bg-white dark:bg-slate-800 rounded-2xl sm:rounded-[28px] border-2 border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden transition-all hover:shadow-xl hover:border-accent group">
                                     <div
                                         className="p-4 sm:p-6 flex items-center justify-between cursor-pointer"
