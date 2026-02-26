@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Info, MessageSquare, Package, Plus, Save, ShoppingBag, Upload, X } from 'lucide-react';
+import { Info, MessageSquare, Package, Save, ShoppingBag, Upload, X } from 'lucide-react';
 import ImageWithFallback from '../common/ImageWithFallback';
 import SearchableSelect from '../SearchableSelect';
+import FilterDropdown from '../FilterDropdown';
 import { useModalA11y } from '../../hooks/useModalA11y';
+import { normalizeCategoryValues } from '../../utils/productCategories';
 
 const MAX_IMAGE_SIZE_BYTES = 6 * 1024 * 1024;
 const SUPPORTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
@@ -149,7 +151,8 @@ const ProductFormModal = ({
 
         if (!String(formData.name || '').trim()) errors.name = 'Product name is required.';
         if (!String(formData.sku || '').trim()) errors.sku = 'SKU is required.';
-        if (!String(formData.category || '').trim()) errors.category = 'Category is required.';
+        const selectedCategories = normalizeCategoryValues(formData.categories ?? formData.category);
+        if (selectedCategories.length === 0) errors.categories = 'At least one category is required.';
 
         const stock = Number(formData.stock);
         if (!Number.isFinite(stock) || stock < 0 || !Number.isInteger(stock)) {
@@ -200,6 +203,10 @@ const ProductFormModal = ({
     }, [formData, editingProduct]);
 
     const hasValidationErrors = Object.keys(validationErrors).length > 0;
+    const categorySelectOptions = useMemo(
+        () => categories.map((cat) => ({ value: cat, label: cat })),
+        [categories]
+    );
 
     useEffect(() => {
         if (!isOpen) return;
@@ -275,6 +282,7 @@ const ProductFormModal = ({
     const hasFieldInput = (field) => {
         const value = formData[field];
         if (value === undefined || value === null) return false;
+        if (Array.isArray(value)) return value.length > 0;
         if (typeof value === 'string') return value.trim() !== '';
         return true;
     };
@@ -332,20 +340,21 @@ const ProductFormModal = ({
                                     </div>
                                     <div className="col-span-2 md:col-span-1">
                                         <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">{t('products.form.category')}</label>
-                                        <SearchableSelect
+                                        <FilterDropdown
                                             title={t('products.form.selectCategory')}
-                                            options={categories.map(cat => ({ value: cat, label: cat }))}
-                                            selectedValue={formData.category}
-                                            onChange={(val) => setFormData(prev => ({ ...prev, category: val }))}
-                                            icon={Package}
-                                            showSearch={false}
-                                            customAction={{
-                                                label: t('products.form.createCategory'),
-                                                icon: Plus,
-                                                onClick: () => onOpenCategoryManager?.()
+                                            options={categorySelectOptions}
+                                            selectedValues={normalizeCategoryValues(formData.categories ?? formData.category)}
+                                            onChange={(values) => {
+                                                const normalized = normalizeCategoryValues(values);
+                                                setFormData((prev) => ({
+                                                    ...prev,
+                                                    categories: normalized,
+                                                    category: normalized[0] || ''
+                                                }));
                                             }}
+                                            icon={Package}
                                         />
-                                        {renderFieldError('category')}
+                                        {renderFieldError('categories')}
                                     </div>
                                     <div className="col-span-2 md:col-span-1">
                                         <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">{t('products.form.stock')}</label>

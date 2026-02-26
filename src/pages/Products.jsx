@@ -14,6 +14,7 @@ import ImageWithFallback from '../components/common/ImageWithFallback';
 import Skeleton from '../components/common/Skeleton';
 import DeleteConfirmModal from '../components/common/DeleteConfirmModal';
 import { useNavigate } from 'react-router-dom';
+import { formatProductCategories, getProductCategories, normalizeCategoryValues, productMatchesAnyCategory } from '../utils/productCategories';
 
 const getAutoStatus = (stock) => {
     const s = Number(stock);
@@ -105,6 +106,7 @@ const Products = () => {
         name: '',
         sku: '',
         category: '',
+        categories: [],
         unitPrice: '', // Keep for compatibility if needed, but we'll use unitPriceUSD
         price: '',     // Keep for compatibility, but we'll use sellingPriceIQD
         stock: '',
@@ -142,13 +144,20 @@ const Products = () => {
     // Filter Options
     const categoryOptions = useMemo(() => {
         const counts = {};
-        products.forEach(p => {
-            if (p.category) counts[p.category] = (counts[p.category] || 0) + 1;
+        products.forEach((product) => {
+            const uniqueCategories = new Set(getProductCategories(product));
+            uniqueCategories.forEach((category) => {
+                counts[category] = (counts[category] || 0) + 1;
+            });
         });
-        return categories.map(c => ({
-            value: c,
-            label: c,
-            count: counts[c] || 0
+
+        const allCategories = new Set([...categories]);
+        Object.keys(counts).forEach((category) => allCategories.add(category));
+
+        return Array.from(allCategories).map((category) => ({
+            value: category,
+            label: category,
+            count: counts[category] || 0
         })).sort((a, b) => b.count - a.count);
     }, [categories, products]);
 
@@ -205,7 +214,7 @@ const Products = () => {
                 !normalizedSearchTerm ||
                 productName.includes(normalizedSearchTerm) ||
                 productSku.includes(normalizedSearchTerm);
-            const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(product.category);
+            const matchesCategory = productMatchesAnyCategory(product, selectedCategories);
             const matchesStatus = selectedStatuses.length === 0 || selectedStatuses.includes(product.status);
             const createdBy = product.createdBy || 'System';
             const matchesCreatedBy = selectedCreators.length === 0 || selectedCreators.includes(createdBy);
@@ -317,10 +326,13 @@ const Products = () => {
     };
 
     const openEditModal = (product) => {
+        const normalizedCategories = getProductCategories(product);
         setEditingProduct(product);
         setFormData({
             ...initialFormState, // Fill with defaults first
             ...product,
+            category: normalizedCategories[0] || '',
+            categories: normalizedCategories,
             images: product.images || []
         });
         setIsModalOpen(true);
@@ -384,6 +396,7 @@ const Products = () => {
 
         const productData = {
             ...formData,
+            categories: normalizeCategoryValues(formData.categories ?? formData.category),
             // Ensure numeric fields are correctly typed
             unitPriceUSD: parseFloat(formData.unitPriceUSD) || 0,
             alibabaFeeUSD: parseFloat(formData.alibabaFeeUSD) || 0,
@@ -399,6 +412,7 @@ const Products = () => {
             price: formData.sellingPriceIQD || 0,
             images: formData.images || []
         };
+        productData.category = productData.categories[0] || '';
 
         if (editingProduct) {
             updateProduct({ ...productData, _id: editingProduct._id });
@@ -707,7 +721,7 @@ const Products = () => {
                                     <div className="flex justify-between items-start">
                                         <div>
                                             <h4 className="text-sm font-bold text-slate-800 dark:text-white">{product.name}</h4>
-                                            <p className="text-xs text-slate-400">{product.sku} • <span className="px-2 py-0.5 rounded text-xs bg-slate-100 dark:bg-slate-700">{product.category}</span></p>
+                                            <p className="text-xs text-slate-400">{product.sku} - <span className="px-2 py-0.5 rounded text-xs bg-slate-100 dark:bg-slate-700">{formatProductCategories(product)}</span></p>
                                         </div>
                                         <div className="text-right">
                                             <div className="text-sm font-black text-slate-800 dark:text-white">{formatCurrency(product.sellingPriceIQD || product.price || 0)}</div>
@@ -789,3 +803,4 @@ const Products = () => {
 };
 
 export default Products;
+

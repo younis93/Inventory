@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { dataClient } from '../../data/dataClient';
+import { getProductCategories, normalizeCategoryValues } from '../../utils/productCategories';
 
 const getStockStatus = (stock) => {
     const value = Number(stock || 0);
@@ -27,12 +28,15 @@ const toOptionalText = (value) => {
 const normalizeProductPayload = (payload = {}, { isUpdate = false } = {}) => {
     const stock = toNonNegativeInt(payload.stock, 0);
     const now = new Date().toISOString();
+    const categories = normalizeCategoryValues(payload.categories ?? payload.category);
+    const primaryCategory = categories[0] || '';
 
     const normalized = {
         ...payload,
         name: toOptionalText(payload.name),
         sku: toOptionalText(payload.sku),
-        category: toOptionalText(payload.category),
+        category: primaryCategory,
+        categories,
         description: toOptionalText(payload.description),
         images: Array.isArray(payload.images) ? payload.images : [],
         stock,
@@ -193,14 +197,34 @@ export const useProductsDomain = ({ enabled, addToast, currentUser }) => {
         if (!category || !next) return;
 
         await dataClient.update('categories', category._id, { name: next });
-        const productsToUpdate = products.filter((product) => product.category === oldName);
-        await Promise.all(productsToUpdate.map((product) => dataClient.update('products', product._id, { category: next })));
+        const productsToUpdate = products.filter((product) => getProductCategories(product).includes(oldName));
+        await Promise.all(productsToUpdate.map((product) => {
+            const nextCategories = normalizeCategoryValues(
+                getProductCategories(product).map((entry) => (entry === oldName ? next : entry))
+            );
+            return dataClient.update('products', product._id, {
+                category: nextCategories[0] || '',
+                categories: nextCategories,
+                updatedAt: new Date().toISOString()
+            });
+        }));
         addToast?.(`Category updated to "${next}"`, 'success');
     };
 
     const deleteCategory = async (name) => {
         const category = categoryObjects.find((item) => item.name === name);
         if (!category) return;
+        const productsToUpdate = products.filter((product) => getProductCategories(product).includes(name));
+        await Promise.all(productsToUpdate.map((product) => {
+            const nextCategories = normalizeCategoryValues(
+                getProductCategories(product).filter((entry) => entry !== name)
+            );
+            return dataClient.update('products', product._id, {
+                category: nextCategories[0] || '',
+                categories: nextCategories,
+                updatedAt: new Date().toISOString()
+            });
+        }));
         await dataClient.delete('categories', category._id);
         addToast?.(`Category "${name}" deleted!`, 'success');
     };

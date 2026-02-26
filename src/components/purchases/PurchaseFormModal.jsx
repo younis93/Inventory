@@ -1,9 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Calendar, Info, Link as LinkIcon, MessageSquare, Package, Save, ShoppingBag, Upload, X } from 'lucide-react';
 import SearchableSelect from '../SearchableSelect';
+import FilterDropdown from '../FilterDropdown';
 import ImageWithFallback from '../common/ImageWithFallback';
 import { useModalA11y } from '../../hooks/useModalA11y';
 import { normalizePurchaseStatus } from '../../hooks/domains/purchaseUtils';
+import { getProductCategories, normalizeCategoryValues } from '../../utils/productCategories';
 
 const MAX_IMAGE_SIZE_BYTES = 6 * 1024 * 1024;
 const SUPPORTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
@@ -51,12 +53,18 @@ const createEmptyPricing = () => ({
     isSellingPriceOverridden: false
 });
 
-const createBasicInfo = (source = {}) => ({
-    name: String(source.name || source.basicInfo?.name || '').trim(),
-    sku: String(source.sku || source.basicInfo?.sku || '').trim(),
-    category: String(source.category || source.basicInfo?.category || '').trim(),
-    description: String(source.description || source.basicInfo?.description || '').trim()
-});
+const createBasicInfo = (source = {}) => {
+    const categories = normalizeCategoryValues(
+        source.categories ?? source.basicInfo?.categories ?? source.category ?? source.basicInfo?.category
+    );
+    return {
+        name: String(source.name || source.basicInfo?.name || '').trim(),
+        sku: String(source.sku || source.basicInfo?.sku || '').trim(),
+        categories,
+        category: categories[0] || '',
+        description: String(source.description || source.basicInfo?.description || '').trim()
+    };
+};
 
 const createAlibabaInfo = (source = {}) => ({
     alibabaProductLink: String(source.alibabaProductLink || source.alibabaInfo?.alibabaProductLink || '').trim(),
@@ -65,6 +73,8 @@ const createAlibabaInfo = (source = {}) => ({
     alibabaOrderNumber: String(source.alibabaOrderNumber || source.alibabaOrderNo || source.alibabaInfo?.alibabaOrderNumber || '').trim(),
     alibabaNote: String(source.alibabaNote || source.alibabaInfo?.alibabaNote || '').trim()
 });
+
+const withPrimaryCategory = (basicInfo = {}) => createBasicInfo(basicInfo);
 
 const recalculatePricing = (draft, quantityInput) => {
     const quantity = toInt(quantityInput, 1);
@@ -127,6 +137,7 @@ const PurchaseFormModal = ({
     onClose,
     onSubmit,
     products = [],
+    categories = [],
     editingPurchase = null,
     purchaseStatuses = [],
     canManage = false,
@@ -159,9 +170,16 @@ const PurchaseFormModal = ({
     );
 
     const categoryOptions = useMemo(() => {
-        const values = new Set(products.map((product) => String(product.category || '').trim()).filter(Boolean));
+        const values = new Set();
+        categories.forEach((category) => {
+            const clean = String(category || '').trim();
+            if (clean) values.add(clean);
+        });
+        products.forEach((product) => {
+            getProductCategories(product).forEach((category) => values.add(category));
+        });
         return Array.from(values).sort().map((value) => ({ value, label: value }));
-    }, [products]);
+    }, [categories, products]);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -198,7 +216,9 @@ const PurchaseFormModal = ({
         if (form.productMode === 'new') {
             if (!form.basicInfo.name) errors.name = 'Product name is required.';
             if (!form.basicInfo.sku) errors.sku = 'SKU is required.';
-            if (!form.basicInfo.category) errors.category = 'Category is required.';
+            if (!normalizeCategoryValues(form.basicInfo.categories ?? form.basicInfo.category).length) {
+                errors.categories = 'At least one category is required.';
+            }
         }
         if (!isHttpUrl(form.alibabaInfo.alibabaProductLink)) errors.alibabaProductLink = 'Use a valid URL (http/https).';
         if (!isHttpUrl(form.alibabaInfo.alibabaMessageLink)) errors.alibabaMessageLink = 'Use a valid URL (http/https).';
@@ -297,7 +317,8 @@ const PurchaseFormModal = ({
             const sameBasicInfo = (
                 prev.basicInfo?.name === snapshot.basicInfo.name &&
                 prev.basicInfo?.sku === snapshot.basicInfo.sku &&
-                prev.basicInfo?.category === snapshot.basicInfo.category &&
+                JSON.stringify(normalizeCategoryValues(prev.basicInfo?.categories ?? prev.basicInfo?.category)) ===
+                JSON.stringify(normalizeCategoryValues(snapshot.basicInfo?.categories ?? snapshot.basicInfo?.category)) &&
                 prev.basicInfo?.description === snapshot.basicInfo.description
             );
             const sameAlibabaInfo = (
@@ -448,8 +469,20 @@ const PurchaseFormModal = ({
                             </div>
                             <div>
                                 <label className="mb-1 block text-xs font-semibold uppercase text-slate-500">{t('products.form.category')}</label>
-                                <SearchableSelect title={t('products.form.selectCategory')} options={categoryOptions} selectedValue={form.basicInfo.category} onChange={(value) => updateForm((prev) => ({ ...prev, basicInfo: { ...prev.basicInfo, category: value } }))} icon={Package} showSearch={false} />
-                                {submitAttempted && validationErrors.category && <p className="mt-1 text-[11px] font-semibold text-red-500">{validationErrors.category}</p>}
+                                <FilterDropdown
+                                    title={t('products.form.selectCategory')}
+                                    options={categoryOptions}
+                                    selectedValues={normalizeCategoryValues(form.basicInfo.categories ?? form.basicInfo.category)}
+                                    onChange={(values) => updateForm((prev) => ({
+                                        ...prev,
+                                        basicInfo: withPrimaryCategory({
+                                            ...prev.basicInfo,
+                                            categories: values
+                                        })
+                                    }))}
+                                    icon={Package}
+                                />
+                                {submitAttempted && validationErrors.categories && <p className="mt-1 text-[11px] font-semibold text-red-500">{validationErrors.categories}</p>}
                             </div>
                             <div>
                                 <label className="mb-1 block text-xs font-semibold uppercase text-slate-500">{t('products.form.alibabaOrderNo')}</label>

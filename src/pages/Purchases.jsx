@@ -59,7 +59,7 @@ const Purchases = () => {
     const { t } = useTranslation();
     const location = useLocation();
     const navigate = useNavigate();
-    const { products } = useProducts();
+    const { products, categories } = useProducts();
     const {
         loading,
         purchases,
@@ -650,6 +650,7 @@ const Purchases = () => {
                 onClose={() => setIsFormOpen(false)}
                 onSubmit={handleSavePurchase}
                 products={products}
+                categories={categories}
                 editingPurchase={editingPurchase}
                 purchaseStatuses={purchaseStatuses}
                 canManage={canManagePurchases}

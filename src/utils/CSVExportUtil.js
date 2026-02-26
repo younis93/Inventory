@@ -3,6 +3,7 @@
  * Provides functions to export data to CSV format with Excel compatibility
  */
 import { getPurchaseDisplayId } from '../hooks/domains/purchaseUtils';
+import { formatProductCategories } from './productCategories';
 
 /**
  * Convert array of objects to CSV string
@@ -144,7 +145,7 @@ export const exportProductsToCSV = (products, filename = null) => {
     const formattedProducts = products.map(p => ({
         'Name': p.name,
         'SKU': p.sku,
-        'Category': p.category,
+        'Category': formatProductCategories(p),
         'Stock': p.stock,
         'Status': p.status,
         'Selling Price (IQD)': p.sellingPriceIQD || p.price,

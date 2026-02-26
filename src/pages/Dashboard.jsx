@@ -13,6 +13,7 @@ import { GOVERNORATES, SOCIAL_PLATFORMS } from '../constants/iraq';
 import { isWithinInterval, isAfter, parseISO, subDays, startOfMonth, endOfMonth, eachDayOfInterval, eachMonthOfInterval, format } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import Skeleton from '../components/common/Skeleton';
+import { getProductCategories, productMatchesAnyCategory } from '../utils/productCategories';
 
 const parseOrderDateSafe = (value) => {
     if (!value) return null;
@@ -51,8 +52,8 @@ const Dashboard = () => {
 
                 const categorySet = new Set();
                 (order.items || []).forEach((item) => {
-                    const category = item?.product?.category;
-                    if (category) categorySet.add(category);
+                    const itemCategories = getProductCategories(item?.product || {});
+                    itemCategories.forEach((category) => categorySet.add(category));
                 });
 
                 return {
@@ -179,7 +180,7 @@ const Dashboard = () => {
     const activeCustomers = useMemo(() => new Set(filteredOrders.map(o => o.customer?.phone || o.customer?.id || o.customer).filter(Boolean)).size, [filteredOrders]);
     const lowStockProducts = useMemo(() => {
         const sourceProducts = selectedCategories.length > 0
-            ? products.filter((product) => selectedCategories.includes(product.category))
+            ? products.filter((product) => productMatchesAnyCategory(product, selectedCategories))
             : products;
 
         return sourceProducts.filter((product) => {
@@ -255,17 +256,21 @@ const Dashboard = () => {
         ordersInDateRange.forEach(o => {
             const visitedCats = new Set();
             o.items?.forEach(item => {
-                const cat = item.product?.category;
-                if (cat && !visitedCats.has(cat)) {
-                    counts[cat] = (counts[cat] || 0) + 1;
-                    visitedCats.add(cat);
-                }
+                getProductCategories(item?.product || {}).forEach((category) => {
+                    if (visitedCats.has(category)) return;
+                    counts[category] = (counts[category] || 0) + 1;
+                    visitedCats.add(category);
+                });
             });
         });
-        return categories.map(c => ({
-            value: c,
-            label: c,
-            count: counts[c] || 0
+
+        const allCategories = new Set([...categories]);
+        Object.keys(counts).forEach((category) => allCategories.add(category));
+
+        return Array.from(allCategories).map((category) => ({
+            value: category,
+            label: category,
+            count: counts[category] || 0
         })).sort((a, b) => b.count - a.count);
     }, [ordersInDateRange, categories]);
 

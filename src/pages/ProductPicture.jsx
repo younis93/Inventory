@@ -6,6 +6,7 @@ import { Image as ImageIcon, Search } from 'lucide-react';
 import ProductImageModal from '../components/ProductImageModal';
 import ImageWithFallback from '../components/common/ImageWithFallback';
 import Skeleton from '../components/common/Skeleton';
+import { formatProductCategories } from '../utils/productCategories';
 
 const ProductPicture = () => {
     const { t } = useTranslation();
@@ -150,7 +151,7 @@ const ProductPicture = () => {
                                                 {product.sku || 'NO-SKU'}
                                             </span>
                                             <span className="text-xs font-bold px-2 py-1 bg-slate-100 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 rounded-lg">
-                                                {product.category || 'General'}
+                                                {formatProductCategories(product)}
                                             </span>
                                         </div>
                                     </div>

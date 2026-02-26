@@ -3,6 +3,7 @@ import { X, Plus, Edit2, Trash2, Save, Ban } from 'lucide-react';
 import { useInventory } from '../context/InventoryContext';
 import DeleteConfirmModal from './common/DeleteConfirmModal';
 import { useModalA11y } from '../hooks/useModalA11y';
+import { getProductCategories } from '../utils/productCategories';
 
 const CategoryManagerModal = ({ categories, products, onClose, onAdd, onUpdate, onDelete }) => {
     const { addToast } = useInventory();
@@ -26,7 +27,7 @@ const CategoryManagerModal = ({ categories, products, onClose, onAdd, onUpdate, 
     useEffect(() => {
         const counts = {};
         categories.forEach(cat => {
-            counts[cat] = products.filter(p => p.category === cat).length;
+            counts[cat] = products.filter((product) => getProductCategories(product).includes(cat)).length;
         });
         setCategoryCounts(counts);
     }, [categories, products]);

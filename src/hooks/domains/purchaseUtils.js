@@ -1,3 +1,5 @@
+import { normalizeCategoryValues } from '../../utils/productCategories.js';
+
 export const PURCHASE_STATUSES = [
     'ordered',
     'factory',
@@ -34,8 +36,6 @@ const ALIBABA_FIELDS = [
     'alibabaOrderNumber',
     'alibabaNote'
 ];
-
-const BASIC_INFO_FIELDS = ['name', 'sku', 'category', 'description'];
 
 const numericFields = new Set(PRICING_FIELDS);
 
@@ -128,7 +128,16 @@ export const normalizePurchaseQuantity = (quantity) => {
     return parsed;
 };
 
-export const buildBasicInfoSnapshot = (product = {}) => sanitizeSnapshot(product, BASIC_INFO_FIELDS);
+export const buildBasicInfoSnapshot = (product = {}) => {
+    const categories = normalizeCategoryValues(product?.categories ?? product?.category);
+    return {
+        name: String(product?.name || '').trim(),
+        sku: String(product?.sku || '').trim(),
+        category: categories[0] || '',
+        categories,
+        description: String(product?.description || '').trim()
+    };
+};
 export const buildAlibabaInfoSnapshot = (product = {}) => sanitizeSnapshot(product, ALIBABA_FIELDS);
 export const buildPricingSnapshot = (product = {}) => sanitizeSnapshot(product, PRICING_FIELDS);
 
