@@ -10,10 +10,11 @@ import { formatProductCategories } from '../utils/productCategories';
 
 const ProductPicture = () => {
     const { t } = useTranslation();
-    const { products, updateProduct } = useProducts();
+    const { products: allProducts, updateProduct } = useProducts();
     const { loading, isDesktop, isOnline, addToast, setIsModalOpen: setGlobalModalOpen } = useInventory();
     const [selectedProduct, setSelectedProduct] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const products = allProducts;
 
     // Sync to global modal state
     useEffect(() => {

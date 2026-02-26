@@ -513,7 +513,7 @@ export const InventoryProvider = ({ children }) => {
     );
 
     const settingsLoading = settingsDomain.loading;
-    const loading = settingsLoading ||
+    const loading =
         (enabledDomains.products && productsDomain.loading) ||
         (enabledDomains.orders && ordersDomain.loading) ||
         (enabledDomains.customers && customersDomain.loading) ||

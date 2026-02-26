@@ -29,7 +29,8 @@ const CustomersHeader = ({
     onClearFilters,
     displayLimit,
     onDisplayLimitChange,
-    filteredCount,
+    visibleCount,
+    totalCount,
     sortBy,
     onSortChange,
     searchTerm,
@@ -96,7 +97,7 @@ const CustomersHeader = ({
                     <div className="flex items-center gap-3 px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
                         <User className="w-4 h-4 text-slate-400" />
                         <span className="text-sm font-bold text-slate-500">
-                            <span className="text-slate-900 dark:text-white">{filteredCount}</span> {t('customers.title')}
+                            <span className="text-slate-900 dark:text-white">{visibleCount}</span> {t('common.of', { defaultValue: 'of' })} <span className="text-slate-900 dark:text-white">{totalCount}</span> {t('customers.title')}
                         </span>
                     </div>
                 </div>
@@ -113,7 +114,7 @@ const CustomersHeader = ({
                 <div className="min-w-0 flex-1 flex items-center gap-2 px-3 py-2.5 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
                     <User className="w-4 h-4 text-slate-400" />
                     <span className="min-w-0 truncate text-sm font-bold text-slate-500">
-                        <span className="text-slate-900 dark:text-white">{filteredCount}</span> {t('customers.title')}
+                        <span className="text-slate-900 dark:text-white">{visibleCount}</span> {t('common.of', { defaultValue: 'of' })} <span className="text-slate-900 dark:text-white">{totalCount}</span> {t('customers.title')}
                     </span>
                 </div>
             </div>

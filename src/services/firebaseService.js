@@ -9,6 +9,8 @@ import {
     getDoc,
     query,
     orderBy,
+    limit,
+    startAfter,
     getDocs,
     where
 } from 'firebase/firestore';
@@ -135,6 +137,37 @@ export const firebaseService = {
             // Return a no-op unsubscribe function
             return () => { };
         }
+    },
+
+    /**
+     * Fetch a single page using Firestore cursor pagination
+     */
+    listPage: async (
+        collectionName,
+        {
+            sortField = 'updatedAt',
+            sortOrder = 'desc',
+            limitCount = 50,
+            cursor = null
+        } = {}
+    ) => {
+        if (!collectionName) throw new Error('listPage: collectionName is required');
+
+        const constraints = [];
+        if (sortField) constraints.push(orderBy(sortField, sortOrder));
+        if (cursor) constraints.push(startAfter(cursor));
+        constraints.push(limit(limitCount));
+
+        const q = query(collection(db, collectionName), ...constraints);
+        const snapshot = await getDocs(q);
+        const data = snapshot.docs.map((entry) => ({ _id: entry.id, ...entry.data() }));
+        const lastDoc = snapshot.docs.length > 0 ? snapshot.docs[snapshot.docs.length - 1] : cursor;
+
+        return {
+            data,
+            cursor: lastDoc || null,
+            hasMore: snapshot.docs.length === limitCount
+        };
     },
 
     /**

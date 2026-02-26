@@ -1,6 +1,11 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import {
+    getFirestore,
+    initializeFirestore,
+    persistentLocalCache,
+    persistentMultipleTabManager
+} from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { getAnalytics } from "firebase/analytics";
 
@@ -24,7 +29,18 @@ const app = initializeApp(firebaseConfig);
 
 // Initialize services
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+let firestoreInstance;
+try {
+    firestoreInstance = initializeFirestore(app, {
+        localCache: persistentLocalCache({
+            tabManager: persistentMultipleTabManager()
+        })
+    });
+} catch (error) {
+    // Fallback for unsupported/private contexts or hot-reload re-init.
+    firestoreInstance = getFirestore(app);
+}
+export const db = firestoreInstance;
 export const storage = getStorage(app, `gs://${normalizedStorageBucket}`);
 export const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;
 

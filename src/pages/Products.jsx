@@ -57,7 +57,7 @@ const StatusBadge = ({ status }) => {
 const Products = () => {
     const { t } = useTranslation();
     const navigate = useNavigate();
-    const { products, categories, addProduct, updateProduct, deleteProduct, addCategory, updateCategory, deleteCategory } = useProducts();
+    const { products: allProducts, categories, addProduct, updateProduct, deleteProduct, addCategory, updateCategory, deleteCategory } = useProducts();
     const { purchases } = usePurchases();
     const { formatCurrency, loading, brand, addToast, appearance, setIsModalOpen: setGlobalModalOpen } = useInventory();
     const [searchTerm, setSearchTerm] = useState('');
@@ -78,6 +78,7 @@ const Products = () => {
     // New delete confirmation state
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [productToDelete, setProductToDelete] = useState(null);
+    const products = allProducts;
 
     const purchaseCountByProductId = useMemo(() => {
         const counts = {};
@@ -527,7 +528,7 @@ const Products = () => {
                         <div className="flex items-center gap-3 px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
                             <ImageIcon className="w-4 h-4 text-slate-400" />
                             <span className="text-sm font-bold text-slate-500">
-                                <span className="text-slate-900 dark:text-white">{filteredProducts.length}</span> {t('products.title')}
+                                <span className="text-slate-900 dark:text-white">{filteredProducts.length}</span> {t('common.of', { defaultValue: 'of' })} <span className="text-slate-900 dark:text-white">{allFilteredProducts.length}</span> {t('products.title')}
                             </span>
                         </div>
                     </div>
@@ -579,7 +580,7 @@ const Products = () => {
             {isCategoryManagerOpen && (
                 <CategoryManagerModal
                     categories={categories}
-                    products={products}
+                    products={allProducts}
                     onClose={() => setIsCategoryManagerOpen(false)}
                     onAdd={addCategory}
                     onUpdate={updateCategory}
@@ -691,7 +692,7 @@ const Products = () => {
                 {isMobileView && (
                     <div className="p-4 space-y-3">
                     {loading ? (
-                        Array.from({ length: 3 }).map((_, i) => (
+                                Array.from({ length: 3 }).map((_, i) => (
                             <div key={i} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4 flex gap-4">
                                 <Skeleton className="w-16 h-16 rounded-xl flex-shrink-0" />
                                 <div className="flex-1 space-y-3">

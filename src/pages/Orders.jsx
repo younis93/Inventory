@@ -55,7 +55,7 @@ const toPositiveInteger = (value, fallback = 1) => {
 
 const Orders = () => {
     const { t } = useTranslation();
-    const { orders, addOrder, updateOrder, deleteOrder } = useOrders();
+    const { orders: allOrders, addOrder, updateOrder, deleteOrder } = useOrders();
     const { products } = useProducts();
     const { customers, addCustomer } = useCustomers();
     const {
@@ -94,6 +94,7 @@ const Orders = () => {
     const [isMobileView, setIsMobileView] = useState(() => (typeof window !== 'undefined' ? window.innerWidth < 640 : false));
     const normalizedSearchTerm = searchTerm.trim().toLowerCase();
     const canManageOrderActions = settingsUserResolved && (currentUser?.role === 'Admin' || currentUser?.role === 'Manager');
+    const orders = allOrders;
 
     const orderDateMap = useMemo(() => {
         const map = new Map();
@@ -186,7 +187,7 @@ const Orders = () => {
         }));
     }, [orders, t]);
 
-    const filteredAndSortedOrders = useMemo(() => {
+    const allFilteredAndSortedOrders = useMemo(() => {
         const filtered = orders.filter((order) => {
             const orderId = String(order.orderId || '').toLowerCase();
             const customerName = String(order.customer?.name || '').toLowerCase();
@@ -222,7 +223,7 @@ const Orders = () => {
             return columnSort.direction === 'asc' ? compare : -compare;
         });
 
-        return sorted.slice(0, displayLimit);
+        return sorted;
     }, [
         orders,
         normalizedSearchTerm,
@@ -232,9 +233,13 @@ const Orders = () => {
         filterStatuses,
         filterCreatedBy,
         columnSort,
-        displayLimit,
         orderDateMap
     ]);
+
+    const filteredAndSortedOrders = useMemo(
+        () => allFilteredAndSortedOrders.slice(0, displayLimit),
+        [allFilteredAndSortedOrders, displayLimit]
+    );
 
     const hasActiveFilters = useMemo(() => (
         filterGovernorates.length > 0 ||
@@ -275,7 +280,7 @@ const Orders = () => {
     const getAvailableStock = (productId) => {
         if (!productId) return 0;
         const product = products.find((p) => p._id === productId);
-        const oldOrder = orders.find((order) => order._id === editingOrderId);
+        const oldOrder = allOrders.find((order) => order._id === editingOrderId);
         const oldItem = oldOrder?.items.find((item) => item.product._id === productId);
         const oldQty = oldItem ? oldItem.quantity : 0;
         return (product?.stock || 0) + oldQty;
@@ -327,6 +332,10 @@ const Orders = () => {
         const updatedItems = [...newOrder.items];
         updatedItems[index].price = toPositiveInteger(newPrice, 1);
         setNewOrder((prev) => ({ ...prev, items: updatedItems }));
+    };
+
+    const handleDisplayLimitChange = (nextLimit) => {
+        setDisplayLimit(nextLimit);
     };
 
     const handleQtyChange = (index, newQty) => {
@@ -416,7 +425,7 @@ const Orders = () => {
             return;
         }
 
-        const currentOrder = orders.find((order) => order._id === editingOrderId);
+        const currentOrder = allOrders.find((order) => order._id === editingOrderId);
         for (const item of newOrder.items) {
             const available = getAvailableStock(item.product._id);
 
@@ -560,9 +569,10 @@ const Orders = () => {
                 onExportCSV={handleExportCSV}
                 onClearFilters={handleClearFilters}
                 hasActiveFilters={hasActiveFilters}
-                filteredCount={filteredAndSortedOrders.length}
+                visibleCount={filteredAndSortedOrders.length}
+                totalCount={allFilteredAndSortedOrders.length}
                 displayLimit={displayLimit}
-                onDisplayLimitChange={setDisplayLimit}
+                onDisplayLimitChange={handleDisplayLimitChange}
                 sortBy={sortBy}
                 onSortChange={handleSortChange}
                 searchTerm={searchTerm}

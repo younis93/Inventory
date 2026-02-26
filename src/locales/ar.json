@@ -38,6 +38,7 @@
         "noData": "لا توجد بيانات",
         "noDataToExport": "لا توجد بيانات للتصدير",
         "clearFilters": "مسح الفلاتر",
+        "loadMore": "عرض المزيد",
         "exportCSV": "تصدير CSV",
         "print": "طباعة",
         "confirmDelete": "هل أنت متأكد من الحذف؟",
@@ -66,6 +67,7 @@
         "cashOnDelivery": "الدفع عند الاستلام",
         "perUnit": "لكل وحدة",
         "createdBy": "بواسطة",
+        "paginationError": "تعذر تحميل المزيد من البيانات. حاول مرة أخرى.",
         "verified": "مقترن",
         "pending": "قيد الانتظار",
         "printFlow": {

@@ -160,7 +160,7 @@ const compressImageIfNeeded = async (file) => {
 const Expenses = () => {
     const { t } = useTranslation();
     const {
-        expenses,
+        expenses: allExpenses,
         expenseTypes,
         saveExpenseTypes,
         addExpense,
@@ -176,21 +176,6 @@ const Expenses = () => {
     } = useInventory();
     const { user: authUser } = useAuth();
 
-    const minDate = useMemo(() => {
-        if (!expenses.length) return subDays(new Date(), 30);
-        return expenses.reduce((min, expense) => {
-            const d = parseDateSafe(expense.date);
-            return d && d < min ? d : min;
-        }, new Date());
-    }, [expenses]);
-
-    const defaultRange = useMemo(() => ({
-        from: minDate,
-        to: new Date()
-    }), [minDate]);
-
-    const [dateRange, setDateRange] = useState(defaultRange);
-    const [hasInitializedDate, setHasInitializedDate] = useState(false);
     const [selectedTypes, setSelectedTypes] = useState([]);
     const [selectedCreatedBy, setSelectedCreatedBy] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -213,6 +198,22 @@ const Expenses = () => {
     const [showValidationErrors, setShowValidationErrors] = useState(false);
     const datePickerRef = useRef(null);
     const expenseDialogRef = useRef(null);
+    const expenses = allExpenses;
+    const minDate = useMemo(() => {
+        if (!expenses.length) return subDays(new Date(), 30);
+        return expenses.reduce((min, expense) => {
+            const d = parseDateSafe(expense.date);
+            return d && d < min ? d : min;
+        }, new Date());
+    }, [expenses]);
+
+    const defaultRange = useMemo(() => ({
+        from: minDate,
+        to: new Date()
+    }), [minDate]);
+
+    const [dateRange, setDateRange] = useState(defaultRange);
+    const [hasInitializedDate, setHasInitializedDate] = useState(false);
 
     useModalA11y({
         isOpen: isModalOpen,
@@ -671,7 +672,7 @@ const Expenses = () => {
                         <div className="shrink-0 whitespace-nowrap flex items-center gap-3 px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
                             <FileText className="w-4 h-4 text-slate-400" />
                             <span className="text-sm font-bold text-slate-500">
-                                <span className="text-slate-900 dark:text-white">{filteredExpenses.length}</span> {t('expenses.title')}
+                                <span className="text-slate-900 dark:text-white">{visibleExpenses.length}</span> {t('common.of', { defaultValue: 'of' })} <span className="text-slate-900 dark:text-white">{filteredExpenses.length}</span> {t('expenses.title')}
                             </span>
                         </div>
                     </div>
@@ -682,7 +683,7 @@ const Expenses = () => {
                     <div className="shrink-0 whitespace-nowrap flex items-center gap-3 px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
                         <FileText className="w-4 h-4 text-slate-400" />
                         <span className="text-sm font-bold text-slate-500">
-                            <span className="text-slate-900 dark:text-white">{filteredExpenses.length}</span> {t('expenses.title')}
+                            <span className="text-slate-900 dark:text-white">{visibleExpenses.length}</span> {t('common.of', { defaultValue: 'of' })} <span className="text-slate-900 dark:text-white">{filteredExpenses.length}</span> {t('expenses.title')}
                         </span>
                     </div>
                 </div>

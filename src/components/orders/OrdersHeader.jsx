@@ -21,7 +21,8 @@ const OrdersHeader = ({
     onExportCSV,
     onClearFilters,
     hasActiveFilters,
-    filteredCount,
+    visibleCount,
+    totalCount,
     displayLimit,
     onDisplayLimitChange,
     sortBy,
@@ -92,7 +93,7 @@ const OrdersHeader = ({
                     <div className="shrink-0 whitespace-nowrap flex items-center gap-3 px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
                         <ShoppingBag className="w-4 h-4 text-slate-400" />
                         <span className="text-sm font-bold text-slate-500">
-                            <span className="text-slate-900 dark:text-white">{filteredCount}</span> {t('orders.title')}
+                            <span className="text-slate-900 dark:text-white">{visibleCount}</span> {t('common.of', { defaultValue: 'of' })} <span className="text-slate-900 dark:text-white">{totalCount}</span> {t('orders.title')}
                         </span>
                     </div>
                 </div>
@@ -111,7 +112,7 @@ const OrdersHeader = ({
                 <div className="shrink-0 whitespace-nowrap flex items-center gap-3 px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
                     <ShoppingBag className="w-4 h-4 text-slate-400" />
                     <span className="text-sm font-bold text-slate-500">
-                        <span className="text-slate-900 dark:text-white">{filteredCount}</span> {t('orders.title')}
+                        <span className="text-slate-900 dark:text-white">{visibleCount}</span> {t('common.of', { defaultValue: 'of' })} <span className="text-slate-900 dark:text-white">{totalCount}</span> {t('orders.title')}
                     </span>
                 </div>
             </div>

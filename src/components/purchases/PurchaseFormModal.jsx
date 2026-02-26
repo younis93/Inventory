@@ -473,6 +473,7 @@ const PurchaseFormModal = ({
                                     title={t('products.form.selectCategory')}
                                     options={categoryOptions}
                                     selectedValues={normalizeCategoryValues(form.basicInfo.categories ?? form.basicInfo.category)}
+                                    showSearch={false}
                                     onChange={(values) => updateForm((prev) => ({
                                         ...prev,
                                         basicInfo: withPrimaryCategory({

@@ -27,8 +27,8 @@ const buildCustomerContactKey = (name, phone) => `${String(name || '').trim().to
 
 const Customers = () => {
     const { t } = useTranslation();
-    const { customers, addCustomer, updateCustomer } = useCustomers();
-    const { orders } = useOrders();
+    const { customers: allCustomers, addCustomer, updateCustomer } = useCustomers();
+    const { orders: allOrders } = useOrders();
     const {
         formatCurrency,
         brand,
@@ -56,6 +56,7 @@ const Customers = () => {
     const [displayLimit, setDisplayLimit] = useState(100);
     const [formData, setFormData] = useState(INITIAL_FORM_STATE);
     const canExportCustomers = settingsUserResolved && (currentUser?.role === 'Admin' || currentUser?.role === 'Manager');
+    const customers = allCustomers;
 
     useEffect(() => {
         setGlobalModalOpen(isModalOpen || isOrderHistoryOpen);
@@ -135,7 +136,7 @@ const Customers = () => {
         const map = new Map();
         customers.forEach((customer) => map.set(customer._id, []));
 
-        orders.forEach((order) => {
+        allOrders.forEach((order) => {
             const directId = order.customer?._id;
             if (directId && customerIdSet.has(directId)) {
                 map.get(directId)?.push(order);
@@ -150,7 +151,7 @@ const Customers = () => {
         });
 
         return map;
-    }, [customers, orders, customerIdByContactKey, customerIdSet]);
+    }, [customers, allOrders, customerIdByContactKey, customerIdSet]);
 
     const customerOrderStatsMap = useMemo(() => {
         const stats = new Map();
@@ -200,7 +201,7 @@ const Customers = () => {
 
     const getValidDate = useCallback((customer) => customerDateMap.get(customer._id) || null, [customerDateMap]);
 
-    const filteredAndSortedCustomers = useMemo(() => {
+    const allFilteredAndSortedCustomers = useMemo(() => {
         const filtered = customers.filter((customer) => {
             const matchesSearch =
                 customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -246,7 +247,7 @@ const Customers = () => {
             return 0;
         });
 
-        return sorted.slice(0, displayLimit);
+        return sorted;
     }, [
         customers,
         searchTerm,
@@ -255,10 +256,14 @@ const Customers = () => {
         filterCreatedBy,
         columnSort,
         dateRange,
-        displayLimit,
         customerDateMap,
         customerOrderStatsMap
     ]);
+
+    const filteredAndSortedCustomers = useMemo(
+        () => allFilteredAndSortedCustomers.slice(0, displayLimit),
+        [allFilteredAndSortedCustomers, displayLimit]
+    );
 
     const hasActiveFilters = useMemo(() => (
         filterGovernorates.length > 0 ||
@@ -377,7 +382,8 @@ const Customers = () => {
                 onClearFilters={handleClearFilters}
                 displayLimit={displayLimit}
                 onDisplayLimitChange={setDisplayLimit}
-                filteredCount={filteredAndSortedCustomers.length}
+                visibleCount={filteredAndSortedCustomers.length}
+                totalCount={allFilteredAndSortedCustomers.length}
                 sortBy={sortBy}
                 onSortChange={handleSortChange}
                 searchTerm={searchTerm}
@@ -403,12 +409,12 @@ const Customers = () => {
                     <CustomersTable
                         t={t}
                         loading={loading}
-                    customersData={filteredAndSortedCustomers}
-                    formatCurrency={formatCurrency}
-                    getCustomerStats={getCustomerStats}
-                    getValidDate={getValidDate}
-                    onOpenHistory={handleOpenHistory}
-                    onOpenEdit={handleOpenEdit}
+                        customersData={filteredAndSortedCustomers}
+                        formatCurrency={formatCurrency}
+                        getCustomerStats={getCustomerStats}
+                        getValidDate={getValidDate}
+                        onOpenHistory={handleOpenHistory}
+                        onOpenEdit={handleOpenEdit}
                         columnSort={columnSort}
                         onColumnSort={handleColumnSort}
                     />

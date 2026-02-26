@@ -62,7 +62,7 @@ const Purchases = () => {
     const { products, categories } = useProducts();
     const {
         loading,
-        purchases,
+        purchases: allPurchases,
         purchaseStatuses,
         canManagePurchases,
         addPurchase,
@@ -90,6 +90,7 @@ const Purchases = () => {
     const [statusSubmitting, setStatusSubmitting] = useState(false);
     const [statusError, setStatusError] = useState('');
     const [isMobileView, setIsMobileView] = useState(() => (typeof window !== 'undefined' ? window.innerWidth < 640 : false));
+    const purchases = allPurchases;
     useEffect(() => {
         setGlobalModalOpen(isFormOpen || Boolean(purchaseToDelete) || Boolean(statusEditorPurchase));
         return () => setGlobalModalOpen(false);
@@ -333,6 +334,20 @@ const Purchases = () => {
                             </button>
                         )}
                         <RowLimitDropdown limit={displayLimit} onChange={setDisplayLimit} />
+                        <div className="hidden sm:flex items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-900/50">
+                            <ShoppingBag className="h-4 w-4 text-slate-400" />
+                            <span className="text-sm font-bold text-slate-500">
+                                <span className="text-slate-900 dark:text-white">{visiblePurchases.length}</span> {t('common.of', { defaultValue: 'of' })} <span className="text-slate-900 dark:text-white">{sortedPurchases.length}</span> {t('purchases.title')}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="mt-3 flex sm:hidden items-center gap-2">
+                    <div className="min-w-0 flex-1 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-900/50">
+                        <span className="truncate text-sm font-bold text-slate-500">
+                            <span className="text-slate-900 dark:text-white">{visiblePurchases.length}</span> {t('common.of', { defaultValue: 'of' })} <span className="text-slate-900 dark:text-white">{sortedPurchases.length}</span> {t('purchases.title')}
+                        </span>
                     </div>
                 </div>
 

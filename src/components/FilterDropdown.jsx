@@ -73,6 +73,23 @@ const FilterDropdown = ({ title, options, selectedValues, onChange, icon: Icon, 
 
 
     const hasSelection = selectedValues.length > 0;
+    const selectedOptions = options.filter((option) => selectedValues.includes(option.value));
+    const selectedTotalCount = selectedOptions.reduce((sum, option) => {
+        const value = Number(option?.count || 0);
+        return sum + (Number.isFinite(value) ? value : 0);
+    }, 0);
+
+    const triggerLabel = (() => {
+        if (!hasSelection) return title;
+        if (selectedOptions.length === 1) {
+            const selected = selectedOptions[0];
+            const hasCount = Number.isFinite(Number(selected?.count));
+            return hasCount ? `${selected.label} (${selected.count})` : selected.label;
+        }
+        return selectedTotalCount > 0
+            ? `${selectedValues.length} Selected (${selectedTotalCount})`
+            : `${selectedValues.length} Selected`;
+    })();
 
     return (
         <div className="relative" ref={containerRef}>
@@ -101,7 +118,7 @@ const FilterDropdown = ({ title, options, selectedValues, onChange, icon: Icon, 
             >
                 {Icon ? <Icon className="w-4 h-4" /> : <Filter className="w-4 h-4" />}
                 <span className="truncate max-w-[120px]">
-                    {hasSelection ? `${selectedValues.length} Selected` : title}
+                    {triggerLabel}
                 </span>
                 <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
             </button>

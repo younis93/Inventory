@@ -344,6 +344,7 @@ const ProductFormModal = ({
                                             title={t('products.form.selectCategory')}
                                             options={categorySelectOptions}
                                             selectedValues={normalizeCategoryValues(formData.categories ?? formData.category)}
+                                            showSearch={false}
                                             onChange={(values) => {
                                                 const normalized = normalizeCategoryValues(values);
                                                 setFormData((prev) => ({

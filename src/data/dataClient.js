@@ -8,6 +8,25 @@ async function desktopList(collectionName, sortField = 'updatedAt', sortOrder = 
   return window.desktopAPI.list(collectionName, sortField, sortOrder);
 }
 
+function getByPath(source, path) {
+  if (!source || !path) return undefined;
+  return String(path).split('.').reduce((acc, key) => (acc == null ? undefined : acc[key]), source);
+}
+
+function compareValues(a, b, sortOrder = 'asc') {
+  const aValue = a == null ? '' : a;
+  const bValue = b == null ? '' : b;
+
+  let result = 0;
+  if (typeof aValue === 'number' && typeof bValue === 'number') {
+    result = aValue - bValue;
+  } else {
+    result = String(aValue).localeCompare(String(bValue), undefined, { numeric: true, sensitivity: 'base' });
+  }
+
+  return sortOrder === 'asc' ? result : -result;
+}
+
 export const dataClient = {
   isDesktop,
 
@@ -55,6 +74,45 @@ export const dataClient = {
   delete: async (collectionName, id) => {
     if (!isDesktop()) return firebaseService.delete(collectionName, id);
     return window.desktopAPI.remove(collectionName, id);
+  },
+
+  listPage: async (
+    collectionName,
+    {
+      sortField = 'updatedAt',
+      sortOrder = 'desc',
+      limitCount = 50,
+      cursor = null
+    } = {}
+  ) => {
+    if (!collectionName) throw new Error('listPage: collectionName is required');
+
+    if (!isDesktop()) {
+      return firebaseService.listPage(collectionName, {
+        sortField,
+        sortOrder,
+        limitCount,
+        cursor
+      });
+    }
+
+    const rows = await desktopList(collectionName, sortField, sortOrder);
+    const sorted = [...rows].sort((left, right) => {
+      const primary = compareValues(getByPath(left, sortField), getByPath(right, sortField), sortOrder);
+      if (primary !== 0) return primary;
+      return compareValues(left?._id, right?._id, sortOrder);
+    });
+
+    const cursorIndex = Number.isInteger(cursor) ? cursor : Number(cursor || 0);
+    const startIndex = Math.max(0, cursorIndex);
+    const data = sorted.slice(startIndex, startIndex + limitCount);
+    const nextCursor = startIndex + data.length;
+
+    return {
+      data,
+      cursor: nextCursor,
+      hasMore: nextCursor < sorted.length
+    };
   },
 
   listProducts: () => desktopList('products', 'name', 'asc'),
