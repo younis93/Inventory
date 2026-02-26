@@ -1,15 +1,16 @@
-import React, { useState, useMemo } from 'react';
+import React, { useCallback, useState, useMemo } from 'react';
 import Layout from '../components/Layout';
-import { useCustomers, useExpenses, useInventory, useOrders, useProducts } from '../context/InventoryContext';
-import { DollarSign, ShoppingCart, TrendingUp, Users, MapPin, Package, AlertCircle, Globe, ShoppingBag } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { useExpenses, useInventory, useOrders, useProducts } from '../context/InventoryContext';
+import { DollarSign, ShoppingCart, TrendingUp, Users, MapPin, Package, AlertCircle, Globe, ShoppingBag, Maximize2 } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar, Legend } from 'recharts';
 import DateRangePicker from '../components/DateRangePicker';
 import FilterDropdown from '../components/FilterDropdown';
 import IraqMap from '../components/IraqMap';
+import MapPopupModal from '../components/MapPopupModal';
 import TopRegionsList from '../components/TopRegionsList';
 import TopSellingProductsTable from '../components/TopSellingProductsTable';
 import { GOVERNORATES, SOCIAL_PLATFORMS } from '../constants/iraq';
-import { isWithinInterval, isAfter, parseISO, subDays, startOfMonth, endOfMonth, eachDayOfInterval, format } from 'date-fns';
+import { isWithinInterval, isAfter, parseISO, subDays, startOfMonth, endOfMonth, eachDayOfInterval, eachMonthOfInterval, format } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import Skeleton from '../components/common/Skeleton';
 
@@ -23,12 +24,23 @@ const parseOrderDateSafe = (value) => {
     }
 };
 
+const parseExpenseDateSafe = (value) => {
+    if (!value) return null;
+    try {
+        const parsed = parseISO(value);
+        return Number.isNaN(parsed.getTime()) ? null : parsed;
+    } catch {
+        return null;
+    }
+};
+
+const LOW_STOCK_THRESHOLD = 10;
+
 const Dashboard = () => {
     const { t } = useTranslation();
     const { orders } = useOrders();
     const { expenses } = useExpenses();
     const { products, categories } = useProducts();
-    const { customers } = useCustomers();
     const { loading, formatCurrency, brand, theme, appearance } = useInventory();
 
     const normalizedOrders = useMemo(() => {
@@ -67,6 +79,9 @@ const Dashboard = () => {
     }), [minDate]);
 
     const [dateRange, setDateRange] = useState(defaultRange);
+    const hasCompleteDateRange = useMemo(() => {
+        return Boolean(dateRange?.from && dateRange?.to && !isAfter(dateRange.from, dateRange.to));
+    }, [dateRange]);
 
     // Update dateRange once orders are loaded
     const [hasInitializedDate, setHasInitializedDate] = useState(false);
@@ -82,14 +97,23 @@ const Dashboard = () => {
     const [selectedGovernorates, setSelectedGovernorates] = useState([]);
     const [selectedSocials, setSelectedSocials] = useState([]);
     const [selectedCategories, setSelectedCategories] = useState([]);
+    const [isMapModalOpen, setIsMapModalOpen] = useState(false);
+
+    const toggleGovernorateSelection = useCallback((region) => {
+        setSelectedGovernorates((prev) => (
+            prev.includes(region)
+                ? prev.filter((item) => item !== region)
+                : [...prev, region]
+        ));
+    }, []);
 
     // --- Derived Data ---
     const filteredOrders = useMemo(() => {
+        if (!hasCompleteDateRange) return [];
         return normalizedOrders.filter((order) => {
             const orderDate = order._parsedDate;
 
-            const matchesDate = !dateRange?.from || !dateRange?.to ||
-                isWithinInterval(orderDate, { start: dateRange.from, end: dateRange.to });
+            const matchesDate = isWithinInterval(orderDate, { start: dateRange.from, end: dateRange.to });
 
             const matchesStatus = selectedStatuses.length === 0 || selectedStatuses.includes(order.status);
             const matchesGov = selectedGovernorates.length === 0 || (order.customer?.governorate && selectedGovernorates.includes(order.customer.governorate));
@@ -101,10 +125,10 @@ const Dashboard = () => {
 
             return matchesDate && matchesStatus && matchesGov && matchesSocial && matchesCategory;
         });
-    }, [normalizedOrders, dateRange, selectedStatuses, selectedGovernorates, selectedSocials, selectedCategories]);
+    }, [normalizedOrders, hasCompleteDateRange, dateRange, selectedStatuses, selectedGovernorates, selectedSocials, selectedCategories]);
 
     const previousPeriodRevenue = useMemo(() => {
-        if (!dateRange?.from || !dateRange?.to) return 0;
+        if (!hasCompleteDateRange) return 0;
         const start = dateRange.from;
         const end = dateRange.to;
         const periodMs = end.getTime() - start.getTime();
@@ -125,23 +149,18 @@ const Dashboard = () => {
             if (!matchesDate || !matchesStatus || !matchesGov || !matchesSocial || !matchesCategory) return sum;
             return sum + (Number(order.total) || 0);
         }, 0);
-    }, [normalizedOrders, dateRange, selectedStatuses, selectedGovernorates, selectedSocials, selectedCategories]);
+    }, [normalizedOrders, hasCompleteDateRange, dateRange, selectedStatuses, selectedGovernorates, selectedSocials, selectedCategories]);
 
     // KPI Calculations
     const totalRevenue = useMemo(() => filteredOrders.reduce((sum, order) => sum + order.total, 0), [filteredOrders]);
     const filteredExpensesByDate = useMemo(() => {
+        if (!hasCompleteDateRange) return [];
         return expenses.filter((expense) => {
-            let expenseDate;
-            try {
-                expenseDate = expense.date ? parseISO(expense.date) : null;
-            } catch (e) {
-                return false;
-            }
-            if (!expenseDate || isNaN(expenseDate.getTime())) return false;
-            return !dateRange?.from || !dateRange?.to ||
-                isWithinInterval(expenseDate, { start: dateRange.from, end: dateRange.to });
+            const expenseDate = parseExpenseDateSafe(expense.date);
+            if (!expenseDate) return false;
+            return isWithinInterval(expenseDate, { start: dateRange.from, end: dateRange.to });
         });
-    }, [expenses, dateRange]);
+    }, [expenses, hasCompleteDateRange, dateRange]);
     const totalExpenses = useMemo(
         () => filteredExpensesByDate.reduce((sum, expense) => sum + Number(expense.amountIQD || 0), 0),
         [filteredExpensesByDate]
@@ -158,7 +177,16 @@ const Dashboard = () => {
     );
     const totalOrders = filteredOrders.length;
     const activeCustomers = useMemo(() => new Set(filteredOrders.map(o => o.customer?.phone || o.customer?.id || o.customer).filter(Boolean)).size, [filteredOrders]);
+    const lowStockProducts = useMemo(() => {
+        const sourceProducts = selectedCategories.length > 0
+            ? products.filter((product) => selectedCategories.includes(product.category))
+            : products;
 
+        return sourceProducts.filter((product) => {
+            const stock = Number(product?.stock || 0);
+            return Number.isFinite(stock) && stock > 0 && stock < LOW_STOCK_THRESHOLD;
+        });
+    }, [products, selectedCategories]);
     // Top Region Calculation
     const regionCounts = useMemo(() => {
         const counts = {};
@@ -178,11 +206,12 @@ const Dashboard = () => {
     // Filter Options with Counts
 
     const ordersInDateRange = useMemo(() => {
+        if (!hasCompleteDateRange) return [];
         return normalizedOrders.filter((order) => {
             const orderDate = order._parsedDate;
-            return !dateRange?.from || !dateRange?.to || isWithinInterval(orderDate, { start: dateRange.from, end: dateRange.to });
+            return isWithinInterval(orderDate, { start: dateRange.from, end: dateRange.to });
         });
-    }, [normalizedOrders, dateRange]);
+    }, [normalizedOrders, hasCompleteDateRange, dateRange]);
 
     const statusOptions = useMemo(() => {
         const counts = {};
@@ -243,7 +272,7 @@ const Dashboard = () => {
 
     // Chart Data
     const revenueData = useMemo(() => {
-        if (!dateRange?.from || !dateRange?.to || isAfter(dateRange.from, dateRange.to)) return [];
+        if (!hasCompleteDateRange) return [];
 
         let days = [];
         try {
@@ -267,7 +296,39 @@ const Dashboard = () => {
             date: format(parseISO(date), 'MMM d'),
             value
         }));
-    }, [filteredOrders, dateRange]);
+    }, [filteredOrders, hasCompleteDateRange, dateRange]);
+    const monthlyRevenueVsExpensesData = useMemo(() => {
+        if (!hasCompleteDateRange) return [];
+
+        const monthlyBuckets = eachMonthOfInterval({
+            start: startOfMonth(dateRange.from),
+            end: startOfMonth(dateRange.to)
+        });
+
+        return monthlyBuckets.map((monthStart) => {
+            const monthEnd = endOfMonth(monthStart);
+            const revenue = filteredOrders.reduce((sum, order) => {
+                if (isWithinInterval(order._parsedDate, { start: monthStart, end: monthEnd })) {
+                    return sum + Number(order.total || 0);
+                }
+                return sum;
+            }, 0);
+
+            const expensesAmount = filteredExpensesByDate.reduce((sum, expense) => {
+                const expenseDate = parseExpenseDateSafe(expense.date);
+                if (expenseDate && isWithinInterval(expenseDate, { start: monthStart, end: monthEnd })) {
+                    return sum + Number(expense.amountIQD || 0);
+                }
+                return sum;
+            }, 0);
+
+            return {
+                month: format(monthStart, 'MMM yyyy'),
+                revenue,
+                expenses: expensesAmount
+            };
+        });
+    }, [hasCompleteDateRange, dateRange, filteredOrders, filteredExpensesByDate]);
 
     // Map data: convert regionCounts (array) to an object keyed by governorate name for the map component
     const regionDataObj = useMemo(() => {
@@ -287,6 +348,9 @@ const Dashboard = () => {
         grid: '#E2E8F0',
         tooltipBg: '#FFFFFF',
     };
+    const mapTitle = t('dashboard.map', { defaultValue: 'Map' });
+    const expandMapLabel = t('dashboard.expandMap', { defaultValue: 'Expand map' });
+    const closeMapLabel = t('dashboard.closeMap', { defaultValue: 'Close map' });
 
     return (
         <Layout title={t('dashboard.title')}>
@@ -369,9 +433,9 @@ const Dashboard = () => {
 
             <div className="space-y-6">
                 {/* KPI Cards */}
-                <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 gap-4">
                     {loading ? (
-                        Array.from({ length: 5 }).map((_, i) => (
+                        Array.from({ length: 6 }).map((_, i) => (
                             <div key={i} className="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-100 dark:border-slate-700 shadow-sm">
                                 <div className="flex justify-between items-start mb-4">
                                     <Skeleton className="h-4 w-24" />
@@ -432,6 +496,16 @@ const Dashboard = () => {
                                 <h3 className="text-3xl font-black text-slate-800 dark:text-white mb-1">{activeCustomers}</h3>
                                 <p className="text-xs text-slate-500 font-medium mt-1">{t('dashboard.uniqueBuyers')}</p>
                             </div>
+
+                            <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-100 dark:border-slate-700 shadow-sm">
+                                <div className="flex justify-between items-start mb-4 text-slate-400">
+                                    <span className="font-bold text-xs uppercase tracking-widest">{t('dashboard.lowStock')}</span>
+                                    <AlertCircle className="w-5 h-5" />
+                                </div>
+                                <h3 className="text-3xl font-black text-slate-800 dark:text-white mb-1">{lowStockProducts.length}</h3>
+                                <p className="text-xs text-slate-500 font-medium mt-1">Below {LOW_STOCK_THRESHOLD} units</p>
+                            </div>
+
                         </>
                     )}
                 </div>
@@ -497,13 +571,7 @@ const Dashboard = () => {
                         <IraqMap
                             data={regionDataObj}
                             selectedGovernorates={selectedGovernorates}
-                            onSelect={(reg) => {
-                                if (selectedGovernorates.includes(reg)) {
-                                    setSelectedGovernorates(selectedGovernorates.filter(r => r !== reg));
-                                } else {
-                                    setSelectedGovernorates([...selectedGovernorates, reg]);
-                                }
-                            }}
+                            onSelect={toggleGovernorateSelection}
                         />
                         <div className="absolute top-4 start-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-slate-500 shadow-sm border border-slate-100">
                             <span className="inline-flex items-center gap-1.5">
@@ -511,9 +579,66 @@ const Dashboard = () => {
                                     className="w-3.5 h-3.5"
                                     style={{ color: appearance.accentType === 'solid' ? appearance.accentColor : appearance.accentGradient.start }}
                                 />
-                                <span>Map</span>
+                                <span>{mapTitle}</span>
                             </span>
                         </div>
+                        <button
+                            type="button"
+                            onClick={() => setIsMapModalOpen(true)}
+                            className="absolute top-4 end-4 inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-100 bg-white/90 text-slate-600 shadow-sm transition hover:bg-white dark:border-slate-700 dark:bg-slate-900/85 dark:text-slate-100"
+                            aria-label={expandMapLabel}
+                            title={expandMapLabel}
+                        >
+                            <Maximize2 className="h-4 w-4" />
+                        </button>
+                    </div>
+                </div>
+
+                <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 h-[340px]">
+                    <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2">
+                        <AlertCircle className="w-5 h-5" style={{ color: appearance.accentType === 'solid' ? appearance.accentColor : appearance.accentGradient.start }} />
+                        Monthly Expenses vs Revenue
+                    </h3>
+                    <div className="h-[260px]">
+                        {loading ? (
+                            <Skeleton className="w-full h-full rounded-xl" />
+                        ) : monthlyRevenueVsExpensesData.length > 0 ? (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={monthlyRevenueVsExpensesData}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
+                                    <XAxis
+                                        dataKey="month"
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fontSize: 12, fill: chartColors.text }}
+                                    />
+                                    <YAxis
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fontSize: 12, fill: chartColors.text }}
+                                        tickFormatter={(val) => `${Math.round(val / 1000)}k`}
+                                    />
+                                    <Tooltip
+                                        contentStyle={{
+                                            borderRadius: '12px',
+                                            border: 'none',
+                                            boxShadow: '0 8px 16px rgba(0,0,0,0.1)',
+                                            backgroundColor: chartColors.tooltipBg,
+                                            color: theme === 'dark' ? '#F8FAFC' : '#1E293B'
+                                        }}
+                                        itemStyle={{ color: theme === 'dark' ? '#F8FAFC' : '#1E293B' }}
+                                        formatter={(value) => [formatCurrency(value), '']}
+                                    />
+                                    <Legend />
+                                    <Bar name={t('dashboard.revenue')} dataKey="revenue" fill={appearance.accentType === 'solid' ? appearance.accentColor : appearance.accentGradient.start} radius={[6, 6, 0, 0]} />
+                                    <Bar name={t('dashboard.totalExpenses')} dataKey="expenses" fill="#f59e0b" radius={[6, 6, 0, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="h-full flex items-center justify-center text-sm font-semibold text-slate-400">
+                                {t('common.noData')}
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -543,13 +668,7 @@ const Dashboard = () => {
                             <TopRegionsList
                                 regions={regionCounts}
                                 selectedRegion={selectedGovernorates}
-                                onSelect={(reg) => {
-                                    if (selectedGovernorates.includes(reg)) {
-                                        setSelectedGovernorates(selectedGovernorates.filter(r => r !== reg));
-                                    } else {
-                                        setSelectedGovernorates([...selectedGovernorates, reg]);
-                                    }
-                                }}
+                                onSelect={toggleGovernorateSelection}
                             />
 
                             <div className="h-full">
@@ -563,6 +682,15 @@ const Dashboard = () => {
                     )}
                 </div>
             </div>
+            <MapPopupModal
+                isOpen={isMapModalOpen}
+                onClose={() => setIsMapModalOpen(false)}
+                data={regionDataObj}
+                selectedGovernorates={selectedGovernorates}
+                onSelect={toggleGovernorateSelection}
+                title={mapTitle}
+                closeLabel={closeMapLabel}
+            />
         </Layout>
     );
 };

@@ -13,29 +13,24 @@ import { useTranslation } from 'react-i18next';
 const allTabs = ['general', 'appearance', 'branding', 'account', 'users'];
 const SETTINGS_TAB_STORAGE_KEY = 'inventory.settings.tab';
 
-const getPersistedRole = () => {
-    try {
-        return localStorage.getItem('inventory.userRole') || 'Sales';
-    } catch (_) {
-        return 'Sales';
-    }
-};
-
 const Settings = () => {
     const { t } = useTranslation();
-    const { currentUser } = useSettings();
+    const { currentUser, currentUserResolved } = useSettings();
     const [searchParams, setSearchParams] = useSearchParams();
     const [activeTab, setActiveTab] = useState('general');
     const tabParam = searchParams.get('tab');
 
     const restrictedTabs = useMemo(() => {
-        const role = currentUser?.role || getPersistedRole();
+        if (!currentUserResolved) return [];
+        const role = currentUser?.role || 'Sales';
         if (role === 'Sales') return ['branding', 'users'];
         if (role === 'Manager') return ['branding'];
         return [];
-    }, [currentUser?.role]);
+    }, [currentUser?.role, currentUserResolved]);
 
     useEffect(() => {
+        if (!currentUserResolved) return;
+
         let persistedTab = 'general';
         try {
             const saved = localStorage.getItem(SETTINGS_TAB_STORAGE_KEY);
@@ -56,7 +51,7 @@ const Settings = () => {
         try {
             localStorage.setItem(SETTINGS_TAB_STORAGE_KEY, nextTab);
         } catch (_) { }
-    }, [activeTab, restrictedTabs, tabParam, setSearchParams]);
+    }, [activeTab, restrictedTabs, tabParam, setSearchParams, currentUserResolved]);
 
     const tabs = useMemo(() => ([
         { id: 'general', label: t('settings.general'), icon: SettingsIcon, hidden: false },

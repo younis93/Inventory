@@ -141,6 +141,7 @@ export const useSettings = () => {
     return {
         users: context.users,
         currentUser: context.currentUser,
+        currentUserResolved: context.settingsUserResolved,
         brand: context.brand,
         updateBrand: context.updateBrand,
         addUser: context.addUser,
@@ -572,6 +573,7 @@ export const InventoryProvider = ({ children }) => {
                 updateUser: settingsDomain.updateUser,
                 deleteUser: settingsDomain.deleteUser,
                 currentUser: settingsDomain.currentUser,
+                settingsUserResolved: settingsDomain.currentUserResolved,
                 updateUserProfile: settingsDomain.updateUserProfile,
                 brand,
                 updateBrand: settingsDomain.updateBrand,

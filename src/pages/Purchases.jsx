@@ -663,7 +663,7 @@ const Purchases = () => {
                 onConfirm={async () => {
                     if (!purchaseToDelete?._id) return;
                     try {
-                        await deletePurchase(purchaseToDelete._id);
+                        await deletePurchase(purchaseToDelete);
                     } finally {
                         setPurchaseToDelete(null);
                     }

@@ -111,6 +111,12 @@ const Login = () => {
     const [error, setError] = useState('');
     const [isLangOpen, setIsLangOpen] = useState(false);
 
+    const persistUserRole = (role) => {
+        try {
+            localStorage.setItem('inventory.userRole', role || 'Sales');
+        } catch (_) { }
+    };
+
     const setAppLanguage = (lng) => {
         i18n.changeLanguage(lng);
         localStorage.setItem('language', lng);
@@ -163,6 +169,7 @@ const Login = () => {
                     return;
                 }
                 await signUpWithEmail(normalizedEmail, password);
+                persistUserRole(allowedUser.role);
             } else {
                 try {
                     await signInWithEmail(normalizedEmail, password);
@@ -183,6 +190,7 @@ const Login = () => {
                     setError(tr.unauthorizedMessage);
                     return;
                 }
+                persistUserRole(allowedUser.role);
             }
 
             navigate(from, { replace: true });
@@ -212,6 +220,7 @@ const Login = () => {
                 setSubmitting(false);
                 return;
             }
+            persistUserRole(allowedUser.role);
 
             navigate(from, { replace: true });
         } catch (err) {

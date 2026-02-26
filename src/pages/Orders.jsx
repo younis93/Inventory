@@ -65,7 +65,8 @@ const Orders = () => {
         appearance,
         addToast,
         setIsModalOpen,
-        currentUser
+        currentUser,
+        settingsUserResolved
     } = useInventory();
 
     const [searchTerm, setSearchTerm] = useState('');
@@ -92,6 +93,7 @@ const Orders = () => {
     const [qty, setQty] = useState(1);
     const [isMobileView, setIsMobileView] = useState(() => (typeof window !== 'undefined' ? window.innerWidth < 640 : false));
     const normalizedSearchTerm = searchTerm.trim().toLowerCase();
+    const canManageOrderActions = settingsUserResolved && (currentUser?.role === 'Admin' || currentUser?.role === 'Manager');
 
     const orderDateMap = useMemo(() => {
         const map = new Map();
@@ -491,7 +493,7 @@ const Orders = () => {
     const saveOrderLabel = editingOrderId ? t('orders.updateOrder') : t('orders.saveOrder');
 
     const canDeleteOrder = (order) => (
-        currentUser?.role !== 'Sales' || !isBefore(parseISO(order.date), startOfDay(new Date()))
+        canManageOrderActions || !isBefore(parseISO(order.date), startOfDay(new Date()))
     );
 
     const notifyPrintResult = (result) => {
@@ -553,7 +555,7 @@ const Orders = () => {
             <OrdersHeader
                 t={t}
                 appearanceTheme={appearance.theme}
-                canExport={currentUser?.role !== 'Sales'}
+                canExport={canManageOrderActions}
                 onOpenCreate={handleOpenCreate}
                 onExportCSV={handleExportCSV}
                 onClearFilters={handleClearFilters}

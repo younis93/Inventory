@@ -62,15 +62,19 @@ export const usePurchasesDomain = ({
     const findProductById = (productId) =>
         products.find((product) => product._id === productId || product.id === productId) || null;
 
-    const applyStockIncrement = async (productId, quantity) => {
+    const applyStockDelta = async (productId, quantityDelta) => {
         const product = findProductById(productId);
         if (!product) {
             throw new Error('Linked product not found for stock update.');
         }
 
         const currentStock = Number(product.stock || 0);
-        const delta = normalizePurchaseQuantity(quantity);
-        const nextStock = currentStock + delta;
+        const rawDelta = Number(quantityDelta);
+        if (!Number.isFinite(rawDelta) || rawDelta === 0) return;
+
+        const normalizedMagnitude = normalizePurchaseQuantity(Math.abs(rawDelta));
+        const signedDelta = rawDelta < 0 ? -normalizedMagnitude : normalizedMagnitude;
+        const nextStock = Math.max(0, currentStock + signedDelta);
 
         if (updateProductStock) {
             await updateProductStock(productId, nextStock);
@@ -131,7 +135,7 @@ export const usePurchasesDomain = ({
         const createdPurchase = await dataClient.add('purchases', validated);
 
         if (validated.received && !skipStockAdjustment) {
-            await applyStockIncrement(validated.productId, validated.quantity);
+            await applyStockDelta(validated.productId, validated.quantity);
         }
 
         if (!silent) {
@@ -200,7 +204,7 @@ export const usePurchasesDomain = ({
         const createdPurchase = await dataClient.add('purchases', validated);
 
         if (validated.received && !options.skipStockAdjustment) {
-            await applyStockIncrement(validated.productId, validated.quantity);
+            await applyStockDelta(validated.productId, validated.quantity);
         }
 
         if (!options.silent) {
@@ -257,7 +261,7 @@ export const usePurchasesDomain = ({
         await dataClient.update('purchases', purchaseId, validated);
 
         if (!existing.received && validated.received && !options.skipStockAdjustment) {
-            await applyStockIncrement(validated.productId, validated.quantity);
+            await applyStockDelta(validated.productId, validated.quantity);
         }
 
         if (!options.silent) {
@@ -282,7 +286,7 @@ export const usePurchasesDomain = ({
         await dataClient.update('purchases', purchaseId, validated);
 
         if (didBecomeReceived && !options.skipStockAdjustment) {
-            await applyStockIncrement(validated.productId, validated.quantity);
+            await applyStockDelta(validated.productId, validated.quantity);
         }
 
         if (!options.silent) {
@@ -292,9 +296,16 @@ export const usePurchasesDomain = ({
         return validated;
     };
 
-    const deletePurchase = async (id, options = {}) => {
+    const deletePurchase = async (purchaseTarget, options = {}) => {
         assertCanManage();
-        await dataClient.delete('purchases', id);
+        const purchaseId = typeof purchaseTarget === 'string' ? purchaseTarget : purchaseTarget?._id;
+        if (!purchaseId) throw new Error('Purchase ID is required.');
+
+        const purchase = purchases.find((entry) => entry._id === purchaseId) || purchaseTarget;
+        await dataClient.delete('purchases', purchaseId);
+        if (purchase?.received && !options.skipStockAdjustment) {
+            await applyStockDelta(purchase.productId, -purchase.quantity);
+        }
         if (!options.silent) {
             addToast?.('Purchase deleted successfully.', 'success');
         }

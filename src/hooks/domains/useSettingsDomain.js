@@ -16,14 +16,20 @@ export const useSettingsDomain = ({
     const [expenseTypes, setExpenseTypes] = useState(defaultExpenseTypes);
     const [loading, setLoading] = useState(true);
     const [currentUser, setCurrentUser] = useState(null);
+    const [usersLoaded, setUsersLoaded] = useState(false);
+    const [currentUserResolved, setCurrentUserResolved] = useState(false);
 
     useEffect(() => {
         if (!enabled) {
             setLoading(false);
+            setUsersLoaded(false);
+            setCurrentUserResolved(true);
             return undefined;
         }
 
         setLoading(true);
+        setUsersLoaded(false);
+        setCurrentUserResolved(!authUser);
         let loadedUsers = false;
         let loadedSettings = false;
 
@@ -36,6 +42,7 @@ export const useSettingsDomain = ({
             (data) => {
                 setUsers(data);
                 loadedUsers = true;
+                setUsersLoaded(true);
                 maybeDone();
             },
             'username',
@@ -43,6 +50,7 @@ export const useSettingsDomain = ({
             (error) => {
                 console.error('Error loading users:', error);
                 loadedUsers = true;
+                setUsersLoaded(true);
                 maybeDone();
                 addToast?.('Error loading users. Refresh page.', 'error');
             }
@@ -94,6 +102,7 @@ export const useSettingsDomain = ({
         };
     }, [
         enabled,
+        authUser,
         addToast,
         legacyLogo,
         professionalLogo,
@@ -102,7 +111,21 @@ export const useSettingsDomain = ({
     ]);
 
     useEffect(() => {
-        if (users.length > 0 && authUser?.email) {
+        if (!authUser) {
+            try {
+                localStorage.removeItem('inventory.userRole');
+            } catch (_) { }
+            setCurrentUser(null);
+            setCurrentUserResolved(true);
+            return;
+        }
+
+        if (!usersLoaded) {
+            setCurrentUserResolved(false);
+            return;
+        }
+
+        if (users.length > 0 && authUser.email) {
             const email = authUser.email.toLowerCase();
             const matchedUser = users.find((user) => user.email?.toLowerCase() === email);
             if (matchedUser) {
@@ -121,14 +144,14 @@ export const useSettingsDomain = ({
                     localStorage.setItem('inventory.userRole', matchedUser.role || 'Sales');
                 } catch (_) { }
                 setCurrentUser(matchedUser);
+                setCurrentUserResolved(true);
+                return;
             }
-        } else if (!authUser) {
-            try {
-                localStorage.removeItem('inventory.userRole');
-            } catch (_) { }
-            setCurrentUser(null);
         }
-    }, [users, authUser]);
+
+        setCurrentUser(null);
+        setCurrentUserResolved(true);
+    }, [users, authUser, usersLoaded]);
 
     useEffect(() => {
         try {
@@ -225,6 +248,7 @@ export const useSettingsDomain = ({
         brand,
         expenseTypes,
         currentUser,
+        currentUserResolved,
         loading,
         updateBrand,
         addUser,
@@ -232,5 +256,5 @@ export const useSettingsDomain = ({
         deleteUser,
         updateUserProfile,
         saveExpenseTypes
-    }), [users, brand, expenseTypes, currentUser, loading]);
+    }), [users, brand, expenseTypes, currentUser, currentUserResolved, loading]);
 };

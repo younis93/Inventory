@@ -36,7 +36,8 @@ const Customers = () => {
         loading,
         appearance,
         setIsModalOpen: setGlobalModalOpen,
-        currentUser
+        currentUser,
+        settingsUserResolved
     } = useInventory();
 
     const [searchTerm, setSearchTerm] = useState('');
@@ -54,6 +55,7 @@ const Customers = () => {
     const [viewMode, setViewMode] = useState('table');
     const [displayLimit, setDisplayLimit] = useState(100);
     const [formData, setFormData] = useState(INITIAL_FORM_STATE);
+    const canExportCustomers = settingsUserResolved && (currentUser?.role === 'Admin' || currentUser?.role === 'Manager');
 
     useEffect(() => {
         setGlobalModalOpen(isModalOpen || isOrderHistoryOpen);
@@ -368,7 +370,7 @@ const Customers = () => {
             <CustomersHeader
                 t={t}
                 appearanceTheme={appearance.theme}
-                canExport={currentUser?.role !== 'Sales'}
+                canExport={canExportCustomers}
                 onOpenAdd={handleOpenAdd}
                 onExportCSV={handleExportCSV}
                 hasActiveFilters={hasActiveFilters}
