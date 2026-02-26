@@ -239,3 +239,48 @@
   border: none;
   border-radius: 10px;
 }
+
+.rich-text-editor .ql-toolbar.ql-snow {
+  border: 1px solid var(--border-default);
+  border-bottom: none;
+  background: var(--surface-primary);
+  border-top-left-radius: 0.75rem;
+  border-top-right-radius: 0.75rem;
+}
+
+.rich-text-editor .ql-container.ql-snow {
+  border: 1px solid var(--border-default);
+  border-bottom-left-radius: 0.75rem;
+  border-bottom-right-radius: 0.75rem;
+  background: var(--surface-secondary);
+  min-height: 8rem;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.rich-text-editor .ql-editor {
+  min-height: 8rem;
+  color: var(--text-secondary);
+}
+
+.rich-text-editor .ql-editor.ql-blank::before {
+  color: var(--text-muted);
+  font-style: normal;
+}
+
+.rich-text-editor .ql-snow .ql-stroke {
+  stroke: var(--text-muted);
+}
+
+.rich-text-editor .ql-snow .ql-fill {
+  fill: var(--text-muted);
+}
+
+.rich-text-editor .ql-snow .ql-picker {
+  color: var(--text-muted);
+}
+
+.rich-text-editor:focus-within .ql-toolbar.ql-snow,
+.rich-text-editor:focus-within .ql-container.ql-snow {
+  border-color: color-mix(in srgb, var(--accent-color), white 40%);
+}

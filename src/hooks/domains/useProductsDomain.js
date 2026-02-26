@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { dataClient } from '../../data/dataClient';
 import { getProductCategories, normalizeCategoryValues } from '../../utils/productCategories';
+import { getSafeRichText, richTextToPlainText } from '../../utils/richTextSanitizer';
 
 const getStockStatus = (stock) => {
     const value = Number(stock || 0);
@@ -31,13 +32,17 @@ const normalizeProductPayload = (payload = {}, { isUpdate = false } = {}) => {
     const categories = normalizeCategoryValues(payload.categories ?? payload.category);
     const primaryCategory = categories[0] || '';
 
+    const descriptionHtml = getSafeRichText(payload.descriptionHtml, payload.description);
+    const descriptionText = toOptionalText(payload.description) || richTextToPlainText(descriptionHtml);
+
     const normalized = {
         ...payload,
         name: toOptionalText(payload.name),
         sku: toOptionalText(payload.sku),
         category: primaryCategory,
         categories,
-        description: toOptionalText(payload.description),
+        description: descriptionText,
+        descriptionHtml,
         images: Array.isArray(payload.images) ? payload.images : [],
         stock,
         status: getStockStatus(stock),
