@@ -41,6 +41,7 @@ const OrdersTable = ({
     onEditOrder,
     onPDFInvoice,
     onThermalPrint,
+    onRequestReturn,
     canDeleteOrder,
     onRequestDelete
 }) => {
@@ -132,7 +133,7 @@ const OrdersTable = ({
                                 <div className="text-sm text-slate-600 dark:text-slate-400 truncate">{formatOrderDate(order.date)}</div>
                                 <div className="text-sm font-bold text-slate-800 dark:text-white truncate">{formatCurrency(order.total)}</div>
                                 <div>
-                                    <StatusCell order={order} onUpdate={onUpdateStatus} />
+                                    <StatusCell order={order} onUpdate={onUpdateStatus} onRequestReturn={onRequestReturn} />
                                 </div>
                                 <div className="text-sm text-slate-600 dark:text-slate-400 truncate">{order.createdBy || 'System'}</div>
                                 <div className="flex items-center justify-end gap-2">

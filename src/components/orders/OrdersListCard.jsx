@@ -14,6 +14,7 @@ const OrdersListCard = ({
     onEditOrder,
     onPDFInvoice,
     onThermalPrint,
+    onRequestReturn,
     canDeleteOrder,
     onRequestDelete
 }) => {
@@ -66,7 +67,7 @@ const OrdersListCard = ({
                                                 {new Date(order.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                                             </div>
                                             <div>
-                                                <StatusCell order={order} onUpdate={onUpdateStatus} />
+                                                <StatusCell order={order} onUpdate={onUpdateStatus} onRequestReturn={onRequestReturn} />
                                             </div>
                                         </div>
 

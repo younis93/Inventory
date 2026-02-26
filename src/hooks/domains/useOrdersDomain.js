@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { dataClient } from '../../data/dataClient';
 
+const isReturnedOrder = (order) => Boolean(order?.returnProcessed || order?.status === 'Returned');
+
 export const useOrdersDomain = ({
     enabled,
     addToast,
@@ -74,6 +76,22 @@ export const useOrdersDomain = ({
         const oldOrder = orders.find((order) => order._id === _id);
 
         try {
+            if (oldOrder && updatedOrder.status === 'Returned' && !isReturnedOrder(oldOrder)) {
+                await dataClient.returnOrderWithStock(_id, {
+                    reason: updatedOrder.returnReason || '',
+                    date: updatedOrder.returnDate || new Date().toISOString().slice(0, 10),
+                    returnedBy: currentUser?.displayName || currentUser?.username || 'System'
+                });
+                addToast?.('Order returned and stock restored', 'success');
+                return;
+            }
+
+            if (oldOrder && isReturnedOrder(oldOrder)) {
+                await dataClient.update('orders', _id, data);
+                addToast?.('Order updated successfully', 'success');
+                return;
+            }
+
             if (oldOrder) {
                 for (const item of oldOrder.items || []) {
                     const product = products.find((entry) => entry._id === item.product._id);
@@ -102,10 +120,41 @@ export const useOrdersDomain = ({
         }
     };
 
+    const returnOrder = async (orderId, { reason = '', date = '' } = {}) => {
+        try {
+            const order = orders.find((entry) => entry._id === orderId);
+            if (!order) throw new Error('Order not found');
+
+            if (isReturnedOrder(order)) {
+                addToast?.('Order is already returned.', 'info');
+                return { alreadyReturned: true };
+            }
+
+            const result = await dataClient.returnOrderWithStock(orderId, {
+                reason,
+                date: date || new Date().toISOString().slice(0, 10),
+                returnedBy: currentUser?.displayName || currentUser?.username || 'System'
+            });
+
+            if (result?.alreadyReturned) {
+                addToast?.('Order is already returned.', 'info');
+                return { alreadyReturned: true };
+            }
+
+            addToast?.('Order returned and stock restored', 'success');
+            return { alreadyReturned: false };
+        } catch (error) {
+            console.error(error);
+            addToast?.('Error returning order', 'error');
+            throw error;
+        }
+    };
+
     const deleteOrder = async (id) => {
         try {
             const order = orders.find((entry) => entry._id === id);
-            if (order) {
+            const shouldRestoreStock = order && !isReturnedOrder(order);
+            if (shouldRestoreStock) {
                 for (const item of order.items || []) {
                     const product = products.find((entry) => entry._id === item.product._id);
                     if (!product) continue;
@@ -121,7 +170,7 @@ export const useOrdersDomain = ({
             }
 
             await dataClient.delete('orders', id);
-            addToast?.('Order deleted and stock restored', 'info');
+            addToast?.(shouldRestoreStock ? 'Order deleted and stock restored' : 'Order deleted successfully', 'info');
         } catch (error) {
             console.error(error);
             addToast?.('Error deleting order', 'error');
@@ -133,6 +182,7 @@ export const useOrdersDomain = ({
         loading,
         addOrder,
         updateOrder,
-        deleteOrder
+        deleteOrder,
+        returnOrder
     }), [orders, loading, currentUser, products]);
 };

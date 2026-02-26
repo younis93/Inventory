@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-const STATUS_OPTIONS = ['Processing', 'Completed', 'Cancelled', 'Pending'];
+const STATUS_OPTIONS = ['Processing', 'Completed', 'Cancelled', 'Pending', 'Returned'];
 
-const StatusCell = ({ order, onUpdate }) => {
+const StatusCell = ({ order, onUpdate, onRequestReturn }) => {
     const { t } = useTranslation();
     const [isOpen, setIsOpen] = useState(false);
     const containerRef = useRef(null);
@@ -29,13 +29,17 @@ const StatusCell = ({ order, onUpdate }) => {
                 return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
             case 'Pending':
                 return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
+            case 'Returned':
+                return 'bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-300';
             default:
                 return 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300';
         }
     };
 
     const handleSelect = (newStatus) => {
-        if (newStatus !== order.status) {
+        if (newStatus === 'Returned' && newStatus !== order.status) {
+            onRequestReturn?.(order);
+        } else if (newStatus !== order.status) {
             onUpdate({ ...order, status: newStatus });
         }
         setIsOpen(false);

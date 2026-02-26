@@ -11,6 +11,7 @@ import OrderFormModal from '../components/orders/OrderFormModal';
 import OrdersHeader from '../components/orders/OrdersHeader';
 import OrdersListCard from '../components/orders/OrdersListCard';
 import OrdersTable from '../components/orders/OrdersTable';
+import ReturnOrderModal from '../components/orders/ReturnOrderModal';
 import { printReceipt, triggerPDFPrint } from '../components/orders/ReceiptPrinter';
 
 const INITIAL_ORDER_STATE = {
@@ -26,7 +27,7 @@ const INITIAL_ORDER_STATE = {
     discount: 0
 };
 
-const STATUS_OPTIONS = ['Processing', 'Completed', 'Cancelled', 'Pending'];
+const STATUS_OPTIONS = ['Processing', 'Completed', 'Cancelled', 'Pending', 'Returned'];
 
 const parseOrderDateSafe = (value) => {
     if (!value) return null;
@@ -55,7 +56,7 @@ const toPositiveInteger = (value, fallback = 1) => {
 
 const Orders = () => {
     const { t } = useTranslation();
-    const { orders: allOrders, addOrder, updateOrder, deleteOrder } = useOrders();
+    const { orders: allOrders, addOrder, updateOrder, deleteOrder, returnOrder } = useOrders();
     const { products } = useProducts();
     const { customers, addCustomer } = useCustomers();
     const {
@@ -78,6 +79,11 @@ const Orders = () => {
 
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [orderToDelete, setOrderToDelete] = useState(null);
+    const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
+    const [orderToReturn, setOrderToReturn] = useState(null);
+    const [returnReason, setReturnReason] = useState('');
+    const [returnDate, setReturnDate] = useState(() => new Date().toISOString().slice(0, 10));
+    const [isReturningOrder, setIsReturningOrder] = useState(false);
 
     const [displayLimit, setDisplayLimit] = useState(100);
     const [hasInitializedDate, setHasInitializedDate] = useState(false);
@@ -105,9 +111,9 @@ const Orders = () => {
     }, [orders]);
 
     useEffect(() => {
-        setIsModalOpen(isCreateModalOpen || isViewModalOpen || isDeleteModalOpen);
+        setIsModalOpen(isCreateModalOpen || isViewModalOpen || isDeleteModalOpen || isReturnModalOpen);
         return () => setIsModalOpen(false);
-    }, [isCreateModalOpen, isViewModalOpen, isDeleteModalOpen, setIsModalOpen]);
+    }, [isCreateModalOpen, isViewModalOpen, isDeleteModalOpen, isReturnModalOpen, setIsModalOpen]);
 
     useEffect(() => {
         const onResize = () => setIsMobileView(window.innerWidth < 640);
@@ -542,6 +548,43 @@ const Orders = () => {
         setIsDeleteModalOpen(true);
     };
 
+    const canReturnOrder = (order) => !(order?.returnProcessed || order?.status === 'Returned');
+
+    const handleRequestReturn = (order) => {
+        if (!canReturnOrder(order)) {
+            addToast(t('orders.alreadyReturned', { defaultValue: 'Order is already returned.' }), 'info');
+            return;
+        }
+        setOrderToReturn(order);
+        setReturnReason('');
+        setReturnDate(new Date().toISOString().slice(0, 10));
+        setIsReturnModalOpen(true);
+    };
+
+    const handleConfirmReturn = async () => {
+        if (!orderToReturn || isReturningOrder) return;
+
+        if (!String(returnReason || '').trim()) {
+            addToast(t('orders.returnReasonRequired', { defaultValue: 'Return reason is required.' }), 'error');
+            return;
+        }
+
+        setIsReturningOrder(true);
+        try {
+            await returnOrder(orderToReturn._id, {
+                reason: returnReason.trim(),
+                date: returnDate
+            });
+            setIsReturnModalOpen(false);
+            setOrderToReturn(null);
+            setReturnReason('');
+        } catch (_) {
+            // Toast handled in domain layer.
+        } finally {
+            setIsReturningOrder(false);
+        }
+    };
+
     const handlePDFInvoice = (order) => {
         triggerPDFPrint({ order, brand, formatCurrency });
     };
@@ -606,6 +649,7 @@ const Orders = () => {
                         onEditOrder={handleEditOrder}
                         onPDFInvoice={handlePDFInvoice}
                         onThermalPrint={handleThermalPrint}
+                        onRequestReturn={handleRequestReturn}
                         canDeleteOrder={canDeleteOrder}
                         onRequestDelete={handleRequestDelete}
                     />
@@ -622,6 +666,7 @@ const Orders = () => {
                         onEditOrder={handleEditOrder}
                         onPDFInvoice={handlePDFInvoice}
                         onThermalPrint={handleThermalPrint}
+                        onRequestReturn={handleRequestReturn}
                         canDeleteOrder={canDeleteOrder}
                         onRequestDelete={handleRequestDelete}
                     />
@@ -680,6 +725,23 @@ const Orders = () => {
                 }}
                 title={t('common.delete')}
                 message={t('orders.deleteConfirm')}
+            />
+
+            <ReturnOrderModal
+                isOpen={isReturnModalOpen}
+                order={orderToReturn}
+                reason={returnReason}
+                returnDate={returnDate}
+                isSubmitting={isReturningOrder}
+                onReasonChange={setReturnReason}
+                onDateChange={setReturnDate}
+                onClose={() => {
+                    if (isReturningOrder) return;
+                    setIsReturnModalOpen(false);
+                    setOrderToReturn(null);
+                }}
+                onConfirm={handleConfirmReturn}
+                t={t}
             />
         </Layout>
     );

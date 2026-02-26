@@ -7,6 +7,7 @@ import {
     deleteDoc,
     doc,
     getDoc,
+    runTransaction,
     query,
     orderBy,
     limit,
@@ -15,6 +16,20 @@ import {
     where
 } from 'firebase/firestore';
 import { db } from '../firebase';
+
+const getStockStatus = (stock) => {
+    const value = Number(stock || 0);
+    if (value <= 0) return 'Out of Stock';
+    if (value <= 10) return 'Low Stock';
+    return 'In Stock';
+};
+
+const getOrderItemProductId = (item) => item?.product?._id || item?.productId || '';
+const getOrderItemQty = (item) => {
+    const value = Number(item?.qty ?? item?.quantity ?? 0);
+    if (!Number.isFinite(value) || value <= 0) return 0;
+    return Math.floor(value);
+};
 
 /**
  * Service to handle generic Firestore operations
@@ -210,6 +225,61 @@ export const firebaseService = {
             console.error(`Error setting in ${collectionName}:`, error);
             throw error;
         }
+    },
+
+    returnOrderWithStock: async (orderId, { reason = '', date = '', returnedBy = 'System' } = {}) => {
+        if (!orderId) throw new Error('returnOrderWithStock: orderId is required');
+        const nowIso = new Date().toISOString();
+        const normalizedDate = (() => {
+            if (!date) return nowIso.slice(0, 10);
+            const parsed = new Date(date);
+            if (Number.isNaN(parsed.getTime())) return nowIso.slice(0, 10);
+            return parsed.toISOString().slice(0, 10);
+        })();
+
+        return runTransaction(db, async (transaction) => {
+            const orderRef = doc(db, 'orders', orderId);
+            const orderSnapshot = await transaction.get(orderRef);
+            if (!orderSnapshot.exists()) {
+                throw new Error('Order not found.');
+            }
+
+            const orderData = orderSnapshot.data() || {};
+            if (orderData.returnProcessed || orderData.status === 'Returned') {
+                return { alreadyReturned: true };
+            }
+
+            const items = Array.isArray(orderData.items) ? orderData.items : [];
+            for (const item of items) {
+                const productId = getOrderItemProductId(item);
+                const qty = getOrderItemQty(item);
+                if (!productId || qty <= 0) continue;
+
+                const productRef = doc(db, 'products', productId);
+                const productSnapshot = await transaction.get(productRef);
+                if (!productSnapshot.exists()) continue;
+
+                const currentStock = Number(productSnapshot.data()?.stock || 0);
+                const nextStock = Math.max(0, currentStock + qty);
+                transaction.update(productRef, {
+                    stock: nextStock,
+                    status: getStockStatus(nextStock),
+                    updatedAt: nowIso
+                });
+            }
+
+            transaction.update(orderRef, {
+                status: 'Returned',
+                returnProcessed: true,
+                returnReason: String(reason || '').trim(),
+                returnDate: normalizedDate,
+                returnedAt: nowIso,
+                returnedBy: returnedBy || 'System',
+                updatedAt: nowIso
+            });
+
+            return { alreadyReturned: false };
+        });
     },
 
     /**

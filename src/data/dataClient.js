@@ -27,6 +27,23 @@ function compareValues(a, b, sortOrder = 'asc') {
   return sortOrder === 'asc' ? result : -result;
 }
 
+function getStockStatus(stock) {
+  const value = Number(stock || 0);
+  if (value <= 0) return 'Out of Stock';
+  if (value <= 10) return 'Low Stock';
+  return 'In Stock';
+}
+
+function getOrderItemProductId(item) {
+  return item?.product?._id || item?.productId || '';
+}
+
+function getOrderItemQty(item) {
+  const value = Number(item?.qty ?? item?.quantity ?? 0);
+  if (!Number.isFinite(value) || value <= 0) return 0;
+  return Math.floor(value);
+}
+
 export const dataClient = {
   isDesktop,
 
@@ -74,6 +91,59 @@ export const dataClient = {
   delete: async (collectionName, id) => {
     if (!isDesktop()) return firebaseService.delete(collectionName, id);
     return window.desktopAPI.remove(collectionName, id);
+  },
+
+  returnOrderWithStock: async (orderId, { reason = '', date = '', returnedBy = 'System' } = {}) => {
+    if (!orderId) throw new Error('returnOrderWithStock: orderId is required');
+
+    if (!isDesktop()) {
+      return firebaseService.returnOrderWithStock(orderId, { reason, date, returnedBy });
+    }
+
+    const order = await window.desktopAPI.get('orders', orderId);
+    if (!order) throw new Error('Order not found.');
+    if (order.returnProcessed || order.status === 'Returned') {
+      return { alreadyReturned: true };
+    }
+
+    const nowIso = new Date().toISOString();
+    const normalizedDate = (() => {
+      if (!date) return nowIso.slice(0, 10);
+      const parsed = new Date(date);
+      if (Number.isNaN(parsed.getTime())) return nowIso.slice(0, 10);
+      return parsed.toISOString().slice(0, 10);
+    })();
+
+    const items = Array.isArray(order.items) ? order.items : [];
+    for (const item of items) {
+      const productId = getOrderItemProductId(item);
+      const qty = getOrderItemQty(item);
+      if (!productId || qty <= 0) continue;
+
+      const product = await window.desktopAPI.get('products', productId);
+      if (!product) continue;
+
+      const nextStock = Math.max(0, Number(product.stock || 0) + qty);
+      await window.desktopAPI.upsert('products', {
+        ...product,
+        stock: nextStock,
+        status: getStockStatus(nextStock),
+        updatedAt: nowIso
+      });
+    }
+
+    await window.desktopAPI.upsert('orders', {
+      ...order,
+      status: 'Returned',
+      returnProcessed: true,
+      returnReason: String(reason || '').trim(),
+      returnDate: normalizedDate,
+      returnedAt: nowIso,
+      returnedBy: returnedBy || 'System',
+      updatedAt: nowIso
+    });
+
+    return { alreadyReturned: false };
   },
 
   listPage: async (

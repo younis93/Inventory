@@ -108,7 +108,8 @@ export const useOrders = () => {
         orders: context.orders,
         addOrder: context.addOrder,
         updateOrder: context.updateOrder,
-        deleteOrder: context.deleteOrder
+        deleteOrder: context.deleteOrder,
+        returnOrder: context.returnOrder
     };
 };
 
@@ -561,6 +562,7 @@ export const InventoryProvider = ({ children }) => {
                 addOrder: ordersDomain.addOrder,
                 updateOrder: ordersDomain.updateOrder,
                 deleteOrder: ordersDomain.deleteOrder,
+                returnOrder: ordersDomain.returnOrder,
                 customers: customersDomain.customers,
                 addCustomer: customersDomain.addCustomer,
                 updateCustomer: customersDomain.updateCustomer,
