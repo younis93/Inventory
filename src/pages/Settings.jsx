@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Palette, Settings as SettingsIcon, Sparkles, User, Users } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import Layout from '../components/Layout';
@@ -17,7 +17,6 @@ const Settings = () => {
     const { t } = useTranslation();
     const { currentUser, currentUserResolved } = useSettings();
     const [searchParams, setSearchParams] = useSearchParams();
-    const [activeTab, setActiveTab] = useState('general');
     const tabParam = searchParams.get('tab');
 
     const restrictedTabs = useMemo(() => {
@@ -28,30 +27,34 @@ const Settings = () => {
         return [];
     }, [currentUser?.role, currentUserResolved]);
 
+    const persistedTab = useMemo(() => {
+        try {
+            const saved = localStorage.getItem(SETTINGS_TAB_STORAGE_KEY);
+            if (saved && allTabs.includes(saved)) return saved;
+        } catch (_) { }
+        return 'general';
+    }, []);
+
+    const activeTab = useMemo(() => {
+        if (!currentUserResolved) return 'general';
+        const requestedTab = tabParam || persistedTab;
+        return allTabs.includes(requestedTab) && !restrictedTabs.includes(requestedTab)
+            ? requestedTab
+            : 'general';
+    }, [currentUserResolved, tabParam, persistedTab, restrictedTabs]);
+
     useEffect(() => {
         if (!currentUserResolved) return;
 
-        let persistedTab = 'general';
-        try {
-            const saved = localStorage.getItem(SETTINGS_TAB_STORAGE_KEY);
-            if (saved && allTabs.includes(saved)) persistedTab = saved;
-        } catch (_) { }
-
-        const requestedTab = tabParam || persistedTab;
-        const nextTab = allTabs.includes(requestedTab) && !restrictedTabs.includes(requestedTab)
-            ? requestedTab
-            : 'general';
-
-        if (activeTab !== nextTab) {
-            setActiveTab(nextTab);
+        const shouldNormalizeTabParam = tabParam !== activeTab;
+        if (shouldNormalizeTabParam) {
+            setSearchParams({ tab: activeTab }, { replace: true, preventScrollReset: true });
         }
-        if (tabParam !== nextTab) {
-            setSearchParams({ tab: nextTab }, { replace: true });
-        }
+
         try {
-            localStorage.setItem(SETTINGS_TAB_STORAGE_KEY, nextTab);
+            localStorage.setItem(SETTINGS_TAB_STORAGE_KEY, activeTab);
         } catch (_) { }
-    }, [activeTab, restrictedTabs, tabParam, setSearchParams, currentUserResolved]);
+    }, [activeTab, currentUserResolved, setSearchParams, tabParam]);
 
     const tabs = useMemo(() => ([
         { id: 'general', label: t('settings.general'), icon: SettingsIcon, hidden: false },
@@ -62,8 +65,9 @@ const Settings = () => {
     ]), [restrictedTabs, t]);
 
     const handleTabChange = (tab) => {
-        setActiveTab(tab);
-        setSearchParams({ tab }, { replace: true });
+        if (restrictedTabs.includes(tab)) return;
+        if (tab === activeTab) return;
+        setSearchParams({ tab }, { replace: true, preventScrollReset: true });
         try {
             localStorage.setItem(SETTINGS_TAB_STORAGE_KEY, tab);
         } catch (_) { }

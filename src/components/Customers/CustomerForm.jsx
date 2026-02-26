@@ -8,7 +8,7 @@ const normalizePhone = (value) => String(value || '').replace(/[^\d]/g, '');
 const isValidIraqPhone = (value) => /^07\d{9}$/.test(normalizePhone(value));
 const isValidEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
 
-const CustomerFormModal = ({
+const CustomerForm = ({
     isOpen,
     appearanceTheme,
     t,
@@ -207,4 +207,4 @@ const CustomerFormModal = ({
     );
 };
 
-export default CustomerFormModal;
+export default CustomerForm;

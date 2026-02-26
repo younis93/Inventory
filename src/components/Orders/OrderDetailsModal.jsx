@@ -7,6 +7,7 @@ const OrderDetailsModal = ({
     order,
     formatCurrency,
     onClose,
+    canEdit,
     onEdit,
     onPDFInvoice,
     onThermalPrint
@@ -123,13 +124,15 @@ const OrderDetailsModal = ({
                 </div>
 
                 <div className="px-8 py-6 border-t border-slate-100 dark:border-slate-700 flex justify-end items-center gap-3 bg-white dark:bg-slate-800">
-                    <button
-                        onClick={() => onEdit(order)}
-                        className="px-6 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-200 dark:hover:bg-slate-600 transition-all active:scale-95"
-                    >
-                        <Edit className="w-4 h-4" />
-                        Edit Order
-                    </button>
+                    {canEdit && (
+                        <button
+                            onClick={() => onEdit(order)}
+                            className="px-6 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-200 dark:hover:bg-slate-600 transition-all active:scale-95"
+                        >
+                            <Edit className="w-4 h-4" />
+                            Edit Order
+                        </button>
+                    )}
                     <button
                         onClick={() => onPDFInvoice(order)}
                         className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-bold flex items-center gap-2 hover:bg-indigo-700 shadow-lg shadow-indigo-600/20 transition-all active:scale-95"

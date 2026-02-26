@@ -35,7 +35,7 @@ const sanitizePositiveIntegerInput = (value, max) => {
     return String(parsed);
 };
 
-const OrderFormModal = ({
+const OrderForm = ({
     isOpen,
     t,
     products,
@@ -517,4 +517,4 @@ const OrderFormModal = ({
     );
 };
 
-export default OrderFormModal;
+export default OrderForm;

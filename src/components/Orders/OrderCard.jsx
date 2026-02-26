@@ -4,7 +4,7 @@ import { Download, Edit, Eye, Printer, ShoppingBag, Trash2 } from 'lucide-react'
 import Skeleton from '../common/Skeleton';
 import StatusCell from './StatusCell';
 
-const OrdersListCard = ({
+const OrderCard = ({
     t,
     loading,
     orders,
@@ -12,6 +12,7 @@ const OrdersListCard = ({
     onUpdateStatus,
     onViewOrder,
     onEditOrder,
+    canEditOrder,
     onPDFInvoice,
     onThermalPrint,
     onRequestReturn,
@@ -75,17 +76,39 @@ const OrdersListCard = ({
                                             <button type="button" aria-label="View order details" onClick={() => onViewOrder(order)} className="p-2 text-slate-400 hover:text-[var(--brand-color)] hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded-lg transition-all" title="View Order">
                                                 <Eye className="w-5 h-5" />
                                             </button>
-                                            <button type="button" aria-label="Edit order" onClick={() => onEditOrder(order)} className="p-2 text-slate-400 hover:text-[var(--brand-color)] hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded-lg transition-all" title="Edit Order">
-                                                <Edit className="w-5 h-5" />
-                                            </button>
+                                            {canEditOrder(order) ? (
+                                                <button type="button" aria-label="Edit order" onClick={() => onEditOrder(order)} className="p-2 text-slate-400 hover:text-[var(--brand-color)] hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded-lg transition-all" title="Edit Order">
+                                                    <Edit className="w-5 h-5" />
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    type="button"
+                                                    aria-label="Edit order disabled"
+                                                    disabled
+                                                    className="p-2 text-slate-300 dark:text-slate-600 rounded-lg cursor-not-allowed"
+                                                    title="Edit disabled"
+                                                >
+                                                    <Edit className="w-5 h-5" />
+                                                </button>
+                                            )}
                                             <button type="button" aria-label="Download PDF invoice" onClick={() => onPDFInvoice(order)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all" title="PDF Invoice">
                                                 <Download className="w-5 h-5" />
                                             </button>
                                             <button type="button" aria-label="Print thermal receipt" onClick={() => onThermalPrint(order)} className="p-2 text-slate-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-all" title="Thermal Print">
                                                 <Printer className="w-5 h-5" />
                                             </button>
-                                            {canDeleteOrder(order) && (
+                                            {canDeleteOrder(order) ? (
                                                 <button type="button" aria-label="Delete order" onClick={() => onRequestDelete(order)} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-all" title="Delete Order">
+                                                    <Trash2 className="w-5 h-5" />
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    type="button"
+                                                    aria-label="Delete order disabled"
+                                                    disabled
+                                                    className="p-2 text-slate-300 dark:text-slate-600 rounded-lg cursor-not-allowed"
+                                                    title="Delete disabled"
+                                                >
                                                     <Trash2 className="w-5 h-5" />
                                                 </button>
                                             )}
@@ -101,4 +124,4 @@ const OrdersListCard = ({
     );
 };
 
-export default OrdersListCard;
+export default OrderCard;

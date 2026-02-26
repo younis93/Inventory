@@ -29,7 +29,7 @@ const formatOrderDate = (value) => {
     }
 };
 
-const OrdersTable = ({
+const OrderTable = ({
     t,
     loading,
     orders,
@@ -39,6 +39,7 @@ const OrdersTable = ({
     onUpdateStatus,
     onViewOrder,
     onEditOrder,
+    canEditOrder,
     onPDFInvoice,
     onThermalPrint,
     onRequestReturn,
@@ -140,17 +141,39 @@ const OrdersTable = ({
                                     <button type="button" aria-label="View order details" onClick={() => onViewOrder(order)} className="p-2 text-slate-400 hover:text-[var(--brand-color)] hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg" title="View Details">
                                         <Eye className="w-4 h-4" />
                                     </button>
-                                    <button type="button" aria-label="Edit order" onClick={() => onEditOrder(order)} className="p-2 text-slate-400 hover:text-[var(--brand-color)] hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg" title="Edit Order">
-                                        <Edit className="w-4 h-4" />
-                                    </button>
+                                    {canEditOrder(order) ? (
+                                        <button type="button" aria-label="Edit order" onClick={() => onEditOrder(order)} className="p-2 text-slate-400 hover:text-[var(--brand-color)] hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg" title="Edit Order">
+                                            <Edit className="w-4 h-4" />
+                                        </button>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            aria-label="Edit order disabled"
+                                            disabled
+                                            className="p-2 text-slate-300 dark:text-slate-600 rounded-lg cursor-not-allowed"
+                                            title="Edit disabled"
+                                        >
+                                            <Edit className="w-4 h-4" />
+                                        </button>
+                                    )}
                                     <button type="button" aria-label="Download PDF invoice" onClick={() => onPDFInvoice(order)} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg" title="PDF Invoice">
                                         <Download className="w-4 h-4" />
                                     </button>
                                     <button type="button" aria-label="Print thermal receipt" onClick={() => onThermalPrint(order)} className="p-2 text-slate-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg" title="Thermal Print">
                                         <Printer className="w-4 h-4" />
                                     </button>
-                                    {canDeleteOrder(order) && (
+                                    {canDeleteOrder(order) ? (
                                         <button type="button" aria-label="Delete order" onClick={() => onRequestDelete(order)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg" title="Delete Order">
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            aria-label="Delete order disabled"
+                                            disabled
+                                            className="p-2 text-slate-300 dark:text-slate-600 rounded-lg cursor-not-allowed"
+                                            title="Delete disabled"
+                                        >
                                             <Trash2 className="w-4 h-4" />
                                         </button>
                                     )}
@@ -164,4 +187,4 @@ const OrdersTable = ({
     );
 };
 
-export default OrdersTable;
+export default OrderTable;

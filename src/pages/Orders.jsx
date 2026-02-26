@@ -6,13 +6,13 @@ import { useCustomers, useInventory, useOrders, useProducts } from '../context/I
 import { useTranslation } from 'react-i18next';
 import { GOVERNORATES, SOCIAL_PLATFORMS } from '../constants/iraq';
 import { exportOrdersToCSV } from '../utils/CSVExportUtil';
-import OrderDetailsModal from '../components/orders/OrderDetailsModal';
-import OrderFormModal from '../components/orders/OrderFormModal';
-import OrdersHeader from '../components/orders/OrdersHeader';
-import OrdersListCard from '../components/orders/OrdersListCard';
-import OrdersTable from '../components/orders/OrdersTable';
-import ReturnOrderModal from '../components/orders/ReturnOrderModal';
-import { printReceipt, triggerPDFPrint } from '../components/orders/ReceiptPrinter';
+import OrderDetailsModal from '../components/Orders/OrderDetailsModal';
+import OrderForm from '../components/Orders/OrderForm';
+import OrdersHeader from '../components/Orders/OrdersHeader';
+import OrderCard from '../components/Orders/OrderCard';
+import OrderTable from '../components/Orders/OrderTable';
+import ReturnOrderModal from '../components/Orders/ReturnOrderModal';
+import { printReceipt, triggerPDFPrint } from '../components/Orders/ReceiptPrinter';
 
 const INITIAL_ORDER_STATE = {
     customerId: 'new',
@@ -28,6 +28,7 @@ const INITIAL_ORDER_STATE = {
 };
 
 const STATUS_OPTIONS = ['Processing', 'Completed', 'Cancelled', 'Pending', 'Returned'];
+const SALES_EDIT_WINDOW_DAYS = 3;
 
 const parseOrderDateSafe = (value) => {
     if (!value) return null;
@@ -389,6 +390,16 @@ const Orders = () => {
     };
 
     const handleEditOrder = (order) => {
+        if (!canEditOrder(order)) {
+            addToast(
+                t('orders.editDeleteRestricted', {
+                    defaultValue: 'Sales users can edit or delete only orders from the last 3 days.'
+                }),
+                'error'
+            );
+            return;
+        }
+
         setIsViewModalOpen(false);
         setEditingOrderId(order._id);
 
@@ -432,6 +443,16 @@ const Orders = () => {
         }
 
         const currentOrder = allOrders.find((order) => order._id === editingOrderId);
+        if (editingOrderId && currentOrder && !canEditOrder(currentOrder)) {
+            addToast(
+                t('orders.editDeleteRestricted', {
+                    defaultValue: 'Sales users can edit or delete only orders from the last 3 days.'
+                }),
+                'error'
+            );
+            return;
+        }
+
         for (const item of newOrder.items) {
             const available = getAvailableStock(item.product._id);
 
@@ -507,9 +528,19 @@ const Orders = () => {
 
     const saveOrderLabel = editingOrderId ? t('orders.updateOrder') : t('orders.saveOrder');
 
-    const canDeleteOrder = (order) => (
-        canManageOrderActions || !isBefore(parseISO(order.date), startOfDay(new Date()))
-    );
+    const canEditOrder = (order) => {
+        if (!settingsUserResolved || !order) return false;
+        if (canManageOrderActions) return true;
+        if (currentUser?.role !== 'Sales') return false;
+
+        const orderDate = orderDateMap.get(order._id) || parseOrderDateSafe(order.date);
+        if (!orderDate) return false;
+
+        const salesCutoffDate = startOfDay(subDays(new Date(), SALES_EDIT_WINDOW_DAYS));
+        return !isBefore(orderDate, salesCutoffDate);
+    };
+
+    const canDeleteOrder = (order) => canEditOrder(order);
 
     const notifyPrintResult = (result) => {
         if (!result) return;
@@ -544,6 +575,15 @@ const Orders = () => {
     };
 
     const handleRequestDelete = (order) => {
+        if (!canDeleteOrder(order)) {
+            addToast(
+                t('orders.editDeleteRestricted', {
+                    defaultValue: 'Sales users can edit or delete only orders from the last 3 days.'
+                }),
+                'error'
+            );
+            return;
+        }
         setOrderToDelete(order);
         setIsDeleteModalOpen(true);
     };
@@ -639,7 +679,7 @@ const Orders = () => {
 
             <div className={`bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden transition-all ${['liquid', 'default_glass'].includes(appearance.theme) ? 'glass-panel' : ''}`}>
                 {isMobileView ? (
-                    <OrdersListCard
+                    <OrderCard
                         t={t}
                         loading={loading}
                         orders={filteredAndSortedOrders}
@@ -647,6 +687,7 @@ const Orders = () => {
                         onUpdateStatus={updateOrder}
                         onViewOrder={handleViewOrder}
                         onEditOrder={handleEditOrder}
+                        canEditOrder={canEditOrder}
                         onPDFInvoice={handlePDFInvoice}
                         onThermalPrint={handleThermalPrint}
                         onRequestReturn={handleRequestReturn}
@@ -654,7 +695,7 @@ const Orders = () => {
                         onRequestDelete={handleRequestDelete}
                     />
                 ) : (
-                    <OrdersTable
+                    <OrderTable
                         t={t}
                         loading={loading}
                         orders={filteredAndSortedOrders}
@@ -664,6 +705,7 @@ const Orders = () => {
                         onUpdateStatus={updateOrder}
                         onViewOrder={handleViewOrder}
                         onEditOrder={handleEditOrder}
+                        canEditOrder={canEditOrder}
                         onPDFInvoice={handlePDFInvoice}
                         onThermalPrint={handleThermalPrint}
                         onRequestReturn={handleRequestReturn}
@@ -673,7 +715,7 @@ const Orders = () => {
                 )}
             </div>
 
-            <OrderFormModal
+            <OrderForm
                 isOpen={isCreateModalOpen}
                 t={t}
                 products={products}
@@ -705,6 +747,7 @@ const Orders = () => {
                 order={viewingOrder}
                 formatCurrency={formatCurrency}
                 onClose={() => setIsViewModalOpen(false)}
+                canEdit={canEditOrder(viewingOrder)}
                 onEdit={handleEditOrder}
                 onPDFInvoice={handlePDFInvoice}
                 onThermalPrint={handleThermalPrint}
@@ -718,6 +761,15 @@ const Orders = () => {
                 }}
                 onConfirm={() => {
                     if (orderToDelete) {
+                        if (!canDeleteOrder(orderToDelete)) {
+                            addToast(
+                                t('orders.editDeleteRestricted', {
+                                    defaultValue: 'Sales users can edit or delete only orders from the last 3 days.'
+                                }),
+                                'error'
+                            );
+                            return;
+                        }
                         deleteOrder(orderToDelete._id);
                         setIsDeleteModalOpen(false);
                         setOrderToDelete(null);

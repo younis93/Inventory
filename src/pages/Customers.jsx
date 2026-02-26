@@ -6,12 +6,12 @@ import { useCustomers, useInventory, useOrders } from '../context/InventoryConte
 import { GOVERNORATES, SOCIAL_PLATFORMS } from '../constants/iraq';
 import { useTranslation } from 'react-i18next';
 import { exportCustomersToCSV } from '../utils/CSVExportUtil';
-import CustomerFormModal from '../components/customers/CustomerFormModal';
-import CustomersCardGrid from '../components/customers/CustomersCardGrid';
-import CustomersHeader from '../components/customers/CustomersHeader';
-import CustomersTable from '../components/customers/CustomersTable';
-import OrderHistoryModal from '../components/customers/OrderHistoryModal';
-import { printReceipt } from '../components/orders/ReceiptPrinter';
+import CustomerForm from '../components/Customers/CustomerForm';
+import CustomersCardGrid from '../components/Customers/CustomersCardGrid';
+import CustomersHeader from '../components/Customers/CustomersHeader';
+import CustomersTable from '../components/Customers/CustomersTable';
+import OrderHistoryModal from '../components/Customers/OrderHistoryModal';
+import { printReceipt } from '../components/Orders/ReceiptPrinter';
 
 const INITIAL_FORM_STATE = {
     name: '',
@@ -433,7 +433,7 @@ const Customers = () => {
                 />
             )}
 
-            <CustomerFormModal
+            <CustomerForm
                 isOpen={isModalOpen}
                 appearanceTheme={appearance.theme}
                 t={t}

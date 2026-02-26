@@ -1,8 +1,8 @@
 import React from 'react';
 import { FixedSizeList as List } from 'react-window';
-import { format } from 'date-fns';
-import { Edit, ShoppingBag, User } from 'lucide-react';
+import { User } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import CustomerTableRow from './CustomerTableRow';
 
 const headerColumns = [
     { key: 'name', labelKey: 'customers.name' },
@@ -104,55 +104,17 @@ const CustomersTable = ({
                 >
                     {({ index, style }) => {
                         const customer = customersData[index];
-                        const customerStats = getCustomerStats(customer._id);
-                        const customerOrders = customerStats.orders;
-                        const totalSpent = customerStats.totalSpent;
-                        const createdDate = getValidDate(customer);
-
                         return (
-                            <div style={style} className={`${gridClass} gap-3 px-4 py-3 border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50/50 dark:hover:bg-slate-700/50 transition-colors`}>
-                                <div className="min-w-0">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-[var(--brand-color)] font-bold border border-slate-100 dark:border-slate-800 shadow-sm">
-                                            {customer.name.charAt(0)}
-                                        </div>
-                                        <div className="min-w-0">
-                                            <h4 className="text-sm font-bold text-slate-800 dark:text-white truncate">{customer.name}</h4>
-                                            <p className="text-xs text-slate-400 truncate">{customer.phone}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="min-w-0">
-                                    <div className="text-sm font-bold text-slate-700 dark:text-slate-300 truncate">{customer.governorate}</div>
-                                    <div className="text-[11px] text-slate-400 truncate">{customer.address}</div>
-                                </div>
-                                <div className="text-sm font-black text-slate-800 dark:text-white truncate">{formatCurrency(totalSpent)}</div>
-                                <div className="text-xs font-bold text-slate-500 truncate">
-                                    {createdDate ? format(createdDate, 'yyyy MMM dd') : t('orders.receipt.na')}
-                                </div>
-                                <div className="text-xs font-medium text-slate-500 truncate">{customer.createdBy || 'System'}</div>
-                                <div className="flex items-center justify-end gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={() => onOpenHistory(customer)}
-                                        aria-label="Open customer order history"
-                                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-black text-slate-500 hover:text-[var(--brand-color)] hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all"
-                                        title="Order History"
-                                    >
-                                        <ShoppingBag className="w-4 h-4" />
-                                        {customerOrders.length}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => onOpenEdit(customer)}
-                                        aria-label="Edit customer"
-                                        className="p-2 text-slate-400 hover:text-[var(--brand-color)] hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all"
-                                        title="Edit"
-                                    >
-                                        <Edit className="w-4 h-4" />
-                                    </button>
-                                </div>
-                            </div>
+                            <CustomerTableRow
+                                customer={customer}
+                                style={style}
+                                t={t}
+                                formatCurrency={formatCurrency}
+                                getCustomerStats={getCustomerStats}
+                                getValidDate={getValidDate}
+                                onOpenHistory={onOpenHistory}
+                                onOpenEdit={onOpenEdit}
+                            />
                         );
                     }}
                 </List>
