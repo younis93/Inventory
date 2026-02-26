@@ -12,17 +12,19 @@ const CustomerTableRow = ({
     onOpenHistory,
     onOpenEdit
 }) => {
-    const customerStats = getCustomerStats(customer._id);
+    const customerId = customer?._id || customer?.id;
+    const customerStats = getCustomerStats(customerId);
     const customerOrders = customerStats.orders;
     const totalSpent = customerStats.totalSpent;
     const createdDate = getValidDate(customer);
+    const customerInitial = String(customer?.name || '?').charAt(0) || '?';
 
     return (
         <div style={style} className="grid grid-cols-[1.7fr_1.6fr_1fr_1fr_1fr_1.1fr] gap-3 px-4 py-3 border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50/50 dark:hover:bg-slate-700/50 transition-colors">
             <div className="min-w-0">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-[var(--brand-color)] font-bold border border-slate-100 dark:border-slate-800 shadow-sm">
-                        {customer.name.charAt(0)}
+                        {customerInitial}
                     </div>
                     <div className="min-w-0">
                         <h4 className="text-sm font-bold text-slate-800 dark:text-white truncate">{customer.name}</h4>

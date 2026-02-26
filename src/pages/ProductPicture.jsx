@@ -130,6 +130,7 @@ const ProductPicture = () => {
                                             alt={product.name}
                                             className="w-full h-full"
                                             imageClassName="transition-transform duration-700 group-hover:scale-110"
+                                            lazy={true}
                                         />
                                         {product.stock <= 0 ? (
                                             <div className="absolute top-3 start-3 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow-lg z-10">

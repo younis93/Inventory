@@ -83,7 +83,7 @@ const CustomersCardGrid = ({
                         <div style={style} className="box-border pe-1 pb-6">
                             <div className={`grid ${gridClass} gap-6 h-full`}>
                                 {rowCustomers.map((customer) => (
-                                    <div key={customer._id} className="h-full">
+                                    <div key={customer._id || customer.id || customer.phone || customer.name} className="h-full">
                                         <CustomerCardView
                                             customer={customer}
                                             appearanceTheme={appearanceTheme}

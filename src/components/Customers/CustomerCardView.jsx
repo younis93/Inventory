@@ -10,16 +10,18 @@ const CustomerCardView = ({
     onOpenEdit,
     getSocialIcon
 }) => {
-    const customerStats = getCustomerStats(customer._id);
+    const customerId = customer?._id || customer?.id;
+    const customerStats = getCustomerStats(customerId);
     const customerOrders = customerStats.orders;
     const totalSpent = customerStats.totalSpent;
+    const customerInitial = String(customer?.name || '?').charAt(0) || '?';
 
     return (
         <div className={`bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 hover:shadow-xl transition-all duration-300 group overflow-hidden flex flex-col h-full ${['liquid', 'default_glass'].includes(appearanceTheme) ? 'glass-panel' : ''}`}>
             <div className="p-6 flex-1">
                 <div className="flex justify-between items-start mb-6">
                     <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-[var(--brand-color)] font-black text-xl border border-slate-100 dark:border-slate-800 group-hover:bg-indigo-50 dark:group-hover:bg-indigo-900 transition-colors relative">
-                        {customer.name.charAt(0)}
+                        {customerInitial}
                         <div className="absolute -bottom-1 -right-1 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-[8px] font-black px-1 rounded shadow-sm text-slate-400 truncate max-w-[50px]">
                             {customer.createdBy || 'System'}
                         </div>

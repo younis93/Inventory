@@ -24,6 +24,7 @@ const INITIAL_FORM_STATE = {
 };
 
 const buildCustomerContactKey = (name, phone) => `${String(name || '').trim().toLowerCase()}::${String(phone || '').trim()}`;
+const getCustomerId = (customer) => customer?._id || customer?.id || '';
 
 const Customers = () => {
     const { t } = useTranslation();
@@ -121,23 +122,30 @@ const Customers = () => {
             .sort((a, b) => b.count - a.count);
     }, [customers]);
 
-    const customerIdSet = useMemo(() => new Set(customers.map((customer) => customer._id)), [customers]);
+    const customerIdSet = useMemo(
+        () => new Set(customers.map((customer) => getCustomerId(customer)).filter(Boolean)),
+        [customers]
+    );
 
     const customerIdByContactKey = useMemo(() => {
         const map = new Map();
         customers.forEach((customer) => {
+            const customerId = getCustomerId(customer);
             const key = buildCustomerContactKey(customer.name, customer.phone);
-            if (key !== '::' && !map.has(key)) map.set(key, customer._id);
+            if (key !== '::' && customerId && !map.has(key)) map.set(key, customerId);
         });
         return map;
     }, [customers]);
 
     const customerOrdersMap = useMemo(() => {
         const map = new Map();
-        customers.forEach((customer) => map.set(customer._id, []));
+        customers.forEach((customer) => {
+            const customerId = getCustomerId(customer);
+            if (customerId) map.set(customerId, []);
+        });
 
         allOrders.forEach((order) => {
-            const directId = order.customer?._id;
+            const directId = order.customer?._id || order.customer?.id;
             if (directId && customerIdSet.has(directId)) {
                 map.get(directId)?.push(order);
                 return;
@@ -145,7 +153,7 @@ const Customers = () => {
 
             const fallbackKey = buildCustomerContactKey(order.customer?.name, order.customer?.phone);
             const fallbackCustomerId = customerIdByContactKey.get(fallbackKey);
-            if (fallbackCustomerId) {
+            if (fallbackCustomerId && map.has(fallbackCustomerId)) {
                 map.get(fallbackCustomerId)?.push(order);
             }
         });
@@ -170,19 +178,23 @@ const Customers = () => {
     }, [customerOrdersMap]);
 
     const getCustomerOrders = useCallback((customerId) => {
+        if (!customerId) return [];
         return customerOrderStatsMap.get(customerId)?.orders || [];
     }, [customerOrderStatsMap]);
 
     const getCustomerStats = useCallback((customerId) => {
+        if (!customerId) return { orders: [], orderCount: 0, totalSpent: 0 };
         return customerOrderStatsMap.get(customerId) || { orders: [], orderCount: 0, totalSpent: 0 };
     }, [customerOrderStatsMap]);
 
     const customerDateMap = useMemo(() => {
         const map = new Map();
         customers.forEach((customer) => {
+            const customerId = getCustomerId(customer);
+            if (!customerId) return;
             const dateString = customer.createdOn || customer.createdAt;
             if (!dateString) {
-                map.set(customer._id, null);
+                map.set(customerId, null);
                 return;
             }
             try {
@@ -191,23 +203,25 @@ const Customers = () => {
                     : dateString.toDate
                         ? dateString.toDate()
                         : new Date(dateString);
-                map.set(customer._id, Number.isNaN(parsed?.getTime?.()) ? null : parsed);
+                map.set(customerId, Number.isNaN(parsed?.getTime?.()) ? null : parsed);
             } catch {
-                map.set(customer._id, null);
+                map.set(customerId, null);
             }
         });
         return map;
     }, [customers]);
 
-    const getValidDate = useCallback((customer) => customerDateMap.get(customer._id) || null, [customerDateMap]);
+    const getValidDate = useCallback((customer) => customerDateMap.get(getCustomerId(customer)) || null, [customerDateMap]);
 
     const allFilteredAndSortedCustomers = useMemo(() => {
         const filtered = customers.filter((customer) => {
+            const customerName = String(customer.name || '').toLowerCase();
+            const customerPhone = String(customer.phone || '');
             const matchesSearch =
-                customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                customer.phone.includes(searchTerm);
+                customerName.includes(searchTerm.toLowerCase()) ||
+                customerPhone.includes(searchTerm);
 
-            const createdDate = customerDateMap.get(customer._id);
+            const createdDate = customerDateMap.get(getCustomerId(customer));
             let matchesDate = true;
             if (dateRange?.from && dateRange?.to && createdDate) {
                 const start = startOfDay(dateRange.from);
@@ -230,13 +244,13 @@ const Customers = () => {
                 return columnSort.direction === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
             }
             if (columnSort.column === 'orders') {
-                const valA = customerOrderStatsMap.get(a._id)?.orderCount || 0;
-                const valB = customerOrderStatsMap.get(b._id)?.orderCount || 0;
+                const valA = customerOrderStatsMap.get(getCustomerId(a))?.orderCount || 0;
+                const valB = customerOrderStatsMap.get(getCustomerId(b))?.orderCount || 0;
                 return columnSort.direction === 'asc' ? valA - valB : valB - valA;
             }
             if (columnSort.column === 'spent') {
-                const valA = customerOrderStatsMap.get(a._id)?.totalSpent || 0;
-                const valB = customerOrderStatsMap.get(b._id)?.totalSpent || 0;
+                const valA = customerOrderStatsMap.get(getCustomerId(a))?.totalSpent || 0;
+                const valB = customerOrderStatsMap.get(getCustomerId(b))?.totalSpent || 0;
                 return columnSort.direction === 'asc' ? valA - valB : valB - valA;
             }
             if (columnSort.column === 'governorate') {
@@ -303,7 +317,9 @@ const Customers = () => {
     };
 
     const handleOpenHistory = (customer) => {
-        setSelectedCustomer(customer);
+        const customerId = getCustomerId(customer);
+        const latestCustomer = customers.find((entry) => getCustomerId(entry) === customerId);
+        setSelectedCustomer(latestCustomer || customer);
         setIsOrderHistoryOpen(true);
         setExpandedOrderId(null);
     };
@@ -311,7 +327,7 @@ const Customers = () => {
     const handleSubmit = (event) => {
         event.preventDefault();
         if (editingCustomer) {
-            updateCustomer({ ...formData, _id: editingCustomer._id });
+            updateCustomer({ ...formData, _id: getCustomerId(editingCustomer) });
         } else {
             addCustomer(formData);
         }

@@ -16,16 +16,20 @@ const OrderHistoryModal = ({
 }) => {
     const dialogRef = useRef(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const hasModalContent = isOpen && Boolean(selectedCustomer);
+    const selectedCustomerId = selectedCustomer?._id || selectedCustomer?.id || '';
 
     useModalA11y({
-        isOpen: isOpen && Boolean(selectedCustomer),
+        isOpen: hasModalContent,
         onClose,
         containerRef: dialogRef
     });
 
-    if (!isOpen || !selectedCustomer) return null;
+    const customerOrders = useMemo(() => {
+        if (!hasModalContent || !selectedCustomerId) return [];
+        return getCustomerOrders(selectedCustomerId);
+    }, [hasModalContent, getCustomerOrders, selectedCustomerId]);
 
-    const customerOrders = getCustomerOrders(selectedCustomer._id);
     const normalizedSearchTerm = searchTerm.trim().toLowerCase();
     const filteredOrders = useMemo(() => {
         if (!normalizedSearchTerm) return customerOrders;
@@ -39,18 +43,20 @@ const OrderHistoryModal = ({
     }, [customerOrders, normalizedSearchTerm]);
 
     useEffect(() => {
-        if (isOpen) {
+        if (hasModalContent) {
             setSearchTerm('');
         }
-    }, [isOpen, selectedCustomer?._id]);
+    }, [hasModalContent, selectedCustomerId]);
 
     useEffect(() => {
         if (!expandedOrderId) return;
-        const existsInFilteredList = filteredOrders.some((order) => order._id === expandedOrderId);
+        const existsInFilteredList = filteredOrders.some((order) => (order._id || order.id) === expandedOrderId);
         if (!existsInFilteredList) {
             setExpandedOrderId(null);
         }
     }, [expandedOrderId, filteredOrders, setExpandedOrderId]);
+
+    if (!hasModalContent) return null;
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/90 backdrop-blur-md p-4">
@@ -111,18 +117,20 @@ const OrderHistoryModal = ({
                         </div>
                     ) : (
                         <div className="space-y-4">
-                            {filteredOrders.map((order) => (
-                                <div key={order._id} className="bg-white dark:bg-slate-800 rounded-2xl sm:rounded-[28px] border-2 border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden transition-all hover:shadow-xl hover:border-accent group">
+                            {filteredOrders.map((order) => {
+                                const orderId = order._id || order.id;
+                                return (
+                                <div key={orderId} className="bg-white dark:bg-slate-800 rounded-2xl sm:rounded-[28px] border-2 border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden transition-all hover:shadow-xl hover:border-accent group">
                                     <div
                                         className="p-4 sm:p-6 flex items-center justify-between cursor-pointer"
-                                        onClick={() => setExpandedOrderId(expandedOrderId === order._id ? null : order._id)}
+                                        onClick={() => setExpandedOrderId(expandedOrderId === orderId ? null : orderId)}
                                         role="button"
                                         tabIndex={0}
                                         aria-label={`Toggle details for ${order.orderId}`}
                                         onKeyDown={(event) => {
                                             if (event.key === 'Enter' || event.key === ' ') {
                                                 event.preventDefault();
-                                                setExpandedOrderId(expandedOrderId === order._id ? null : order._id);
+                                                setExpandedOrderId(expandedOrderId === orderId ? null : orderId);
                                             }
                                         }}
                                     >
@@ -149,8 +157,8 @@ const OrderHistoryModal = ({
                                                 </div>
                                             </div>
                                             <div
-                                                className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-transform ${expandedOrderId === order._id ? 'rotate-180' : 'bg-slate-50 dark:bg-slate-900 text-slate-300'}`}
-                                                style={expandedOrderId === order._id ? {
+                                                className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-transform ${expandedOrderId === orderId ? 'rotate-180' : 'bg-slate-50 dark:bg-slate-900 text-slate-300'}`}
+                                                style={expandedOrderId === orderId ? {
                                                     backgroundColor: 'color-mix(in srgb, var(--accent-color), transparent 90%)',
                                                     color: 'var(--accent-color)'
                                                 } : {}}
@@ -160,7 +168,7 @@ const OrderHistoryModal = ({
                                         </div>
                                     </div>
 
-                                    {expandedOrderId === order._id && (
+                                    {expandedOrderId === orderId && (
                                         <div className="px-8 pb-8 pt-0 border-t border-slate-50 dark:border-slate-800 animate-in slide-in-from-top-4 duration-300">
                                             <div className="grid grid-cols-1 gap-3 mt-6">
                                                 {order.items.map((item, idx) => (
@@ -203,7 +211,8 @@ const OrderHistoryModal = ({
                                         </div>
                                     )}
                                 </div>
-                            ))}
+                            );
+                            })}
                         </div>
                     )}
                 </div>
