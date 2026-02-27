@@ -1,13 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Plus, Upload, Download, Save, ZoomIn, ChevronLeft, ChevronRight, Image as ImageIcon, Trash2, Tag, Copy } from 'lucide-react';
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
 import { useInventory } from '../context/InventoryContext';
 import { useTranslation } from 'react-i18next';
 import DeleteConfirmModal from './common/DeleteConfirmModal';
 import ImageWithFallback from './common/ImageWithFallback';
 import { useModalA11y } from '../hooks/useModalA11y';
-import { getSafeRichText, richTextToPlainText, sanitizeRichTextHtml } from '../utils/richTextSanitizer';
 
 const ImageSlider = ({ images, currentIndex, onChange, onDelete, onDownload }) => {
     const { t } = useTranslation();
@@ -128,9 +125,7 @@ const ProductImageModal = ({ product, onClose, onSave, onUpload }) => {
     const isRTL = language === 'ar';
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [editedTitle, setEditedTitle] = useState(product.name || '');
-    const [editedDescriptionHtml, setEditedDescriptionHtml] = useState(
-        getSafeRichText(product.descriptionHtml, product.description || '')
-    );
+    const [editedDescription, setEditedDescription] = useState(product.description || '');
     const [images, setImages] = useState(product.images || []);
     const [isSaving, setIsSaving] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -148,34 +143,20 @@ const ProductImageModal = ({ product, onClose, onSave, onUpload }) => {
         // Sync state if product changes (e.g. switching between products)
         // We use product._id to avoid re-syncing when local edits update the parent list
         setEditedTitle(product.name || '');
-        setEditedDescriptionHtml(getSafeRichText(product.descriptionHtml, product.description || ''));
+        setEditedDescription(product.description || '');
         setImages(product.images || []);
         setCurrentImageIndex(0);
     }, [product._id]);
-
-    const quillModules = {
-        toolbar: [
-            ['bold', 'italic', 'underline', 'strike'],
-            [{ list: 'ordered' }, { list: 'bullet' }],
-            ['blockquote'],
-            ['link'],
-            ['clean']
-        ]
-    };
-
-    const quillFormats = ['bold', 'italic', 'underline', 'strike', 'list', 'bullet', 'blockquote', 'link'];
 
     const handleSave = async () => {
         if (!editedTitle.trim()) return;
 
         setIsSaving(true);
         try {
-            const sanitizedDescriptionHtml = sanitizeRichTextHtml(editedDescriptionHtml);
             await onSave({
                 ...product,
                 name: editedTitle,
-                description: richTextToPlainText(sanitizedDescriptionHtml),
-                descriptionHtml: sanitizedDescriptionHtml,
+                description: editedDescription,
                 images: images
             });
         } catch (error) {
@@ -295,7 +276,7 @@ const ProductImageModal = ({ product, onClose, onSave, onUpload }) => {
     };
 
     const handleCopyDescription = async () => {
-        const value = richTextToPlainText(editedDescriptionHtml);
+        const value = String(editedDescription || '').trim();
         if (!value) {
             addToast(t('productPicture.modal.descriptionEmpty'), 'info');
             return;
@@ -401,16 +382,12 @@ const ProductImageModal = ({ product, onClose, onSave, onUpload }) => {
                                         <span>{t('productPicture.modal.copyDescription')}</span>
                                     </button>
                                 </div>
-                                <div className="rich-text-editor" dir={isRTL ? 'rtl' : 'ltr'}>
-                                    <ReactQuill
-                                        value={editedDescriptionHtml}
-                                        onChange={setEditedDescriptionHtml}
-                                        modules={quillModules}
-                                        formats={quillFormats}
-                                        placeholder={t('productPicture.modal.enterDescription')}
-                                        aria-label={t('productPicture.modal.description')}
-                                    />
-                                </div>
+                                <textarea
+                                    value={editedDescription}
+                                    onChange={(e) => setEditedDescription(e.target.value)}
+                                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 focus:ring-2 focus:ring-accent outline-none transition-all resize-none h-32"
+                                    placeholder={t('productPicture.modal.enterDescription')}
+                                />
                             </div>
 
                             <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800 flex items-center justify-between">
