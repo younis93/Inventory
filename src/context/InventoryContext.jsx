@@ -255,19 +255,20 @@ export const InventoryProvider = ({ children }) => {
         currentUser: settingsDomain.currentUser
     });
 
+    const customersDomain = useCustomersDomain({
+        enabled: enabledDomains.customers,
+        addToast,
+        currentUser: settingsDomain.currentUser
+    });
+
     const ordersDomain = useOrdersDomain({
         enabled: enabledDomains.orders,
         addToast,
         currentUser: settingsDomain.currentUser,
         products: productsDomain.products,
+        customers: customersDomain.customers,
         updateProductStock: productsDomain.updateProductStock,
         getStockStatus: productsDomain.getStockStatus
-    });
-
-    const customersDomain = useCustomersDomain({
-        enabled: enabledDomains.customers,
-        addToast,
-        currentUser: settingsDomain.currentUser
     });
 
     const expensesDomain = useExpensesDomain({

@@ -145,7 +145,7 @@ const Customers = () => {
         });
 
         allOrders.forEach((order) => {
-            const directId = order.customer?._id || order.customer?.id;
+            const directId = order.customerId || order.customer?._id || order.customer?.id;
             if (directId && customerIdSet.has(directId)) {
                 map.get(directId)?.push(order);
                 return;
