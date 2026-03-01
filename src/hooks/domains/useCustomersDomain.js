@@ -43,10 +43,16 @@ export const useCustomersDomain = ({ enabled, addToast, currentUser }) => {
         await dataClient.update('customers', _id, data);
     };
 
+    const deleteCustomer = async (id) => {
+        await dataClient.delete('customers', id);
+        addToast?.('Customer deleted successfully', 'info');
+    };
+
     return useMemo(() => ({
         customers,
         loading,
         addCustomer,
-        updateCustomer
+        updateCustomer,
+        deleteCustomer
     }), [customers, loading, currentUser]);
 };

@@ -1,18 +1,20 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { endOfDay, format, isWithinInterval, parseISO, startOfDay, subDays } from 'date-fns';
 import { FixedSizeList as List } from 'react-window';
-import { CalendarClock, Download, Edit, Package, Plus, Search, ShoppingBag, Trash2, User, X } from 'lucide-react';
+import { CalendarClock, CalendarDays, ChevronDown, Download, Edit, Package, Plus, Search, ShoppingBag, Trash2, User, X } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import DateRangePicker from '../components/DateRangePicker';
 import FilterDropdown from '../components/FilterDropdown';
 import RowLimitDropdown from '../components/RowLimitDropdown';
+import SearchableSelect from '../components/SearchableSelect';
 import PurchaseFormModal from '../components/purchases/PurchaseFormModal';
 import DeleteConfirmModal from '../components/common/DeleteConfirmModal';
 import { useInventory, useProducts, usePurchases } from '../context/InventoryContext';
 import { getLastStatusEntry, getPurchaseDisplayId, getPurchaseTotalCostIQD, normalizePurchaseStatus } from '../hooks/domains/purchaseUtils';
 import { exportPurchasesToCSV } from '../utils/CSVExportUtil';
 import { useTranslation } from 'react-i18next';
+import { DayPicker } from 'react-day-picker';
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
@@ -33,6 +35,11 @@ const formatDateSafe = (value) => {
     const parsed = parseDateSafe(value);
     if (!parsed) return '-';
     return format(parsed, 'yyyy MMM dd');
+};
+
+const toIsoDateSafe = (value, fallback = '') => {
+    const parsed = parseDateSafe(value);
+    return parsed ? format(parsed, 'yyyy-MM-dd') : fallback;
 };
 
 const PurchaseStatusBadge = ({ status, t }) => {
@@ -89,6 +96,7 @@ const Purchases = () => {
     const [statusForm, setStatusForm] = useState({ status: '', date: todayIso(), note: '' });
     const [statusSubmitting, setStatusSubmitting] = useState(false);
     const [statusError, setStatusError] = useState('');
+    const [isStatusDateOpen, setIsStatusDateOpen] = useState(false);
     const [isMobileView, setIsMobileView] = useState(() => (typeof window !== 'undefined' ? window.innerWidth < 640 : false));
     const purchases = allPurchases;
     useEffect(() => {
@@ -109,6 +117,16 @@ const Purchases = () => {
         window.addEventListener('resize', onResize);
         return () => window.removeEventListener('resize', onResize);
     }, []);
+
+    useEffect(() => {
+        if (!isStatusDateOpen) return undefined;
+        const handleOutsideClick = (event) => {
+            if (event.target.closest('[data-status-date-picker]')) return;
+            setIsStatusDateOpen(false);
+        };
+        document.addEventListener('mousedown', handleOutsideClick);
+        return () => document.removeEventListener('mousedown', handleOutsideClick);
+    }, [isStatusDateOpen]);
 
     const productOptions = useMemo(() => {
         const counts = {};
@@ -238,37 +256,36 @@ const Purchases = () => {
 
     const openStatusEditor = (purchase) => {
         const normalizedStatus = normalizePurchaseStatus(purchase?.status || purchaseStatuses[0]);
-        const latestDate = getLastStatusEntry(purchase)?.date || todayIso();
+        const rawLatestDate = getLastStatusEntry(purchase)?.date;
+        const latestDate = toIsoDateSafe(rawLatestDate, todayIso());
+        const safeLatestDate = latestDate > todayIso() ? todayIso() : latestDate;
         setStatusEditorPurchase(purchase);
         setStatusForm({
             status: normalizedStatus,
-            date: latestDate > todayIso() ? todayIso() : latestDate,
+            date: safeLatestDate,
             note: ''
         });
         setStatusError('');
+        setIsStatusDateOpen(false);
     };
 
     const closeStatusEditor = () => {
         if (statusSubmitting) return;
         setStatusEditorPurchase(null);
         setStatusError('');
+        setIsStatusDateOpen(false);
         setStatusForm({ status: '', date: todayIso(), note: '' });
     };
 
     const submitStatusUpdate = async () => {
         if (!statusEditorPurchase?._id || statusSubmitting) return;
 
-        const latestDate = getLastStatusEntry(statusEditorPurchase)?.date || '';
         if (!statusForm.date) {
             setStatusError(t('purchases.statusValidation.dateRequired'));
             return;
         }
         if (statusForm.date > todayIso()) {
             setStatusError(t('purchases.statusValidation.noFuture'));
-            return;
-        }
-        if (latestDate && statusForm.date < latestDate) {
-            setStatusError(t('purchases.statusValidation.chronological'));
             return;
         }
 
@@ -590,26 +607,91 @@ const Purchases = () => {
                             <div className="grid gap-4 sm:grid-cols-2">
                                 <div>
                                     <label className="mb-1 block text-xs font-semibold uppercase text-slate-500">{t('purchases.filters.status')}</label>
-                                    <select
-                                        value={statusForm.status}
-                                        onChange={(event) => setStatusForm((prev) => ({ ...prev, status: event.target.value }))}
-                                        className="h-[44px] w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-semibold outline-none focus:border-accent/40 focus:ring-2 focus:ring-accent/20"
-                                    >
-                                        {purchaseStatuses.map((status) => (
-                                            <option key={status} value={status}>{t(`purchases.statuses.${status}`)}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="mb-1 block text-xs font-semibold uppercase text-slate-500">{t('purchases.form.statusDate')}</label>
-                                    <input
-                                        type="date"
-                                        value={statusForm.date}
-                                        min={getLastStatusEntry(statusEditorPurchase)?.date || undefined}
-                                        max={todayIso()}
-                                        onChange={(event) => setStatusForm((prev) => ({ ...prev, date: event.target.value }))}
-                                        className="h-[44px] w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-semibold outline-none focus:border-accent/40 focus:ring-2 focus:ring-accent/20"
+                                    <SearchableSelect
+                                        title={t('purchases.filters.status')}
+                                        options={purchaseStatuses.map((status) => ({
+                                            value: status,
+                                            label: t(`purchases.statuses.${status}`)
+                                        }))}
+                                        selectedValue={statusForm.status}
+                                        onChange={(value) => setStatusForm((prev) => ({ ...prev, status: value }))}
+                                        icon={ShoppingBag}
+                                        showSearch={false}
                                     />
+                                </div>
+                                <div data-status-date-picker>
+                                    <label className="mb-1 block text-xs font-semibold uppercase text-slate-500">{t('purchases.form.statusDate')}</label>
+                                    <div className="relative">
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsStatusDateOpen((prev) => !prev)}
+                                            aria-label={t('purchases.form.statusDate')}
+                                            className="flex h-[44px] w-full items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-semibold outline-none transition focus:border-accent/40 focus:ring-2 focus:ring-accent/20"
+                                        >
+                                            {(() => {
+                                                const selectedDate = parseDateSafe(statusForm.date);
+                                                return (
+                                            <span className="inline-flex items-center gap-2 truncate">
+                                                <CalendarDays className="h-4 w-4 text-slate-400" />
+                                                {selectedDate
+                                                    ? format(selectedDate, 'MM/dd/yyyy')
+                                                    : t('purchases.form.statusDate')}
+                                            </span>
+                                                );
+                                            })()}
+                                            <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${isStatusDateOpen ? 'rotate-180' : ''}`} />
+                                        </button>
+                                        {isStatusDateOpen && (
+                                            <div className="absolute start-0 top-full z-50 mt-2 w-[min(340px,calc(100vw-2.5rem))] rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl dark:border-slate-700 dark:bg-slate-900">
+                                                <DayPicker
+                                                    mode="single"
+                                                    selected={statusForm.date ? parseDateSafe(statusForm.date) : undefined}
+                                                    disabled={{
+                                                        after: parseISO(todayIso())
+                                                    }}
+                                                    onSelect={(day) => {
+                                                        if (!day) return;
+                                                        setStatusForm((prev) => ({ ...prev, date: format(day, 'yyyy-MM-dd') }));
+                                                        setIsStatusDateOpen(false);
+                                                    }}
+                                                    showOutsideDays
+                                                    classNames={{
+                                                        months: 'flex',
+                                                        month: 'w-full',
+                                                        month_caption: 'mb-3 h-10 pe-20 flex items-center',
+                                                        caption: 'm-0 flex items-center',
+                                                        caption_label: 'm-0 leading-none text-xl font-extrabold text-slate-800 dark:text-white',
+                                                        nav: 'absolute right-4 top-4 h-10 z-10 flex items-center gap-1',
+                                                        nav_button: 'h-8 w-8 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center',
+                                                        button_previous: '!static',
+                                                        button_next: '!static',
+                                                        month_grid: 'w-full',
+                                                        weekdays: 'grid grid-cols-7 mb-1',
+                                                        weekday: 'h-10 text-[13px] font-bold text-slate-400 text-center flex items-center justify-center',
+                                                        week: 'grid grid-cols-7',
+                                                        day: 'h-10 w-10 flex items-center justify-center',
+                                                        day_button: 'h-9 w-9 flex items-center justify-center rounded-lg text-[16px] font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors',
+                                                        day_selected: 'bg-accent text-white font-black shadow-md',
+                                                        day_today: 'ring-2 ring-accent/50 font-black',
+                                                        outside: '!text-slate-300 dark:!text-slate-600',
+                                                        day_outside: '!text-slate-300 dark:!text-slate-600'
+                                                    }}
+                                                />
+                                                <div className="flex items-center justify-end border-t border-slate-100 pt-2 dark:border-slate-700">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setStatusForm((prev) => ({ ...prev, date: todayIso() }));
+                                                            setIsStatusDateOpen(false);
+                                                        }}
+                                                        className="text-sm font-semibold text-accent"
+                                                    >
+                                                        {t('common.today', { defaultValue: 'Today' })}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                             <div>

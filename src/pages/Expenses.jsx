@@ -1,8 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { format, isWithinInterval, parseISO, subDays } from 'date-fns';
 import {
-    CalendarDays,
-    ChevronDown,
     Download,
     ExternalLink,
     FileText,
@@ -17,6 +15,7 @@ import {
 import { getDownloadURL, ref, uploadBytesResumable } from 'firebase/storage';
 import Layout from '../components/Layout';
 import DeleteConfirmModal from '../components/common/DeleteConfirmModal';
+import AppDatePicker from '../components/common/AppDatePicker';
 import DateRangePicker from '../components/DateRangePicker';
 import FilterDropdown from '../components/FilterDropdown';
 import RowLimitDropdown from '../components/RowLimitDropdown';
@@ -27,7 +26,6 @@ import { useAuth } from '../context/AuthContext';
 import { useExpenses, useInventory } from '../context/InventoryContext';
 import { useTranslation } from 'react-i18next';
 import { exportExpensesToCSV } from '../utils/CSVExportUtil';
-import { DayPicker } from 'react-day-picker';
 import { useModalA11y } from '../hooks/useModalA11y';
 
 const defaultForm = {
@@ -41,6 +39,7 @@ const defaultForm = {
     notes: '',
     attachments: []
 };
+const SOCIAL_PLATFORM_TYPES = new Set(['Social Media Ads', 'Social Media Post']);
 
 const parseDateSafe = (value) => {
     if (!value) return null;
@@ -187,7 +186,6 @@ const Expenses = () => {
     const [isTypeManagerOpen, setIsTypeManagerOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [expenseToDelete, setExpenseToDelete] = useState(null);
-    const [isDateOpen, setIsDateOpen] = useState(false);
     const [editingExpenseId, setEditingExpenseId] = useState(null);
     const [form, setForm] = useState(defaultForm);
     const [newFiles, setNewFiles] = useState([]);
@@ -196,7 +194,6 @@ const Expenses = () => {
     const [dragActive, setDragActive] = useState(false);
     const [saving, setSaving] = useState(false);
     const [showValidationErrors, setShowValidationErrors] = useState(false);
-    const datePickerRef = useRef(null);
     const expenseDialogRef = useRef(null);
     const expenses = allExpenses;
     const minDate = useMemo(() => {
@@ -218,7 +215,6 @@ const Expenses = () => {
     useModalA11y({
         isOpen: isModalOpen,
         onClose: () => {
-            setIsDateOpen(false);
             setIsModalOpen(false);
         },
         containerRef: expenseDialogRef
@@ -242,17 +238,6 @@ const Expenses = () => {
         window.addEventListener('resize', onResize);
         return () => window.removeEventListener('resize', onResize);
     }, []);
-
-    useEffect(() => {
-        if (!isDateOpen) return;
-        const onOutside = (event) => {
-            if (datePickerRef.current && !datePickerRef.current.contains(event.target)) {
-                setIsDateOpen(false);
-            }
-        };
-        document.addEventListener('mousedown', onOutside);
-        return () => document.removeEventListener('mousedown', onOutside);
-    }, [isDateOpen]);
 
     const formErrors = useMemo(() => {
         const errors = {};
@@ -478,7 +463,7 @@ const Expenses = () => {
         setForm({
             date: format(parseDateSafe(expense.date) || new Date(), 'yyyy-MM-dd'),
             type: expense.type || 'Other',
-            socialPlatform: expense.socialPlatform || 'Facebook',
+            socialPlatform: expense.socialPlatform || '',
             amountIQD: String(expense.amountIQD || ''),
             link: expense.link || '',
             campaign: expense.campaign || '',
@@ -597,7 +582,7 @@ const Expenses = () => {
             const payload = {
                 date: new Date(`${form.date}T12:00:00`).toISOString(),
                 type: form.type,
-                socialPlatform: form.socialPlatform,
+                socialPlatform: SOCIAL_PLATFORM_TYPES.has(form.type) ? (form.socialPlatform || 'Facebook') : '',
                 amountIQD: amount,
                 link: form.link.trim(),
                 campaign: form.campaign.trim(),
@@ -944,83 +929,18 @@ const Expenses = () => {
                                 </div>
                             )}
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
-                                <div className="space-y-2" ref={datePickerRef}>
-                                    <div className="relative">
-                                        <button
-                                            type="button"
-                                            onClick={() => setIsDateOpen((prev) => !prev)}
-                                            aria-label="Date"
-                                            className={`w-full h-12 px-3 rounded-2xl border-2 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-bold flex items-center justify-between gap-2 ${
-                                                showValidationErrors && formErrors.date
-                                                    ? 'border-red-500 ring-4 ring-red-500/10 text-red-500'
-                                                    : 'border-slate-100 dark:border-slate-800'
-                                            }`}
-                                        >
-                                            <span className="inline-flex items-center gap-2 truncate">
-                                                <CalendarDays className="w-4 h-4 text-slate-400" />
-                                                {form.date ? format(parseDateSafe(form.date) || new Date(form.date), 'MM/dd/yyyy') : 'Select date'}
-                                            </span>
-                                            <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isDateOpen ? 'rotate-180' : ''}`} />
-                                        </button>
-                                        {isDateOpen && (
-                                            <div className="absolute start-0 top-full mt-2 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-4 w-[min(340px,calc(100vw-2.5rem))] sm:w-[340px]">
-                                                <DayPicker
-                                                    mode="single"
-                                                    selected={form.date ? parseDateSafe(form.date) : undefined}
-                                                    onSelect={(day) => {
-                                                        if (!day) return;
-                                                        setForm((prev) => ({ ...prev, date: format(day, 'yyyy-MM-dd') }));
-                                                        setIsDateOpen(false);
-                                                    }}
-                                                    showOutsideDays
-                                                    classNames={{
-                                                        months: 'flex',
-                                                        month: 'relative w-full',
-                                                        month_caption: 'relative mb-3 pe-20 h-10 flex items-center',
-                                                        caption: 'm-0 flex items-center',
-                                                        caption_label: 'm-0 leading-none text-xl font-extrabold text-slate-800 dark:text-white',
-                                                        nav: 'absolute right-0 top-0 h-10 z-10 flex items-center gap-1',
-                                                        nav_button: 'h-8 w-8 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center',
-                                                        button_previous: '!static',
-                                                        button_next: '!static',
-                                                        month_grid: 'w-full',
-                                                        weekdays: 'grid grid-cols-7 mb-1',
-                                                        weekday: 'h-10 text-[13px] font-bold text-slate-400 text-center flex items-center justify-center',
-                                                        week: 'grid grid-cols-7',
-                                                        day: 'h-10 w-10 flex items-center justify-center',
-                                                        day_button: 'h-9 w-9 flex items-center justify-center rounded-lg text-[16px] font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors',
-                                                        day_selected: 'bg-accent text-white font-black shadow-md',
-                                                        day_today: 'ring-2 ring-accent/50 font-black',
-                                                        outside: '!text-slate-300 dark:!text-slate-600',
-                                                        day_outside: '!text-slate-300 dark:!text-slate-600'
-                                                    }}
-                                                />
-                                                <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-700">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setForm((prev) => ({ ...prev, date: '' }));
-                                                            setIsDateOpen(false);
-                                                        }}
-                                                        className="text-accent text-sm font-semibold"
-                                                    >
-                                                        Clear
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setForm((prev) => ({ ...prev, date: format(new Date(), 'yyyy-MM-dd') }));
-                                                            setIsDateOpen(false);
-                                                        }}
-                                                        className="text-accent text-sm font-semibold"
-                                                    >
-                                                        Today
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        )}
-                                        <input type="hidden" value={form.date} required readOnly />
-                                    </div>
+                                <div className="space-y-2">
+                                    <AppDatePicker
+                                        value={form.date}
+                                        onChange={(nextDate) => setForm((prev) => ({ ...prev, date: nextDate }))}
+                                        ariaLabel={t('expenses.table.date')}
+                                        placeholder={t('expenses.table.date')}
+                                        maxDate={new Date()}
+                                        allowClear
+                                        showToday
+                                        hasError={Boolean(showValidationErrors && formErrors.date)}
+                                    />
+                                    <input type="hidden" value={form.date} required readOnly />
                                     {showValidationErrors && formErrors.date && <p className="text-[10px] font-semibold text-red-500">{formErrors.date}</p>}
                                 </div>
 
@@ -1029,7 +949,11 @@ const Expenses = () => {
                                         title="Type"
                                         options={expenseTypes.map((type) => ({ value: type, label: type }))}
                                         selectedValue={form.type}
-                                        onChange={(value) => setForm((prev) => ({ ...prev, type: value }))}
+                                        onChange={(value) => setForm((prev) => ({
+                                            ...prev,
+                                            type: value,
+                                            socialPlatform: SOCIAL_PLATFORM_TYPES.has(value) ? (prev.socialPlatform || 'Facebook') : ''
+                                        }))}
                                         icon={Tag}
                                         showSearch={false}
                                     />
@@ -1058,20 +982,22 @@ const Expenses = () => {
                                 <div className="space-y-1">
                                     <input type="text" value={form.campaign} onChange={(e) => setForm((prev) => ({ ...prev, campaign: e.target.value }))} aria-label="Campaign" className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900" placeholder="Campaign" />
                                 </div>
-                                <div className="space-y-2">
-                                    <SearchableSelect
-                                        title="Platform"
-                                        options={[
-                                            { value: 'Facebook', label: 'Facebook' },
-                                            { value: 'Instagram', label: 'Instagram' },
-                                            { value: 'Tiktok', label: 'Tiktok' }
-                                        ]}
-                                        selectedValue={form.socialPlatform}
-                                        onChange={(value) => setForm((prev) => ({ ...prev, socialPlatform: value }))}
-                                        icon={Tag}
-                                        showSearch={false}
-                                    />
-                                </div>
+                                {SOCIAL_PLATFORM_TYPES.has(form.type) && (
+                                    <div className="space-y-2">
+                                        <SearchableSelect
+                                            title="Platform"
+                                            options={[
+                                                { value: 'Facebook', label: 'Facebook' },
+                                                { value: 'Instagram', label: 'Instagram' },
+                                                { value: 'Tiktok', label: 'Tiktok' }
+                                            ]}
+                                            selectedValue={form.socialPlatform || 'Facebook'}
+                                            onChange={(value) => setForm((prev) => ({ ...prev, socialPlatform: value }))}
+                                            icon={Tag}
+                                            showSearch={false}
+                                        />
+                                    </div>
+                                )}
                                 <div className="space-y-2">
                                     <div className="relative">
                                         <Link2 className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />

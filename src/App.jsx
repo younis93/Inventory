@@ -48,9 +48,16 @@ const RoleRoute = ({ roles, children }) => {
     const { user: authUser } = useAuth();
     const persistedRole = getPersistedRole();
     const isResolvingUser = Boolean(authUser) && !settingsUserResolved;
-    const effectiveRole = currentUser?.role || persistedRole || 'Sales';
+    const effectiveRole = currentUser?.role || persistedRole || '';
+    const isLocalDev = typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname);
 
     if ((settingsLoading || isResolvingUser) && !persistedRole) return <FullScreenLoading />;
+
+    // Localhost fallback: if auth exists but user-role document has not resolved,
+    // do not hard-block route access during local development.
+    if (!effectiveRole && isLocalDev && authUser) {
+        return children;
+    }
 
     if (!roles.includes(effectiveRole)) {
         return <Navigate to="/orders" replace />;

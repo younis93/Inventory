@@ -1,6 +1,6 @@
 import React from 'react';
 import { format } from 'date-fns';
-import { Edit, ShoppingBag } from 'lucide-react';
+import { Edit, ShoppingBag, Trash2 } from 'lucide-react';
 
 const CustomerTableRow = ({
     customer,
@@ -10,7 +10,8 @@ const CustomerTableRow = ({
     getCustomerStats,
     getValidDate,
     onOpenHistory,
-    onOpenEdit
+    onOpenEdit,
+    onOpenDelete
 }) => {
     const customerId = customer?._id || customer?.id;
     const customerStats = getCustomerStats(customerId);
@@ -60,6 +61,15 @@ const CustomerTableRow = ({
                     title="Edit"
                 >
                     <Edit className="w-4 h-4" />
+                </button>
+                <button
+                    type="button"
+                    onClick={() => onOpenDelete(customer)}
+                    aria-label="Delete customer"
+                    className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all"
+                    title="Delete"
+                >
+                    <Trash2 className="w-4 h-4" />
                 </button>
             </div>
         </div>

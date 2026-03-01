@@ -433,7 +433,7 @@ const UserManagement = () => {
                             </div>
 
                             <div className="flex gap-3 mt-2 pt-4 border-t border-slate-100 dark:border-slate-700">
-                                <button type="button" onClick={() => setIsAddUserModalOpen(false)} className="flex-1 py-3 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition-colors">
+                                <button type="button" onClick={() => setIsAddUserModalOpen(false)} className="hidden flex-1 py-3 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition-colors sm:block">
                                     {t('common.cancel')}
                                 </button>
                                 <button

@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Calendar, Info, Link as LinkIcon, MessageSquare, Package, Save, ShoppingBag, Upload, X } from 'lucide-react';
+import { Info, Link as LinkIcon, MessageSquare, Package, Save, ShoppingBag, Upload, X } from 'lucide-react';
 import SearchableSelect from '../SearchableSelect';
 import FilterDropdown from '../FilterDropdown';
 import ImageWithFallback from '../common/ImageWithFallback';
+import AppDatePicker from '../common/AppDatePicker';
 import { useModalA11y } from '../../hooks/useModalA11y';
 import { normalizePurchaseStatus } from '../../hooks/domains/purchaseUtils';
 import { getProductCategories, normalizeCategoryValues } from '../../utils/productCategories';
@@ -446,10 +447,15 @@ const PurchaseFormModal = ({
                         </div>
                         <div>
                             <label className="mb-1 block text-xs font-semibold uppercase text-slate-500">{t('purchases.form.statusDate')}</label>
-                            <div className="relative">
-                                <Calendar className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                                <input type="date" max={todayIso()} value={form.statusDate} onChange={(event) => updateForm({ statusDate: event.target.value })} disabled={Boolean(editingPurchase)} className="h-[44px] w-full rounded-xl border border-slate-200 bg-slate-50 ps-10 pe-3 text-sm font-bold outline-none transition focus:border-[var(--brand-color)]/40 focus:ring-2 focus:ring-[var(--brand-color)]/20" />
-                            </div>
+                            <AppDatePicker
+                                value={form.statusDate}
+                                onChange={(nextDate) => updateForm({ statusDate: nextDate })}
+                                ariaLabel={t('purchases.form.statusDate')}
+                                placeholder={t('purchases.form.statusDate')}
+                                maxDate={new Date()}
+                                disabled={Boolean(editingPurchase)}
+                                hasError={Boolean(submitAttempted && validationErrors.statusDate)}
+                            />
                             {submitAttempted && validationErrors.statusDate && <p className="mt-1 text-[11px] font-semibold text-red-500">{validationErrors.statusDate}</p>}
                         </div>
                     </section>
@@ -633,7 +639,7 @@ const PurchaseFormModal = ({
                 </form>
 
                 <div className="sticky bottom-0 z-20 flex flex-wrap items-center justify-end gap-3 border-t border-slate-100 bg-white px-6 py-5 dark:border-slate-700 dark:bg-slate-800 sm:flex-nowrap">
-                    <button type="button" onClick={onClose} className="order-2 w-full rounded-xl px-5 py-2.5 text-base font-bold text-slate-500 transition hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-700 sm:order-1 sm:w-auto">{t('common.cancel')}</button>
+                    <button type="button" onClick={onClose} className="order-2 hidden w-full rounded-xl px-5 py-2.5 text-base font-bold text-slate-500 transition hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-700 sm:order-1 sm:inline-flex sm:w-auto">{t('common.cancel')}</button>
                     <button type="submit" form="purchase-form" disabled={isSubmitting || !canManage} className="order-1 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-7 py-2.5 text-base font-black text-white shadow-accent transition active:scale-95 disabled:opacity-60 sm:order-2 sm:w-auto">
                         <Save className="h-5 w-5" />
                         {isSubmitting ? (t('common.loading') || 'Loading...') : (editingPurchase ? t('purchases.updatePurchase') : t('purchases.createPurchase'))}

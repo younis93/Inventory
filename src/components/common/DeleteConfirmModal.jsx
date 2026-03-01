@@ -39,15 +39,7 @@ const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, title, message }) => {
                         {message || t('common.confirmDelete')}
                     </p>
 
-                    <div className="grid grid-cols-2 gap-3">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            aria-label={t('common.cancel')}
-                            className="py-3 px-4 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 font-bold rounded-2xl transition-all active:scale-95 text-sm"
-                        >
-                            {t('common.cancel')}
-                        </button>
+                    <div className="grid grid-cols-1 gap-3">
                         <button
                             type="button"
                             onClick={() => {

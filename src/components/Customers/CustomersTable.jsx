@@ -24,6 +24,7 @@ const CustomersTable = ({
     getValidDate,
     onOpenHistory,
     onOpenEdit,
+    onOpenDelete,
     columnSort,
     onColumnSort
 }) => {
@@ -114,6 +115,7 @@ const CustomersTable = ({
                                 getValidDate={getValidDate}
                                 onOpenHistory={onOpenHistory}
                                 onOpenEdit={onOpenEdit}
+                                onOpenDelete={onOpenDelete}
                             />
                         );
                     }}

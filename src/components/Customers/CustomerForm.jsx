@@ -190,13 +190,13 @@ const CustomerForm = ({
                 </div>
                 <div className={`px-6 pt-0 pb-8 sm:pb-6 mt-auto border-t border-slate-100 dark:border-slate-700 ${['liquid', 'default_glass'].includes(appearanceTheme) ? 'bg-white/20 dark:bg-slate-900/20 backdrop-blur-md' : 'bg-white dark:bg-slate-800'}`}>
                     <div className="flex gap-4 pt-4">
-                        <button type="button" onClick={onClose} className="flex-1 py-3 border-2 border-slate-100 dark:border-slate-800 rounded-2xl font-black text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all active:scale-95">
+                        <button type="button" onClick={onClose} className="hidden flex-1 py-3 border-2 border-slate-100 dark:border-slate-800 rounded-2xl font-black text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all active:scale-95 sm:block">
                             {t('common.cancel')}
                         </button>
                         <button
                             onClick={() => document.getElementById('customer-form').requestSubmit()}
                             disabled={hasValidationErrors && showValidation}
-                            className="flex-2 py-3 text-white rounded-2xl font-black transition-all active:scale-95 bg-accent shadow-accent hover:brightness-110 flex-[2]"
+                            className="flex-1 py-3 text-white rounded-2xl font-black transition-all active:scale-95 bg-accent shadow-accent hover:brightness-110 sm:flex-[2]"
                         >
                             {editingCustomer ? t('customers.form.save') : t('customers.form.register')}
                         </button>

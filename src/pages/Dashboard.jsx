@@ -1,6 +1,6 @@
 import React, { useCallback, useState, useMemo } from 'react';
 import Layout from '../components/Layout';
-import { useExpenses, useInventory, useOrders, useProducts } from '../context/InventoryContext';
+import { useCustomers, useExpenses, useInventory, useOrders, useProducts } from '../context/InventoryContext';
 import { DollarSign, ShoppingCart, TrendingUp, Users, MapPin, Package, AlertCircle, Globe, ShoppingBag, Maximize2 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar, Legend } from 'recharts';
 import DateRangePicker from '../components/DateRangePicker';
@@ -15,24 +15,49 @@ import { useTranslation } from 'react-i18next';
 import Skeleton from '../components/common/Skeleton';
 import { getProductCategories, productMatchesAnyCategory } from '../utils/productCategories';
 
-const parseOrderDateSafe = (value) => {
+const parseAnyDateSafe = (value) => {
     if (!value) return null;
+
+    if (value instanceof Date) {
+        return Number.isNaN(value.getTime()) ? null : value;
+    }
+
+    if (typeof value === 'number') {
+        const fromNumber = new Date(value);
+        return Number.isNaN(fromNumber.getTime()) ? null : fromNumber;
+    }
+
+    if (typeof value === 'object') {
+        if (typeof value.toDate === 'function') {
+            const fromToDate = value.toDate();
+            return fromToDate instanceof Date && !Number.isNaN(fromToDate.getTime()) ? fromToDate : null;
+        }
+        if (Number.isFinite(value.seconds)) {
+            const fromSeconds = new Date(value.seconds * 1000);
+            return Number.isNaN(fromSeconds.getTime()) ? null : fromSeconds;
+        }
+        if (Number.isFinite(value._seconds)) {
+            const fromLegacySeconds = new Date(value._seconds * 1000);
+            return Number.isNaN(fromLegacySeconds.getTime()) ? null : fromLegacySeconds;
+        }
+    }
+
     try {
-        const parsed = parseISO(value);
-        return Number.isNaN(parsed.getTime()) ? null : parsed;
+        const parsedISO = parseISO(String(value));
+        if (!Number.isNaN(parsedISO.getTime())) return parsedISO;
+        const parsedNative = new Date(value);
+        return Number.isNaN(parsedNative.getTime()) ? null : parsedNative;
     } catch {
         return null;
     }
 };
 
+const parseOrderDateSafe = (value) => {
+    return parseAnyDateSafe(value);
+};
+
 const parseExpenseDateSafe = (value) => {
-    if (!value) return null;
-    try {
-        const parsed = parseISO(value);
-        return Number.isNaN(parsed.getTime()) ? null : parsed;
-    } catch {
-        return null;
-    }
+    return parseAnyDateSafe(value);
 };
 
 const LOW_STOCK_THRESHOLD = 10;
@@ -40,9 +65,28 @@ const LOW_STOCK_THRESHOLD = 10;
 const Dashboard = () => {
     const { t } = useTranslation();
     const { orders } = useOrders();
+    const { customers } = useCustomers();
     const { expenses } = useExpenses();
     const { products, categories } = useProducts();
     const { loading, formatCurrency, brand, theme, appearance } = useInventory();
+
+    const productsById = useMemo(() => {
+        const map = new Map();
+        (products || []).forEach((product) => {
+            const id = product?._id || product?.id;
+            if (id) map.set(String(id), product);
+        });
+        return map;
+    }, [products]);
+
+    const customersById = useMemo(() => {
+        const map = new Map();
+        (customers || []).forEach((customer) => {
+            const id = customer?._id || customer?.id;
+            if (id) map.set(String(id), customer);
+        });
+        return map;
+    }, [customers]);
 
     const normalizedOrders = useMemo(() => {
         return orders
@@ -50,20 +94,26 @@ const Dashboard = () => {
                 const parsedDate = parseOrderDateSafe(order.date);
                 if (!parsedDate) return null;
 
+                const resolvedCustomerId = order?.customerId || order?.customer?._id || order?.customer?.id;
+                const mappedCustomer = resolvedCustomerId ? customersById.get(String(resolvedCustomerId)) : null;
+                const customer = mappedCustomer || order?.customer || {};
+
                 const categorySet = new Set();
                 (order.items || []).forEach((item) => {
-                    const itemCategories = getProductCategories(item?.product || {});
+                    const mappedProduct = (item?.productId && productsById.get(String(item.productId))) || null;
+                    const itemCategories = getProductCategories(item?.product || mappedProduct || {});
                     itemCategories.forEach((category) => categorySet.add(category));
                 });
 
                 return {
                     ...order,
+                    customer,
                     _parsedDate: parsedDate,
                     _categorySet: categorySet
                 };
             })
             .filter(Boolean);
-    }, [orders]);
+    }, [orders, customersById, productsById]);
 
     // Filters State
     const minDate = useMemo(() => {

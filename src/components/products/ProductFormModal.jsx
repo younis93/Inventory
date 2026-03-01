@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Info, MessageSquare, Package, Save, ShoppingBag, Upload, X } from 'lucide-react';
 import ImageWithFallback from '../common/ImageWithFallback';
+import AppDatePicker from '../common/AppDatePicker';
 import SearchableSelect from '../SearchableSelect';
 import FilterDropdown from '../FilterDropdown';
 import { useModalA11y } from '../../hooks/useModalA11y';
@@ -372,13 +373,13 @@ const ProductFormModal = ({
                                             <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1">
                                                 {t('products.form.initialReceivedDate')}
                                             </label>
-                                            <input
-                                                type="date"
-                                                name="initialPurchaseDate"
-                                                max={todayIso()}
+                                            <AppDatePicker
                                                 value={formData.initialPurchaseDate || ''}
-                                                onChange={handleInputChange}
-                                                className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--brand-color)]/20 outline-none dark:text-white transition-all shadow-sm"
+                                                onChange={(nextDate) => handleInputChange({ target: { name: 'initialPurchaseDate', value: nextDate } })}
+                                                ariaLabel={t('products.form.initialReceivedDate')}
+                                                placeholder={t('products.form.initialReceivedDate')}
+                                                maxDate={new Date()}
+                                                hasError={Boolean(validationErrors.initialPurchaseDate)}
                                             />
                                             {renderFieldError('initialPurchaseDate')}
                                         </div>
@@ -696,7 +697,7 @@ const ProductFormModal = ({
                             <button
                                 type="button"
                                 onClick={() => onClose()}
-                                className="px-4 sm:px-6 py-2.5 text-slate-500 dark:text-slate-400 font-bold hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl transition-all"
+                                className="hidden px-4 py-2.5 text-slate-500 dark:text-slate-400 font-bold hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl transition-all sm:inline-flex sm:px-6"
                             >
                                 {t('common.cancel')}
                             </button>

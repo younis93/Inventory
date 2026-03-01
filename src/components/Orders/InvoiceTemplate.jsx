@@ -1,3 +1,14 @@
+const MONTHS_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+const formatInvoiceDate = (value) => {
+    const parsed = new Date(value || Date.now());
+    if (Number.isNaN(parsed.getTime())) return '';
+    const year = parsed.getFullYear();
+    const month = MONTHS_EN[parsed.getMonth()] || '';
+    const day = String(parsed.getDate()).padStart(2, '0');
+    return `${year} ${month} ${day}`;
+};
+
 const InvoiceTemplate = ({ order, brand, formatCurrency }) => {
     const accentColor = brand?.color || '#1e3a5f';
     const brandName = brand?.name || 'Invoice';
@@ -17,6 +28,8 @@ const InvoiceTemplate = ({ order, brand, formatCurrency }) => {
             <td style="padding:10px 12px;text-align:right;font-weight:800;color:#1e293b;">${formatCurrency(item.price * item.quantity)}</td>
         </tr>`).join('');
 
+    const formattedDate = formatInvoiceDate(order?.date);
+
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -26,7 +39,8 @@ const InvoiceTemplate = ({ order, brand, formatCurrency }) => {
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:Segoe UI,Arial,sans-serif;background:#fff;color:#1a1a2e;}
-.page{width:210mm;min-height:297mm;margin:0 auto;background:#fff;}
+@page{size:A4;margin:10mm;}
+.page{width:190mm;min-height:277mm;margin:0 auto;background:#fff;}
 .header{padding:24px 36px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:flex-start;}
 .brand{display:flex;gap:12px;align-items:center;}
 .band{padding:12px 36px;background:#f8fafc;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;}
@@ -51,17 +65,17 @@ thead th{padding:10px 12px;color:#fff;font-size:10px;text-align:left;}
             </div>
         </div>
         <div style="text-align:right;">
-            <div style="font-size:34px;font-weight:900;color:${accentColor};">INVOICE</div>
+            <div style="font-size:34px;font-weight:900;color:${accentColor};">INVOICE / فاتورة</div>
             <div style="font-size:12px;color:#64748b;">${order.orderId}</div>
         </div>
     </div>
     <div class="band">
         <div>
-            <div style="font-size:11px;color:#64748b;">Date</div>
-            <div style="font-size:14px;font-weight:700;color:#334155;">${order.date}</div>
+            <div style="font-size:11px;color:#64748b;">Date / التاريخ</div>
+            <div style="font-size:14px;font-weight:700;color:#334155;">${formattedDate}</div>
         </div>
         <div style="text-align:right;">
-            <div style="font-size:11px;color:#64748b;">Billed To</div>
+            <div style="font-size:11px;color:#64748b;">Billed To / الفاتورة إلى</div>
             <div style="font-size:14px;font-weight:700;color:#334155;">${order.customer?.name || ''}</div>
             <div style="font-size:11px;color:#64748b;">${order.customer?.phone || ''}</div>
         </div>
@@ -71,10 +85,10 @@ thead th{padding:10px 12px;color:#fff;font-size:10px;text-align:left;}
             <thead>
                 <tr>
                     <th>#</th>
-                    <th>Description</th>
-                    <th style="text-align:center;">Qty</th>
-                    <th style="text-align:right;">Unit Price</th>
-                    <th style="text-align:right;">Total</th>
+                    <th>Description / الوصف</th>
+                    <th style="text-align:center;">Qty / الكمية</th>
+                    <th style="text-align:right;">Unit Price / سعر الوحدة</th>
+                    <th style="text-align:right;">Total / الإجمالي</th>
                 </tr>
             </thead>
             <tbody>${itemRows}</tbody>
@@ -83,16 +97,16 @@ thead th{padding:10px 12px;color:#fff;font-size:10px;text-align:left;}
     <div class="totals">
         <div class="totals-box">
             <div class="totals-row">
-                <span>Subtotal</span>
+                <span>Subtotal / المجموع الفرعي</span>
                 <span>${formatCurrency(subtotal)}</span>
             </div>
             ${order.discount > 0 ? `
             <div class="totals-row" style="color:#dc2626;">
-                <span>Discount (${order.discount}%)</span>
+                <span>Discount / الخصم (${order.discount}%)</span>
                 <span>-${formatCurrency(discountAmount)}</span>
             </div>` : ''}
             <div class="grand">
-                <span>Grand Total</span>
+                <span>Grand Total / الإجمالي النهائي</span>
                 <span style="font-size:22px;">${formatCurrency(total)}</span>
             </div>
         </div>

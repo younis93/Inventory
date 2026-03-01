@@ -68,7 +68,7 @@ const readAppearanceFromStorage = (storageKey) => {
     return DEFAULT_APPEARANCE;
 };
 
-const DEFAULT_EXPENSE_TYPES = ['Social Media Post', 'Social Media Reels', 'Other'];
+const DEFAULT_EXPENSE_TYPES = ['Social Media Ads', 'Social Media Post', 'Transport', 'festival Booth', 'Other'];
 
 const DEFAULT_BRAND = {
     name: 'Gem Toys',
@@ -119,7 +119,8 @@ export const useCustomers = () => {
     return {
         customers: context.customers,
         addCustomer: context.addCustomer,
-        updateCustomer: context.updateCustomer
+        updateCustomer: context.updateCustomer,
+        deleteCustomer: context.deleteCustomer
     };
 };
 
@@ -232,7 +233,7 @@ export const InventoryProvider = ({ children }) => {
     const enabledDomains = useMemo(() => ({
         products: domainSubscribers.products > 0,
         orders: domainSubscribers.orders > 0,
-        customers: domainSubscribers.customers > 0,
+        customers: domainSubscribers.customers > 0 || domainSubscribers.orders > 0,
         expenses: domainSubscribers.expenses > 0,
         purchases: domainSubscribers.purchases > 0,
         settings: domainSubscribers.settings > 0
@@ -567,6 +568,7 @@ export const InventoryProvider = ({ children }) => {
                 customers: customersDomain.customers,
                 addCustomer: customersDomain.addCustomer,
                 updateCustomer: customersDomain.updateCustomer,
+                deleteCustomer: customersDomain.deleteCustomer,
                 expenses: expensesDomain.expenses,
                 addExpense: expensesDomain.addExpense,
                 updateExpense: expensesDomain.updateExpense,

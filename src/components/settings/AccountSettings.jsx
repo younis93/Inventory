@@ -165,7 +165,7 @@ const AccountSettings = () => {
                             <CheckCircle className="w-4 h-4" />
                             {t('settings.saveChanges')}
                         </button>
-                        <button type="button" onClick={() => { setDisplayName(authUser?.displayName || ''); setIsEditingProfile(false); }} className="px-5 py-2.5 font-bold rounded-xl border border-slate-200 dark:border-slate-700">
+                        <button type="button" onClick={() => { setDisplayName(authUser?.displayName || ''); setIsEditingProfile(false); }} className="hidden px-5 py-2.5 font-bold rounded-xl border border-slate-200 dark:border-slate-700 sm:inline-flex">
                             {t('common.cancel')}
                         </button>
                     </>

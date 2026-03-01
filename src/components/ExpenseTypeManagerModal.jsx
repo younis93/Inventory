@@ -4,7 +4,7 @@ import DeleteConfirmModal from './common/DeleteConfirmModal';
 import { useInventory } from '../context/InventoryContext';
 import { useModalA11y } from '../hooks/useModalA11y';
 
-const DEFAULT_TYPES = ['Social Media Post', 'Social Media Reels', 'Other'];
+const DEFAULT_TYPES = ['Social Media Ads', 'Social Media Post', 'Transport', 'festival Booth', 'Other'];
 
 const ExpenseTypeManagerModal = ({ expenseTypes, expenses, onClose, onSaveTypes }) => {
     const { addToast } = useInventory();

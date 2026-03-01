@@ -98,9 +98,11 @@ const Orders = () => {
     const [newOrder, setNewOrder] = useState(INITIAL_ORDER_STATE);
     const [selectedProductId, setSelectedProductId] = useState('');
     const [qty, setQty] = useState(1);
+    const [inlineDateUpdatingOrderId, setInlineDateUpdatingOrderId] = useState('');
     const [isMobileView, setIsMobileView] = useState(() => (typeof window !== 'undefined' ? window.innerWidth < 640 : false));
     const normalizedSearchTerm = searchTerm.trim().toLowerCase();
     const canManageOrderActions = settingsUserResolved && (currentUser?.role === 'Admin' || currentUser?.role === 'Manager');
+    const canInlineOrderDateEdit = settingsUserResolved && currentUser?.role === 'Admin';
     const orders = allOrders;
 
     const orderDateMap = useMemo(() => {
@@ -542,6 +544,37 @@ const Orders = () => {
 
     const canDeleteOrder = (order) => canEditOrder(order);
 
+    const handleInlineOrderDateUpdate = async (order, nextDateIso) => {
+        if (!canInlineOrderDateEdit || !order || !nextDateIso) return;
+
+        const currentDate = orderDateMap.get(order._id);
+        if (dayKey(currentDate) === nextDateIso) return;
+
+        const parsedNextDate = parseOrderDateSafe(`${nextDateIso}T12:00:00`);
+        if (!parsedNextDate) {
+            addToast('Invalid date selected.', 'error');
+            return;
+        }
+
+        if (nextDateIso > dayKey(new Date())) {
+            addToast('Date cannot be in the future.', 'error');
+            return;
+        }
+
+        try {
+            setInlineDateUpdatingOrderId(order._id);
+            await updateOrder({
+                ...order,
+                date: parsedNextDate.toISOString()
+            });
+        } catch (error) {
+            console.error('Failed to update order date:', error);
+            addToast('Failed to update order date.', 'error');
+        } finally {
+            setInlineDateUpdatingOrderId('');
+        }
+    };
+
     const notifyPrintResult = (result) => {
         if (!result) return;
         if (result.status === 'timeout') {
@@ -711,6 +744,9 @@ const Orders = () => {
                         onRequestReturn={handleRequestReturn}
                         canDeleteOrder={canDeleteOrder}
                         onRequestDelete={handleRequestDelete}
+                        canEditDateInline={canInlineOrderDateEdit}
+                        onUpdateOrderDate={handleInlineOrderDateUpdate}
+                        inlineDateUpdatingOrderId={inlineDateUpdatingOrderId}
                     />
                 )}
             </div>

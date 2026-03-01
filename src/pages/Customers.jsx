@@ -12,6 +12,7 @@ import CustomersHeader from '../components/Customers/CustomersHeader';
 import CustomersTable from '../components/Customers/CustomersTable';
 import OrderHistoryModal from '../components/Customers/OrderHistoryModal';
 import { printReceipt } from '../components/Orders/ReceiptPrinter';
+import DeleteConfirmModal from '../components/common/DeleteConfirmModal';
 
 const INITIAL_FORM_STATE = {
     name: '',
@@ -28,7 +29,7 @@ const getCustomerId = (customer) => customer?._id || customer?.id || '';
 
 const Customers = () => {
     const { t } = useTranslation();
-    const { customers: allCustomers, addCustomer, updateCustomer } = useCustomers();
+    const { customers: allCustomers, addCustomer, updateCustomer, deleteCustomer } = useCustomers();
     const { orders: allOrders } = useOrders();
     const {
         formatCurrency,
@@ -56,13 +57,15 @@ const Customers = () => {
     const [viewMode, setViewMode] = useState('table');
     const [displayLimit, setDisplayLimit] = useState(100);
     const [formData, setFormData] = useState(INITIAL_FORM_STATE);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [customerToDelete, setCustomerToDelete] = useState(null);
     const canExportCustomers = settingsUserResolved && (currentUser?.role === 'Admin' || currentUser?.role === 'Manager');
     const customers = allCustomers;
 
     useEffect(() => {
-        setGlobalModalOpen(isModalOpen || isOrderHistoryOpen);
+        setGlobalModalOpen(isModalOpen || isOrderHistoryOpen || isDeleteModalOpen);
         return () => setGlobalModalOpen(false);
-    }, [isModalOpen, isOrderHistoryOpen, setGlobalModalOpen]);
+    }, [isModalOpen, isOrderHistoryOpen, isDeleteModalOpen, setGlobalModalOpen]);
 
     const minDate = useMemo(() => {
         if (customers.length === 0) return subDays(new Date(), 90);
@@ -324,6 +327,23 @@ const Customers = () => {
         setExpandedOrderId(null);
     };
 
+    const handleOpenDelete = (customer) => {
+        setCustomerToDelete(customer);
+        setIsDeleteModalOpen(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        const customerId = getCustomerId(customerToDelete);
+        if (!customerId) return;
+        await deleteCustomer(customerId);
+        setIsDeleteModalOpen(false);
+        setCustomerToDelete(null);
+        if (selectedCustomer && getCustomerId(selectedCustomer) === customerId) {
+            setIsOrderHistoryOpen(false);
+            setSelectedCustomer(null);
+        }
+    };
+
     const handleSubmit = (event) => {
         event.preventDefault();
         if (editingCustomer) {
@@ -431,6 +451,7 @@ const Customers = () => {
                         getValidDate={getValidDate}
                         onOpenHistory={handleOpenHistory}
                         onOpenEdit={handleOpenEdit}
+                        onOpenDelete={handleOpenDelete}
                         columnSort={columnSort}
                         onColumnSort={handleColumnSort}
                     />
@@ -471,6 +492,17 @@ const Customers = () => {
                 formatCurrency={formatCurrency}
                 onClose={() => setIsOrderHistoryOpen(false)}
                 onPrintOrder={handlePrintOrder}
+            />
+
+            <DeleteConfirmModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => {
+                    setIsDeleteModalOpen(false);
+                    setCustomerToDelete(null);
+                }}
+                onConfirm={handleConfirmDelete}
+                title={t('common.delete')}
+                message={t('common.confirmDelete')}
             />
         </Layout>
     );

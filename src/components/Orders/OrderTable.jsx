@@ -3,6 +3,7 @@ import { FixedSizeList as List } from 'react-window';
 import { format, parseISO } from 'date-fns';
 import { Download, Edit, Eye, Printer, ShoppingBag, Trash2 } from 'lucide-react';
 import Skeleton from '../common/Skeleton';
+import AppDatePicker from '../common/AppDatePicker';
 import StatusCell from './StatusCell';
 import { useTranslation } from 'react-i18next';
 
@@ -44,7 +45,10 @@ const OrderTable = ({
     onThermalPrint,
     onRequestReturn,
     canDeleteOrder,
-    onRequestDelete
+    onRequestDelete,
+    canEditDateInline = false,
+    onUpdateOrderDate,
+    inlineDateUpdatingOrderId = ''
 }) => {
     const { i18n } = useTranslation();
     const isRTL = i18n.dir() === 'rtl';
@@ -131,7 +135,21 @@ const OrderTable = ({
                                     <div className="text-sm font-medium text-slate-800 dark:text-white truncate">{order.customer.name}</div>
                                     <div className="text-xs text-slate-500 truncate">{order.customer.phone}</div>
                                 </div>
-                                <div className="text-sm text-slate-600 dark:text-slate-400 truncate">{formatOrderDate(order.date)}</div>
+                                <div className="relative overflow-visible text-sm text-slate-600 dark:text-slate-400">
+                                    {canEditDateInline ? (
+                                        <AppDatePicker
+                                            value={order.date}
+                                            onChange={(nextDate) => onUpdateOrderDate?.(order, nextDate)}
+                                            ariaLabel={t('orders.table.date')}
+                                            placeholder={t('orders.table.date')}
+                                            maxDate={new Date()}
+                                            disabled={inlineDateUpdatingOrderId === order._id}
+                                            className="max-w-[210px]"
+                                        />
+                                    ) : (
+                                        formatOrderDate(order.date)
+                                    )}
+                                </div>
                                 <div className="text-sm font-bold text-slate-800 dark:text-white truncate">{formatCurrency(order.total)}</div>
                                 <div>
                                     <StatusCell order={order} onUpdate={onUpdateStatus} onRequestReturn={onRequestReturn} />
